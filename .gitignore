@@ -1,0 +1,34 @@
+# Build & Compiled artifacts
+/build
+/app/build
+*.apk
+*.aar
+*.aab
+*.dex
+*.class
+
+# Kotlin Caches
+.kotlin/
+
+# Gradle directory & caches
+.gradle/
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+captures/
+.externalNativeBuild
+.cxx/
+
+# Local configuration & paths (Do NOT commit to Git)
+local.properties
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# Optional: Firebase / Google Services config (Ignore if repo is public)
+# google-services.json

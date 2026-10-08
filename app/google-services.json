@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443292712733",
+    "project_id": "noxapp-ebdcf",
+    "storage_bucket": "noxapp-ebdcf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443292712733:android:fffa5425f2d712d3b52bf4",
+        "android_client_info": {
+          "package_name": "com.example.noxapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJzJAXIncJhV8C-GRfLNp_qkBgCji7Uf0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
