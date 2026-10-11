@@ -43,7 +43,8 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     implementation(platform("com.google.firebase:firebase-bom:35.0.0"))
 
-    // TODO: Add the dependencies for Firebase products you want to use
-    // When using the BoM, don't specify versions in Firebase dependencies
-    // https://firebase.google.com/docs/android/setup#available-libraries
+    implementation("com.google.firebase:firebase-auth")       // signup / login / verification
+    implementation("com.google.firebase:firebase-firestore")  // users/{uid} profile docs
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2") // lets us .await() Firebase calls
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4")                // lifecycleScope
 }
