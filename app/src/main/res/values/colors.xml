@@ -2,4 +2,40 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <!-- NOX Color Palette -->
+    <!-- Main headings, product titles, body text, prices -->
+    <color name="nox_dark_green">#23392F</color>
+
+    <!-- Primary buttons, selected navigation icons, active tabs -->
+    <color name="nox_primary_green">#2F6B4F</color>
+
+    <!-- Main cream background across the app -->
+    <color name="nox_cream_bg">#FBF6EA</color>
+
+    <!-- Browse action card, green product cards, avatar -->
+    <color name="nox_card_green">#A7C8B1</color>
+
+    <!-- Post action card, pink product cards, listing backgrounds -->
+    <color name="nox_card_pink">#D9A99C</color>
+
+    <!-- Bottom navigation bar -->
+    <color name="nox_nav_bg">#FFEBC3</color>
+
+    <!-- Search bars, text fields, white-cream cards -->
+    <color name="nox_field_bg">#FFFCF6</color>
+
+    <!-- Category backgrounds, filters, inactive selections -->
+    <color name="nox_chip_bg">#E8F0E5</color>
+
+    <!-- Post page photo-upload box, map accents -->
+    <color name="nox_accent_green">#88B897</color>
+
+    <!-- Pink category circles, condition badges -->
+    <color name="nox_accent_pink">#E7B6A9</color>
+
+    <!-- Secondary grey-green text details -->
+    <color name="nox_subtext">#69746B</color>
+
+    <!-- Muted neutral details (seller info) -->
+    <color name="nox_muted">#8C7F6A</color>
 </resources>

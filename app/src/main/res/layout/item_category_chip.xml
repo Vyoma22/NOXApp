@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="16dp"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <androidx.cardview.widget.CardView
+        android:id="@+id/categoryIconCard"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        app:cardBackgroundColor="@color/nox_chip_bg"
+        app:cardCornerRadius="26dp"
+        app:cardElevation="0dp">
+
+        <ImageView
+            android:id="@+id/categoryIconView"
+            android:layout_width="26dp"
+            android:layout_height="26dp"
+            android:layout_gravity="center"
+            android:contentDescription="Category Icon"
+            android:tint="@color/nox_dark_green"
+            android:src="@android:drawable/ic_menu_agenda" />
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:id="@+id/categoryNameView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="All"
+        android:textColor="@color/nox_dark_green"
+        android:textSize="12sp" />
+</LinearLayout>
