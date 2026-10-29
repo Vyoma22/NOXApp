@@ -148,11 +148,19 @@ class MapActivityTest {
     }
 
     @Test
-    fun centerPinRemainsVisibleInBothOrientations() {
+    fun centerPinTargetsViewportCenterInBothOrientations() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
-            onView(withContentDescription("Map center")).check(matches(isDisplayed()))
-            scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
-            onView(withContentDescription("Map center")).check(matches(isDisplayed()))
+            for (orientation in listOf(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE)) {
+                scenario.onActivity { it.requestedOrientation = orientation }
+                onView(withContentDescription("Map center")).check(matches(isDisplayed()))
+                scenario.onActivity {
+                    val map = it.findViewById<View>(R.id.campusMap)
+                    val pin = it.findViewById<View>(R.id.mapCenterPin)
+                    assertEquals(map.x + map.width / 2f, pin.x + pin.width / 2f, 1f)
+                    assertEquals(map.y + map.height / 2f, pin.y + pin.height, 1f)
+                    assertFalse("The pin must not intercept map gestures", pin.isClickable)
+                }
+            }
         }
     }
 

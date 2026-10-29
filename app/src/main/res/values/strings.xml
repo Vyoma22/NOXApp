@@ -58,6 +58,13 @@
     <string name="my_location">My Location</string>
     <string name="search_this_area">Search this area</string>
     <string name="map_center">Map center</string>
+    <string name="location_search_hint">Search for a place or address</string>
+    <string name="location_search_action">Search location</string>
+    <string name="location_search_required">Enter a place or address</string>
+    <string name="location_search_loading">Searching for locations…</string>
+    <string name="location_search_results">Choose a location</string>
+    <string name="location_search_empty">No locations found. Try a different search.</string>
+    <string name="location_search_error">Location search unavailable. Check your connection and try again.</string>
     <string name="radius_label">Radius: %1$s km</string>
     <string name="items_in_area">Items in This Area</string>
     <string name="no_items_in_radius">No items within %1$s km</string>

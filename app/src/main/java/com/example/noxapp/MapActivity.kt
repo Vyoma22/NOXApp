@@ -8,26 +8,33 @@ import android.content.res.Configuration
 import android.graphics.Canvas
 import android.os.Bundle
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
+import androidx.core.widget.doAfterTextChanged
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
 import com.example.noxapp.data.ListingRepo
+import com.example.noxapp.data.LocationSearch
 import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.ui.ItemDetailDialog
@@ -47,9 +54,14 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
 import java.text.NumberFormat
 import kotlin.math.asin
 import kotlin.math.cos
@@ -60,6 +72,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var circle: Circle? = null
     private val markers = mutableListOf<Marker>()
     private var listings = emptyList<Listing>()
+    private var listingsError = false
     private var savedIds = mutableSetOf<String>()
     private lateinit var adapter: ListingAdapter
     private lateinit var segments: MaterialButtonToggleGroup
@@ -73,6 +86,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var restoredCamera = false
     private var saveInProgress = false
     private var navigation: String? = null
+    private var searchJob: Job? = null
+    private var searchResultsDialog: AlertDialog? = null
 
     private val locationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -89,7 +104,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         preferenceMode = intent.getStringExtra(EXTRA_MODE) == MODE_PREFERENCE
         arrangeLayout()
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mapRoot)) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
@@ -106,6 +121,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
         if (!preferenceMode) setupItems()
         setupControls()
+        setupLocationSearch()
         setupNavigation()
         refreshArea()
         (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
@@ -153,6 +169,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             layoutManager = LinearLayoutManager(this@MapActivity, LinearLayoutManager.HORIZONTAL, false)
             adapter = this@MapActivity.adapter
         }
+        findViewById<View>(R.id.mapRetryButton).setOnClickListener { loadListings() }
     }
 
     private fun setupControls() {
@@ -162,6 +179,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             if (checked) {
                 usesMyLocation = checkedId == R.id.myLocationButton
                 if (usesMyLocation) {
+                    cancelSearch()
                     locationPending = true
                     if (hasLocationPermission()) locateDevice() else locationPermission.launch(arrayOf(
                         Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
@@ -207,6 +225,78 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun setupLocationSearch() {
+        findViewById<EditText>(R.id.locationSearchInput).apply {
+            doAfterTextChanged {
+                error = null
+                cancelSearch()
+            }
+            setOnEditorActionListener { _, action, _ ->
+                if (action == EditorInfo.IME_ACTION_SEARCH) {
+                    searchLocation()
+                    true
+                } else false
+            }
+        }
+        findViewById<View>(R.id.locationSearchButton).apply {
+            isEnabled = false
+            setOnClickListener { searchLocation() }
+        }
+    }
+
+    private fun searchLocation() {
+        val readyMap = map ?: return
+        val input = findViewById<EditText>(R.id.locationSearchInput)
+        val query = input.text.toString().trim()
+        cancelSearch()
+        if (query.isEmpty()) {
+            input.error = getString(R.string.location_search_required)
+            return
+        }
+        segments.check(R.id.mapModeButton)
+        WindowCompat.getInsetsController(window, input).hide(WindowInsetsCompat.Type.ime())
+        input.clearFocus()
+        val status = findViewById<TextView>(R.id.locationSearchStatus)
+        status.setText(R.string.location_search_loading)
+        status.isVisible = true
+        searchJob = lifecycleScope.launch {
+            val addresses = try {
+                withTimeoutOrNull(15_000) { LocationSearch.find(this@MapActivity, query) }
+            } catch (_: IOException) {
+                null
+            }
+            if (isFinishing || isDestroyed) return@launch
+            if (addresses.isNullOrEmpty()) {
+                status.setText(if (addresses == null) R.string.location_search_error else R.string.location_search_empty)
+                return@launch
+            }
+            status.isVisible = false
+            val labels = addresses.map { address ->
+                address.getAddressLine(0) ?: listOfNotNull(
+                    address.featureName, address.locality, address.adminArea, address.countryName
+                ).distinct().joinToString(", ").ifEmpty { "${address.latitude}, ${address.longitude}" }
+            }
+            searchResultsDialog = MaterialAlertDialogBuilder(this@MapActivity)
+                .setTitle(R.string.location_search_results)
+                .setItems(labels.toTypedArray()) { _, index ->
+                    val address = addresses[index]
+                    readyMap.stopAnimation()
+                    readyMap.moveCamera(CameraUpdateFactory.newLatLng(LatLng(address.latitude, address.longitude)))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .setOnDismissListener { searchResultsDialog = null }
+                .show()
+        }
+    }
+
+    private fun cancelSearch() {
+        searchJob?.cancel()
+        searchJob = null
+        searchResultsDialog?.dismiss()
+        searchResultsDialog = null
+        findViewById<View>(R.id.locationSearchStatus).isVisible = false
+    }
+
     override fun onMapReady(googleMap: GoogleMap) {
         if (isDestroyed || isFinishing) return
         map = googleMap
@@ -223,6 +313,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         findViewById<View>(R.id.searchAreaButton).isEnabled = true
         findViewById<View>(R.id.savePreferenceButton).isEnabled = true
+        findViewById<View>(R.id.locationSearchButton).isEnabled = true
         if (preferenceMode) {
             googleMap.setOnCameraMoveListener {
                 center = googleMap.cameraPosition.target
@@ -235,6 +326,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun loadListings() {
+        listingsError = false
+        refreshArea()
         ListingRepo.loadAllListings(
             onSuccess = {
                 if (!isDestroyed) {
@@ -246,11 +339,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             onError = {
                 if (!isDestroyed) {
                     listings = emptyList()
+                    listingsError = true
                     rebuildMarkers()
                     refreshArea()
-                    Snackbar.make(findViewById(R.id.mapRoot), R.string.map_listings_error, Snackbar.LENGTH_LONG)
-                        .setAnchorView(R.id.mapBottomNav)
-                        .setAction(R.string.map_retry) { loadListings() }.show()
                 }
             }
         )
@@ -288,9 +379,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         adapter.updateList(items)
         findViewById<RecyclerView>(R.id.mapItemsRecycler).isVisible = items.isNotEmpty()
         findViewById<TextView>(R.id.mapEmptyNotice).apply {
-            text = getString(R.string.no_items_in_radius, formatRadius(radiusKm))
+            text = if (listingsError) getString(R.string.map_listings_error)
+                else getString(R.string.no_items_in_radius, formatRadius(radiusKm))
             isVisible = items.isEmpty()
         }
+        findViewById<View>(R.id.mapRetryButton).isVisible = listingsError
         markers.forEach { marker ->
             val listing = marker.tag as Listing
             marker.alpha = if (ListingFilters.matches(listing, filters)) 1f else 0.4f
@@ -433,6 +526,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onStop() {
         cancelLocation()
+        cancelSearch()
         super.onStop()
     }
 
