@@ -45,6 +45,7 @@ dependencies {
 
     implementation("com.google.firebase:firebase-auth")       // signup / login / verification
     implementation("com.google.firebase:firebase-firestore")  // users/{uid} profile docs
+    implementation("com.google.firebase:firebase-storage")  //for images and videos
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2") // lets us .await() Firebase calls
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4") // lifecycleScope
     implementation("androidx.appcompat:appcompat:1.7.0")

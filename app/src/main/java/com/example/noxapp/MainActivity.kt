@@ -29,6 +29,7 @@ import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.CategoryItem
 import com.example.noxapp.models.Listing
+import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.goTo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -239,6 +240,8 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Browse Tab (Maps & Filter page)", Toast.LENGTH_SHORT).show()
         }
         findViewById<LinearLayout>(R.id.navPost).setOnClickListener {
+            val intent = Intent(this, PostListing::class.java)
+            startActivity(intent)
             Toast.makeText(this, "Post an Item Tab", Toast.LENGTH_SHORT).show()
         }
         findViewById<LinearLayout>(R.id.navChat).setOnClickListener {

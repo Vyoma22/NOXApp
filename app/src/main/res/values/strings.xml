@@ -11,4 +11,42 @@
     <string name="recently_added">Recently Added</string>
     <string name="see_all">See all ›</string>
     <string name="sign_out">Sign Out</string>
+
+    <string-array name="categories">
+        <item>Accessories</item>
+        <item>Books</item>
+        <item>Clothing</item>
+        <item>Decor</item>
+        <item>Electronics</item>
+        <item>Furniture</item>
+        <item>General</item>
+        <item>Household</item>
+        <item>Sporting</item>
+        <item>Tools</item>
+
+    </string-array>
+    <string-array name="locations">
+        <item>Ontario Tech (North Campus)</item>
+        <item>ACE</item>
+        <item>BIT</item>
+        <item>ERC</item>
+        <item>Library</item>
+        <item>Recreation and Wellness Centre</item>
+        <item>SCI</item>
+        <item>SHA</item>
+        <item>SIRC</item>
+        <item>Durham College</item>
+        <item>A Wing</item>
+        <item>B Wing</item>
+        <item>C Wing</item>
+        <item>D Wing</item>
+        <item>F Wing</item>
+        <item>G Wing</item>
+        <item>H Wing</item>
+        <item>I Wing</item>
+        <item>Justice Wing</item>
+        <item>L Wing</item>
+        <item>South Wing</item>
+        <item></item>
+    </string-array>
 </resources>
