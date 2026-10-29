@@ -46,7 +46,6 @@ import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
@@ -87,9 +86,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_map)
-        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            arrangeLandscape()
-        }
+        preferenceMode = intent.getStringExtra(EXTRA_MODE) == MODE_PREFERENCE
+        arrangeLayout()
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mapRoot)) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
@@ -101,40 +99,43 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             state?.getDouble(EXTRA_CENTER_LNG, center.longitude) ?: center.longitude
         )
         radiusKm = state?.getDouble(EXTRA_RADIUS_KM, 2.0) ?: 2.0
-        preferenceMode = intent.getStringExtra(EXTRA_MODE) == MODE_PREFERENCE
         hasSelection = savedInstanceState?.getBoolean(EXTRA_HAS_SELECTION) ?: false
         usesMyLocation = savedInstanceState?.getBoolean("usesMyLocation") ?: false
         locationPending = savedInstanceState?.getBoolean("locationPending") ?: false
         restoredCamera = savedInstanceState != null
 
-        setupItems()
+        if (!preferenceMode) setupItems()
         setupControls()
         setupNavigation()
         refreshArea()
         (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
-        loadListings()
+        if (!preferenceMode) loadListings()
         onBackPressedDispatcher.addCallback(this) { finish() }
     }
 
-    private fun arrangeLandscape() {
+    private fun arrangeLayout() {
+        findViewById<View>(R.id.mapItemsPanel).isVisible = !preferenceMode
+        findViewById<View>(R.id.searchAreaButton).isVisible = !preferenceMode
+        findViewById<View>(R.id.savePreferenceButton).isVisible = preferenceMode
         val root = findViewById<ConstraintLayout>(R.id.mapRoot)
         val margin = (12 * resources.displayMetrics.density).toInt()
         ConstraintSet().apply {
             clone(root)
-            create(R.id.mapGuideline, ConstraintSet.VERTICAL)
-            setGuidelinePercent(R.id.mapGuideline, 0.52f)
-            connect(R.id.campusMap, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START)
-            connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
-            connect(R.id.mapSegments, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
-            connect(R.id.searchAreaButton, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
-            clear(R.id.radiusCard, ConstraintSet.BOTTOM)
-            connect(R.id.radiusCard, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, margin)
-            connect(R.id.radiusCard, ConstraintSet.START, R.id.mapGuideline, ConstraintSet.END, margin)
-            connect(R.id.mapItemsScroll, ConstraintSet.TOP, R.id.radiusCard, ConstraintSet.BOTTOM)
-            connect(R.id.mapItemsScroll, ConstraintSet.START, R.id.mapGuideline, ConstraintSet.END)
+            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                create(R.id.mapGuideline, ConstraintSet.VERTICAL)
+                setGuidelinePercent(R.id.mapGuideline, 0.52f)
+                connect(R.id.campusMap, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START)
+                connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
+                connect(R.id.mapSegments, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
+                connect(R.id.mapItemsScroll, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
+                connect(R.id.mapItemsScroll, ConstraintSet.START, R.id.mapGuideline, ConstraintSet.END)
+            } else if (preferenceMode) {
+                clear(R.id.mapItemsScroll, ConstraintSet.TOP)
+                constrainHeight(R.id.mapItemsScroll, ConstraintSet.WRAP_CONTENT)
+                connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapItemsScroll, ConstraintSet.TOP)
+            }
             applyTo(root)
         }
-        findViewById<View>(R.id.mapItemsScroll).setPadding(0, 0, 0, 0)
     }
 
     private fun setupItems() {
@@ -196,14 +197,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             }
         }
-        findViewById<MaterialButton>(R.id.mapAreaAction).apply {
-            if (preferenceMode) setText(R.string.save_preference)
-            setOnClickListener {
-                if (preferenceMode) savePreference() else {
-                    hasSelection = true
-                    finish()
-                }
-            }
+        findViewById<View>(R.id.mapAreaAction).setOnClickListener {
+            hasSelection = true
+            finish()
+        }
+        findViewById<View>(R.id.savePreferenceButton).apply {
+            isEnabled = false
+            setOnClickListener { savePreference() }
         }
     }
 
@@ -222,6 +222,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             true
         }
         findViewById<View>(R.id.searchAreaButton).isEnabled = true
+        findViewById<View>(R.id.savePreferenceButton).isEnabled = true
+        if (preferenceMode) {
+            googleMap.setOnCameraMoveListener {
+                center = googleMap.cameraPosition.target
+                circle?.center = center
+            }
+        }
         rebuildMarkers()
         refreshArea()
         if (!restoredCamera) findViewById<View>(R.id.campusMap).post { fitCircle(false) }
@@ -250,6 +257,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun rebuildMarkers() {
+        if (preferenceMode) return
         val readyMap = map ?: return
         markers.forEach { it.remove() }
         markers.clear()
@@ -269,6 +277,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun refreshArea() {
+        val label = getString(R.string.radius_label, formatRadius(radiusKm))
+        findViewById<TextView>(R.id.radiusLabel).text = label
+        findViewById<Slider>(R.id.radiusSlider).contentDescription = label
+        circle?.center = center
+        circle?.radius = radiusKm * 1000
+        if (preferenceMode) return
         val filters = BrowseFilters(centerLat = center.latitude, centerLng = center.longitude, radiusKm = radiusKm)
         val items = ListingFilters.apply(listings, filters)
         adapter.updateList(items)
@@ -277,11 +291,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             text = getString(R.string.no_items_in_radius, formatRadius(radiusKm))
             isVisible = items.isEmpty()
         }
-        val label = getString(R.string.radius_label, formatRadius(radiusKm))
-        findViewById<TextView>(R.id.radiusLabel).text = label
-        findViewById<Slider>(R.id.radiusSlider).contentDescription = label
-        circle?.center = center
-        circle?.radius = radiusKm * 1000
         markers.forEach { marker ->
             val listing = marker.tag as Listing
             marker.alpha = if (ListingFilters.matches(listing, filters)) 1f else 0.4f
@@ -356,17 +365,20 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun savePreference() {
         if (saveInProgress) return
+        val readyMap = map ?: return
+        readyMap.stopAnimation()
+        center = readyMap.cameraPosition.target
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid == null) {
             Toast.makeText(this, R.string.map_preference_error, Toast.LENGTH_SHORT).show()
             return
         }
         saveInProgress = true
-        findViewById<View>(R.id.mapAreaAction).isEnabled = false
+        findViewById<View>(R.id.savePreferenceButton).isEnabled = false
         ListingRepo.saveGeoPreference(uid, center.latitude, center.longitude, radiusKm) { success ->
             if (!isDestroyed && !isFinishing) {
                 saveInProgress = false
-                findViewById<View>(R.id.mapAreaAction).isEnabled = true
+                findViewById<View>(R.id.savePreferenceButton).isEnabled = true
                 Toast.makeText(this, if (success) R.string.preference_saved else R.string.map_preference_error,
                     Toast.LENGTH_SHORT).show()
                 if (success) finish()
@@ -406,11 +418,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onStart() {
         super.onStart()
-        FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-            ListingRepo.getSavedItemIds(uid) {
-                if (!isDestroyed) {
-                    savedIds = it.toMutableSet()
-                    adapter.updateSavedIds(savedIds)
+        if (!preferenceMode) {
+            FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                ListingRepo.getSavedItemIds(uid) {
+                    if (!isDestroyed) {
+                        savedIds = it.toMutableSet()
+                        adapter.updateSavedIds(savedIds)
+                    }
                 }
             }
         }

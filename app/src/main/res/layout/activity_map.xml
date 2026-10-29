@@ -6,13 +6,19 @@
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/mapGuideline" android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:orientation="horizontal" app:layout_constraintGuide_percent="0.62" />
+        android:orientation="horizontal" app:layout_constraintGuide_percent="0.52" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/campusMap" android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="0dp" android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/mapGuideline"
         app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageView android:id="@+id/mapCenterPin" android:layout_width="32dp" android:layout_height="40dp"
+        android:src="@drawable/ic_map_center_pin" android:contentDescription="@string/map_center"
+        android:translationY="-20dp" android:clickable="false" android:focusable="false"
+        app:layout_constraintTop_toTopOf="@id/campusMap" app:layout_constraintBottom_toBottomOf="@id/campusMap"
+        app:layout_constraintStart_toStartOf="@id/campusMap" app:layout_constraintEnd_toEndOf="@id/campusMap" />
 
     <ImageButton android:id="@+id/mapBackButton" android:layout_width="48dp" android:layout_height="48dp"
         android:layout_margin="12dp" android:background="@drawable/rounded_search_box"
@@ -38,60 +44,61 @@
             app:backgroundTint="@color/map_segment_background" app:strokeColor="@color/nox_primary_green" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/searchAreaButton" android:layout_width="0dp" android:layout_height="48dp"
-        android:layout_marginHorizontal="20dp" android:layout_marginTop="12dp"
-        android:insetTop="0dp" android:insetBottom="0dp" android:text="@string/search_this_area"
-        android:textAllCaps="false" android:textColor="@color/nox_dark_green"
-        app:backgroundTint="@color/nox_field_bg" app:cornerRadius="24dp"
-        app:icon="@drawable/ic_map_pin" app:iconTint="@color/nox_primary_green" app:iconGravity="textStart"
-        app:layout_constraintTop_toBottomOf="@id/mapSegments"
-        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-
     <androidx.core.widget.NestedScrollView
         android:id="@+id/mapItemsScroll" android:layout_width="0dp" android:layout_height="0dp"
-        android:paddingTop="52dp" android:clipToPadding="false"
+        android:clipToPadding="false"
         app:layout_constraintTop_toTopOf="@id/mapGuideline" app:layout_constraintBottom_toTopOf="@id/mapBottomNav"
         app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingBottom="12dp">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:gravity="center_vertical" android:orientation="horizontal">
-                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-                    android:text="@string/items_in_area" android:textSize="18sp" android:textStyle="bold"
-                    android:textColor="@color/nox_dark_green" />
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/mapAreaAction" style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="48dp"
-                    android:text="@string/see_all" android:textAllCaps="false" android:textSize="12sp"
-                    android:textColor="@color/nox_primary_green" />
+            android:orientation="vertical" android:padding="12dp">
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/radiusCard" android:layout_width="match_parent" android:layout_height="wrap_content"
+                app:cardCornerRadius="20dp" app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/nox_field_bg" app:strokeWidth="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <TextView android:id="@+id/radiusLabel" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:labelFor="@id/radiusSlider" android:textColor="@color/nox_dark_green"
+                        android:textSize="16sp" android:textStyle="bold" />
+                    <com.google.android.material.slider.Slider android:id="@+id/radiusSlider"
+                        android:layout_width="match_parent" android:layout_height="48dp"
+                        android:valueFrom="0.5" android:valueTo="10.0" android:stepSize="0.5" android:value="2.0"
+                        app:thumbColor="@color/nox_primary_green" app:trackColorActive="@color/nox_primary_green"
+                        app:trackColorInactive="@color/nox_chip_bg" app:tickVisible="false" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/searchAreaButton" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp"
+                        android:text="@string/search_this_area" android:textAllCaps="false" android:textColor="@color/white"
+                        app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp"
+                        app:icon="@drawable/ic_map_pin" app:iconTint="@color/white" app:iconGravity="textStart" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/savePreferenceButton" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp" android:visibility="gone"
+                        android:text="@string/save_preference" android:textAllCaps="false" android:textColor="@color/white"
+                        app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <LinearLayout android:id="@+id/mapItemsPanel" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:layout_marginTop="8dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="center_vertical" android:orientation="horizontal">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="@string/items_in_area" android:textSize="18sp" android:textStyle="bold"
+                        android:textColor="@color/nox_dark_green" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/mapAreaAction" style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="48dp"
+                        android:text="@string/see_all" android:textAllCaps="false" android:textSize="12sp"
+                        android:textColor="@color/nox_primary_green" />
+                </LinearLayout>
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/mapItemsRecycler" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:clipToPadding="false" android:nestedScrollingEnabled="false" />
+                <TextView android:id="@+id/mapEmptyNotice" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:paddingVertical="24dp" android:gravity="center" android:textColor="@color/nox_subtext" />
             </LinearLayout>
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/mapItemsRecycler" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:clipToPadding="false" android:nestedScrollingEnabled="false" />
-            <TextView android:id="@+id/mapEmptyNotice" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:paddingVertical="24dp" android:gravity="center" android:textColor="@color/nox_subtext" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/radiusCard" android:layout_width="0dp" android:layout_height="96dp"
-        android:layout_marginHorizontal="20dp" app:cardCornerRadius="20dp" app:cardElevation="2dp"
-        app:cardBackgroundColor="@color/nox_field_bg" app:strokeWidth="0dp"
-        app:layout_constraintTop_toTopOf="@id/mapGuideline" app:layout_constraintBottom_toBottomOf="@id/mapGuideline"
-        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
-        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
-            android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingTop="12dp">
-            <TextView android:id="@+id/radiusLabel" android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:labelFor="@id/radiusSlider" android:textColor="@color/nox_dark_green"
-                android:textSize="16sp" android:textStyle="bold" />
-            <com.google.android.material.slider.Slider android:id="@+id/radiusSlider"
-                android:layout_width="match_parent" android:layout_height="48dp"
-                android:valueFrom="0.5" android:valueTo="10.0" android:stepSize="0.5" android:value="2.0"
-                app:thumbColor="@color/nox_primary_green" app:trackColorActive="@color/nox_primary_green"
-                app:trackColorInactive="@color/nox_chip_bg" app:tickVisible="false" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
 
     <LinearLayout android:id="@+id/mapBottomNav" android:layout_width="0dp" android:layout_height="64dp"
         android:background="@color/nox_nav_bg" android:gravity="center" android:orientation="horizontal"

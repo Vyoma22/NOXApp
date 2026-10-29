@@ -57,6 +57,7 @@
     <string name="map_mode">Map</string>
     <string name="my_location">My Location</string>
     <string name="search_this_area">Search this area</string>
+    <string name="map_center">Map center</string>
     <string name="radius_label">Radius: %1$s km</string>
     <string name="items_in_area">Items in This Area</string>
     <string name="no_items_in_radius">No items within %1$s km</string>

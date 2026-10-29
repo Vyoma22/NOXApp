@@ -14,9 +14,14 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
+import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.recyclerview.widget.RecyclerView
+import org.hamcrest.Matchers.not
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -107,9 +112,57 @@ class MapActivityTest {
     fun preferenceModeBackDiscardsWithoutResult() {
         val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
         ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
-            onView(withId(R.id.mapAreaAction)).check(matches(withText("Save preference")))
+            onView(withText("Save preference")).check(matches(isDisplayed()))
             pressBackUnconditionally()
             assertEquals(Activity.RESULT_CANCELED, scenario.result.resultCode)
+        }
+    }
+
+    @Test
+    fun preferenceModeOmitsItemBrowsing() {
+        val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
+        ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
+            onView(withText("Items in This Area")).check(matches(not(isDisplayed())))
+            onView(withId(R.id.mapItemsRecycler)).check(matches(not(isDisplayed())))
+            onView(withId(R.id.searchAreaButton)).check(matches(not(isDisplayed())))
+            scenario.onActivity {
+                assertNull(it.findViewById<RecyclerView>(R.id.mapItemsRecycler).adapter)
+            }
+            scenario.recreate()
+            onView(withText("Save preference")).check(matches(isDisplayed()))
+            onView(withText("Items in This Area")).check(matches(not(isDisplayed())))
+        }
+    }
+
+    @Test
+    fun searchAreaIsGroupedBelowRadiusSlider() {
+        ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
+            scenario.onActivity {
+                val card = it.findViewById<View>(R.id.radiusCard)
+                val slider = card.findViewById<View>(R.id.radiusSlider)
+                val action = card.findViewById<View>(R.id.searchAreaButton)
+                assertTrue("Search action must be in the radius card", action != null)
+                assertTrue("Search action must be below the slider", action.top >= slider.bottom)
+            }
+        }
+    }
+
+    @Test
+    fun centerPinRemainsVisibleInBothOrientations() {
+        ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
+            onView(withContentDescription("Map center")).check(matches(isDisplayed()))
+            scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+            onView(withContentDescription("Map center")).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
+    fun landscapePreferenceKeepsSaveReachableWithoutItems() {
+        val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
+        ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
+            scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
+            onView(withText("Save preference")).check(matches(isDisplayed()))
+            onView(withText("Items in This Area")).check(matches(not(isDisplayed())))
         }
     }
 }
