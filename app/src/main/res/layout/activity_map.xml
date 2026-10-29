@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mapRoot" android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/nox_cream_bg">
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/mapGuideline" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:orientation="horizontal" app:layout_constraintGuide_percent="0.62" />
+
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/campusMap" android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="0dp" android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/mapGuideline"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageButton android:id="@+id/mapBackButton" android:layout_width="48dp" android:layout_height="48dp"
+        android:layout_margin="12dp" android:background="@drawable/rounded_search_box"
+        android:src="@drawable/ic_arrow_back" android:contentDescription="@string/map_back"
+        app:tint="@color/nox_dark_green" app:layout_constraintTop_toTopOf="parent" app:layout_constraintStart_toStartOf="parent" />
+
+    <com.google.android.material.button.MaterialButtonToggleGroup
+        android:id="@+id/mapSegments" android:layout_width="wrap_content" android:layout_height="48dp"
+        android:layout_marginTop="12dp" android:layout_marginEnd="12dp"
+        app:singleSelection="true" app:selectionRequired="true" app:checkedButton="@id/mapModeButton"
+        app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mapModeButton" style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content" android:layout_height="match_parent"
+            android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp"
+            android:text="@string/map_mode" android:textAllCaps="false" android:textColor="@color/map_segment_text"
+            app:backgroundTint="@color/map_segment_background" app:strokeColor="@color/nox_primary_green" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/myLocationButton" style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content" android:layout_height="match_parent"
+            android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp"
+            android:text="@string/my_location" android:textAllCaps="false" android:textColor="@color/map_segment_text"
+            app:backgroundTint="@color/map_segment_background" app:strokeColor="@color/nox_primary_green" />
+    </com.google.android.material.button.MaterialButtonToggleGroup>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/searchAreaButton" android:layout_width="0dp" android:layout_height="48dp"
+        android:layout_marginHorizontal="20dp" android:layout_marginTop="12dp"
+        android:insetTop="0dp" android:insetBottom="0dp" android:text="@string/search_this_area"
+        android:textAllCaps="false" android:textColor="@color/nox_dark_green"
+        app:backgroundTint="@color/nox_field_bg" app:cornerRadius="24dp"
+        app:icon="@drawable/ic_map_pin" app:iconTint="@color/nox_primary_green" app:iconGravity="textStart"
+        app:layout_constraintTop_toBottomOf="@id/mapSegments"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/mapItemsScroll" android:layout_width="0dp" android:layout_height="0dp"
+        android:paddingTop="52dp" android:clipToPadding="false"
+        app:layout_constraintTop_toTopOf="@id/mapGuideline" app:layout_constraintBottom_toTopOf="@id/mapBottomNav"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingBottom="12dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="center_vertical" android:orientation="horizontal">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="@string/items_in_area" android:textSize="18sp" android:textStyle="bold"
+                    android:textColor="@color/nox_dark_green" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/mapAreaAction" style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="48dp"
+                    android:text="@string/see_all" android:textAllCaps="false" android:textSize="12sp"
+                    android:textColor="@color/nox_primary_green" />
+            </LinearLayout>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/mapItemsRecycler" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:clipToPadding="false" android:nestedScrollingEnabled="false" />
+            <TextView android:id="@+id/mapEmptyNotice" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:paddingVertical="24dp" android:gravity="center" android:textColor="@color/nox_subtext" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/radiusCard" android:layout_width="0dp" android:layout_height="96dp"
+        android:layout_marginHorizontal="20dp" app:cardCornerRadius="20dp" app:cardElevation="2dp"
+        app:cardBackgroundColor="@color/nox_field_bg" app:strokeWidth="0dp"
+        app:layout_constraintTop_toTopOf="@id/mapGuideline" app:layout_constraintBottom_toBottomOf="@id/mapGuideline"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="match_parent"
+            android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingTop="12dp">
+            <TextView android:id="@+id/radiusLabel" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:labelFor="@id/radiusSlider" android:textColor="@color/nox_dark_green"
+                android:textSize="16sp" android:textStyle="bold" />
+            <com.google.android.material.slider.Slider android:id="@+id/radiusSlider"
+                android:layout_width="match_parent" android:layout_height="48dp"
+                android:valueFrom="0.5" android:valueTo="10.0" android:stepSize="0.5" android:value="2.0"
+                app:thumbColor="@color/nox_primary_green" app:trackColorActive="@color/nox_primary_green"
+                app:trackColorInactive="@color/nox_chip_bg" app:tickVisible="false" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <LinearLayout android:id="@+id/mapBottomNav" android:layout_width="0dp" android:layout_height="64dp"
+        android:background="@color/nox_nav_bg" android:gravity="center" android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout android:id="@+id/mNavHome" android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
+            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
+                android:src="@android:drawable/ic_menu_rotate" app:tint="@color/nox_dark_green" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/map_nav_home" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/mNavBrowse" android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
+            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
+                android:src="@android:drawable/ic_menu_search" app:tint="@color/nox_primary_green" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold"
+                android:text="@string/map_nav_browse" android:textColor="@color/nox_primary_green" android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/mNavPost" android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
+            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
+                android:src="@android:drawable/ic_input_add" app:tint="@color/nox_dark_green" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/map_nav_post" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/mNavChat" android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
+            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
+                android:src="@android:drawable/stat_notify_chat" app:tint="@color/nox_dark_green" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/map_nav_chat" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
+        </LinearLayout>
+        <LinearLayout android:id="@+id/mNavProfile" android:layout_width="0dp" android:layout_height="match_parent"
+            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
+            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
+                android:src="@android:drawable/ic_menu_myplaces" app:tint="@color/nox_dark_green" />
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="@string/map_nav_profile" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

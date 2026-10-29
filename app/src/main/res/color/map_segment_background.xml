@@ -1,0 +1,4 @@
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="@color/nox_primary_green" />
+    <item android:color="@color/nox_field_bg" />
+</selector>

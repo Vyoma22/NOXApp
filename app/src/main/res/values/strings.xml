@@ -53,4 +53,26 @@
         <item>South Wing</item>
         <item></item>
     </string-array>
+    <string name="map_back">Back</string>
+    <string name="map_mode">Map</string>
+    <string name="my_location">My Location</string>
+    <string name="search_this_area">Search this area</string>
+    <string name="radius_label">Radius: %1$s km</string>
+    <string name="items_in_area">Items in This Area</string>
+    <string name="no_items_in_radius">No items within %1$s km</string>
+    <string name="save_preference">Save preference</string>
+    <string name="preference_saved">Pickup preference saved</string>
+    <string name="map_preference_error">Couldn\'t save preference</string>
+    <string name="map_listings_error">Couldn\'t load listings</string>
+    <string name="map_retry">Retry</string>
+    <string name="location_denied">Location permission denied, showing campus</string>
+    <string name="location_unavailable">Location unavailable, showing campus</string>
+    <string name="pickup_settings">Settings</string>
+    <string name="map_nav_home">Home</string>
+    <string name="map_nav_browse">Browse</string>
+    <string name="map_nav_post">Post</string>
+    <string name="map_nav_chat">Chat</string>
+    <string name="map_nav_profile">Profile</string>
+    <string name="map_post_toast">Post an Item Tab</string>
+    <string name="map_chat_toast">Chat Inbox Tab</string>
 </resources>

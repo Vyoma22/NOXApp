@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="browse_title">Browse Items</string>
+    <string name="browse_back">Back</string>
+    <string name="browse_map">Choose pickup area</string>
+    <string name="browse_search_hint">Search for items...</string>
+    <string name="browse_all">All</string>
+    <string name="browse_more">More</string>
+    <string name="browse_less">Less</string>
+    <string name="browse_more_selected">%1$s categories, selected: %2$s</string>
+    <string name="browse_category">Category</string>
+    <string name="browse_price">Price</string>
+    <string name="browse_condition">Condition</string>
+    <string name="browse_any">Any</string>
+    <string name="browse_active_filter">%1$s: %2$s</string>
+    <string name="browse_radius">Within %1$s km</string>
+    <string name="browse_clear_radius">Clear pickup radius</string>
+    <string name="browse_empty_title">No items match your search</string>
+    <string name="browse_empty_hint">Try clearing a filter</string>
+    <string name="browse_load_error">Couldn\'t load listings</string>
+    <string name="browse_retry">Retry</string>
+    <string name="browse_preference_error">Couldn\'t save preference</string>
+    <string name="browse_saved">Saved to your profile!</string>
+    <string name="browse_unsaved">Removed from saved</string>
+    <string name="browse_post_toast">Post an Item Tab</string>
+    <string name="browse_chat_toast">Chat Inbox Tab</string>
+    <string name="browse_nav_home">Home</string>
+    <string name="browse_nav_browse">Browse</string>
+    <string name="browse_nav_post">Post</string>
+    <string name="browse_nav_chat">Chat</string>
+    <string name="browse_nav_profile">Profile</string>
+    <string-array name="browse_conditions">
+        <item>New</item>
+        <item>Like New</item>
+        <item>Good</item>
+        <item>Used</item>
+    </string-array>
+    <plurals name="browse_result_count">
+        <item quantity="one">%d result</item>
+        <item quantity="other">%d results</item>
+    </plurals>
+</resources>
