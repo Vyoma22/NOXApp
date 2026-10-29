@@ -12,5 +12,7 @@ data class Listing(
     val sellerId: String = "",
     val sellerName: String = "",
     val featured: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
 )
