@@ -25,6 +25,7 @@
         <activity android:name=".auth.VerifyEmailActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="false" />
         <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".postlisting.PostListing" android:exported="false" />
     </application>
 
 </manifest>
