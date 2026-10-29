@@ -5,6 +5,7 @@ import com.example.noxapp.models.UserProfile
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.SetOptions
 import java.lang.Exception
 
 object ListingRepo {
@@ -20,6 +21,28 @@ object ListingRepo {
                 })
             }
             .addOnFailureListener(onError)
+    }
+
+    fun saveGeoPreference(
+        userId: String, lat: Double, lng: Double, radiusKm: Double,
+        onComplete: (Boolean) -> Unit
+    ) {
+        db.collection("users").document(userId).set(
+            mapOf("preferredLat" to lat, "preferredLng" to lng, "preferredRadiusKm" to radiusKm),
+            SetOptions.merge()
+        ).addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
+    }
+
+    fun clearGeoPreference(userId: String, onComplete: (Boolean) -> Unit) {
+        db.collection("users").document(userId).update(
+            mapOf(
+                "preferredLat" to FieldValue.delete(),
+                "preferredLng" to FieldValue.delete(),
+                "preferredRadiusKm" to FieldValue.delete()
+            )
+        ).addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
     }
 
     // Fetch complete user profile from Firestore

@@ -11,5 +11,8 @@ data class UserProfile(
     val gradYear: Long? = null,
     val accessExpiresAt: Timestamp? = null,
     val createdAt: Timestamp? = null,
-    val savedItemIds: List<String> = emptyList()
+    val savedItemIds: List<String> = emptyList(),
+    val preferredLat: Double? = null,
+    val preferredLng: Double? = null,
+    val preferredRadiusKm: Double? = null
 )
