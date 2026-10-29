@@ -186,7 +186,7 @@ class MainActivity : AppCompatActivity() {
             selectedItemId = R.id.navHome
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
-                    R.id.navBrowse -> Toast.makeText(this@MainActivity, "Browse Tab (Maps & Filter page)", Toast.LENGTH_SHORT).show()
+                    R.id.navBrowse -> startActivity(Intent(this@MainActivity, BrowseActivity::class.java))
                     R.id.navPost -> {
                         startActivity(Intent(this@MainActivity, PostListing::class.java))
                         Toast.makeText(this@MainActivity, "Post an Item Tab", Toast.LENGTH_SHORT).show()

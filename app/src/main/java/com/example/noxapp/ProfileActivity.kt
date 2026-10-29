@@ -11,12 +11,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.noxapp.auth.AccessState
+import com.example.noxapp.auth.AuthRepo
+import com.example.noxapp.auth.LoginActivity
+import com.example.noxapp.models.UserProfile
+import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.goTo
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
-import com.example.noxapp.ui.ItemDetailDialog
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -27,6 +36,8 @@ class ProfileActivity : AppCompatActivity() {
     private var allListings: List<Listing> = emptyList()
     private var userSavedIds: Set<String> = emptySet()
     private var currentTab = Tab.MY_LISTINGS
+    private var userProfile: UserProfile? = null
+    private var accessJob: Job? = null
 
     private enum class Tab { MY_LISTINGS, SAVED, SOLD }
 
@@ -44,7 +55,43 @@ class ProfileActivity : AppCompatActivity() {
         setupRecyclerView()
         setupTabs()
         setupBottomNav()
-        loadUserProfile()
+        findViewById<View>(R.id.profileSettingsButton).apply {
+            isEnabled = false
+            setOnClickListener {
+                val intent = Intent(this@ProfileActivity, MapActivity::class.java)
+                    .putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
+                userProfile?.let { profile ->
+                    if (profile.preferredLat != null && profile.preferredLng != null && profile.preferredRadiusKm != null) {
+                        intent.putExtra(MapActivity.EXTRA_CENTER_LAT, profile.preferredLat)
+                            .putExtra(MapActivity.EXTRA_CENTER_LNG, profile.preferredLng)
+                            .putExtra(MapActivity.EXTRA_RADIUS_KM, profile.preferredRadiusKm)
+                    }
+                }
+                startActivity(intent)
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        findViewById<View>(R.id.profileSettingsButton).isEnabled = false
+        accessJob?.cancel()
+        accessJob = lifecycleScope.launch {
+            val state = try {
+                AuthRepo.checkAccess()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            if (isFinishing || isDestroyed) return@launch
+            if (state != AccessState.Allowed) goTo(LoginActivity::class.java) else loadUserProfile()
+        }
+    }
+
+    override fun onStop() {
+        accessJob?.cancel()
+        super.onStop()
     }
 
     private fun setupRecyclerView() {
@@ -75,6 +122,9 @@ class ProfileActivity : AppCompatActivity() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         ListingRepo.getUserProfile(uid) { profile ->
+            if (isDestroyed) return@getUserProfile
+            userProfile = profile
+            findViewById<View>(R.id.profileSettingsButton).isEnabled = profile != null
             if (profile != null) {
                 val name = profile.displayName ?: "Student"
                 findViewById<TextView>(R.id.profileNameText).text = name
@@ -154,12 +204,29 @@ class ProfileActivity : AppCompatActivity() {
         findViewById<BottomNavigationView>(R.id.profileBottomNav).apply {
             selectedItemId = R.id.navProfile
             setOnItemSelectedListener { item ->
-                if (item.itemId == R.id.navHome) {
-                    startActivity(Intent(this@ProfileActivity, MainActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-                    finish()
-                    true
-                } else false
+                when (item.itemId) {
+                    R.id.navHome -> {
+                        startActivity(Intent(this@ProfileActivity, MainActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                        finish()
+                        true
+                    }
+                    R.id.navBrowse -> {
+                        startActivity(Intent(this@ProfileActivity, BrowseActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                        finish()
+                        true
+                    }
+                    R.id.navPost -> {
+                        Toast.makeText(this@ProfileActivity, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
+                        false
+                    }
+                    R.id.navChat -> {
+                        Toast.makeText(this@ProfileActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                        false
+                    }
+                    else -> false
+                }
             }
         }
     }
