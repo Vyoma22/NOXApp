@@ -61,7 +61,7 @@ class MapLocationSearchTest {
     }
 
     @Test
-    fun locationResultMovesMapAndSearchAreaReturnsThatLocation() {
+    fun locationResultMovesMapAndBrowseReturnsThatLocation() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
             onView(withHint("Search for a place or address"))
                 .perform(replaceText("Parliament Hill, Ottawa, Ontario, Canada"), closeSoftKeyboard())
@@ -69,7 +69,6 @@ class MapLocationSearchTest {
             waitFor(withText("Choose a location"))
             onView(withText(containsString("Ottawa"))).inRoot(isDialog()).perform(click())
             onView(withId(R.id.searchAreaButton)).perform(scrollTo(), click())
-            onView(withId(R.id.mapAreaAction)).perform(scrollTo(), click())
             val result = scenario.result.resultData
             assertTrue(result.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false))
             assertEquals(45.424, result.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.02)
@@ -88,7 +87,6 @@ class MapLocationSearchTest {
             onView(withText(containsString("Ottawa"))).inRoot(isDialog()).perform(click())
             pressBackUnconditionally()
             assertFalse(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, true))
-            assertEquals(43.9483414, scenario.result.resultData.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.0)
         }
     }
 

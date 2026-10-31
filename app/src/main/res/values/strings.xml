@@ -54,9 +54,8 @@
         <item></item>
     </string-array>
     <string name="map_back">Back</string>
-    <string name="map_mode">Map</string>
     <string name="my_location">My Location</string>
-    <string name="search_this_area">Search this area</string>
+    <string name="browse_items_in_area">Browse items in this area</string>
     <string name="map_center">Map center</string>
     <string name="location_search_hint">Search for a place or address</string>
     <string name="location_search_action">Search location</string>
@@ -66,13 +65,9 @@
     <string name="location_search_empty">No locations found. Try a different search.</string>
     <string name="location_search_error">Location search unavailable. Check your connection and try again.</string>
     <string name="radius_label">Radius: %1$s km</string>
-    <string name="items_in_area">Items in This Area</string>
-    <string name="no_items_in_radius">No items within %1$s km</string>
     <string name="save_preference">Save preference</string>
     <string name="preference_saved">Pickup preference saved</string>
     <string name="map_preference_error">Couldn\'t save preference</string>
-    <string name="map_listings_error">Couldn\'t load listings</string>
-    <string name="map_retry">Retry</string>
     <string name="location_denied">Location permission denied, showing campus</string>
     <string name="location_unavailable">Location unavailable, showing campus</string>
     <string name="pickup_settings">Settings</string>

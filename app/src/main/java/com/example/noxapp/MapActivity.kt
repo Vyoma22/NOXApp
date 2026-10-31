@@ -28,9 +28,6 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
 import com.example.noxapp.data.ListingRepo
@@ -53,7 +50,6 @@ import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
@@ -72,15 +68,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var circle: Circle? = null
     private val markers = mutableListOf<Marker>()
     private var listings = emptyList<Listing>()
-    private var listingsError = false
-    private var savedIds = mutableSetOf<String>()
-    private lateinit var adapter: ListingAdapter
-    private lateinit var segments: MaterialButtonToggleGroup
     private var center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
     private var radiusKm = 2.0
     private var hasSelection = false
     private var preferenceMode = false
-    private var usesMyLocation = false
     private var locationPending = false
     private var locationCancellation: CancellationTokenSource? = null
     private var restoredCamera = false
@@ -115,11 +106,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         )
         radiusKm = state?.getDouble(EXTRA_RADIUS_KM, 2.0) ?: 2.0
         hasSelection = savedInstanceState?.getBoolean(EXTRA_HAS_SELECTION) ?: false
-        usesMyLocation = savedInstanceState?.getBoolean("usesMyLocation") ?: false
         locationPending = savedInstanceState?.getBoolean("locationPending") ?: false
         restoredCamera = savedInstanceState != null
 
-        if (!preferenceMode) setupItems()
         setupControls()
         setupLocationSearch()
         setupNavigation()
@@ -130,7 +119,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun arrangeLayout() {
-        findViewById<View>(R.id.mapItemsPanel).isVisible = !preferenceMode
         findViewById<View>(R.id.searchAreaButton).isVisible = !preferenceMode
         findViewById<View>(R.id.savePreferenceButton).isVisible = preferenceMode
         val root = findViewById<ConstraintLayout>(R.id.mapRoot)
@@ -142,10 +130,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 setGuidelinePercent(R.id.mapGuideline, 0.52f)
                 connect(R.id.campusMap, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START)
                 connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
-                connect(R.id.mapSegments, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
+                connect(R.id.mapTopBar, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
                 connect(R.id.mapItemsScroll, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
                 connect(R.id.mapItemsScroll, ConstraintSet.START, R.id.mapGuideline, ConstraintSet.END)
-            } else if (preferenceMode) {
+            } else {
                 clear(R.id.mapItemsScroll, ConstraintSet.TOP)
                 constrainHeight(R.id.mapItemsScroll, ConstraintSet.WRAP_CONTENT)
                 connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapItemsScroll, ConstraintSet.TOP)
@@ -154,48 +142,19 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun setupItems() {
-        adapter = ListingAdapter(emptyList(), savedIds, { listing, shouldSave ->
-            FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                ListingRepo.toggleSaveItem(uid, listing.id, shouldSave) {
-                    if (!isDestroyed) {
-                        if (shouldSave) savedIds.add(listing.id) else savedIds.remove(listing.id)
-                        adapter.updateSavedIds(savedIds)
-                    }
-                }
-            }
-        }) { ItemDetailDialog.show(this, it) }
-        findViewById<RecyclerView>(R.id.mapItemsRecycler).apply {
-            layoutManager = LinearLayoutManager(this@MapActivity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = this@MapActivity.adapter
-        }
-        findViewById<View>(R.id.mapRetryButton).setOnClickListener { loadListings() }
-    }
-
     private fun setupControls() {
-        segments = findViewById(R.id.mapSegments)
-        segments.check(if (usesMyLocation) R.id.myLocationButton else R.id.mapModeButton)
-        segments.addOnButtonCheckedListener { _, checkedId, checked ->
-            if (checked) {
-                usesMyLocation = checkedId == R.id.myLocationButton
-                if (usesMyLocation) {
-                    cancelSearch()
-                    locationPending = true
-                    if (hasLocationPermission()) locateDevice() else locationPermission.launch(arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
-                    ))
-                } else {
-                    cancelLocation()
-                    locationPending = false
-                }
-            }
+        findViewById<View>(R.id.myLocationButton).setOnClickListener {
+            cancelSearch()
+            locationPending = true
+            if (hasLocationPermission()) locateDevice() else locationPermission.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
         }
         findViewById<Slider>(R.id.radiusSlider).apply {
             value = radiusKm.toFloat()
             setLabelFormatter { getString(R.string.radius_label, formatRadius(it.toDouble())) }
-            addOnChangeListener { _, value, fromUser ->
+            addOnChangeListener { _, value, _ ->
                 radiusKm = value.toDouble()
-                if (fromUser) hasSelection = true
                 refreshArea()
             }
             addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
@@ -207,17 +166,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             isEnabled = false
             setOnClickListener {
                 map?.let { readyMap ->
-                    segments.check(R.id.mapModeButton)
+                    readyMap.stopAnimation()
                     center = readyMap.cameraPosition.target
                     hasSelection = true
-                    refreshArea()
-                    fitCircle()
+                    finish()
                 }
             }
-        }
-        findViewById<View>(R.id.mapAreaAction).setOnClickListener {
-            hasSelection = true
-            finish()
         }
         findViewById<View>(R.id.savePreferenceButton).apply {
             isEnabled = false
@@ -253,7 +207,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             input.error = getString(R.string.location_search_required)
             return
         }
-        segments.check(R.id.mapModeButton)
         WindowCompat.getInsetsController(window, input).hide(WindowInsetsCompat.Type.ime())
         input.clearFocus()
         val status = findViewById<TextView>(R.id.locationSearchStatus)
@@ -314,11 +267,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<View>(R.id.searchAreaButton).isEnabled = true
         findViewById<View>(R.id.savePreferenceButton).isEnabled = true
         findViewById<View>(R.id.locationSearchButton).isEnabled = true
-        if (preferenceMode) {
-            googleMap.setOnCameraMoveListener {
-                center = googleMap.cameraPosition.target
-                circle?.center = center
-            }
+        googleMap.setOnCameraMoveListener {
+            center = googleMap.cameraPosition.target
+            refreshArea()
         }
         rebuildMarkers()
         refreshArea()
@@ -326,8 +277,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun loadListings() {
-        listingsError = false
-        refreshArea()
         ListingRepo.loadAllListings(
             onSuccess = {
                 if (!isDestroyed) {
@@ -339,7 +288,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             onError = {
                 if (!isDestroyed) {
                     listings = emptyList()
-                    listingsError = true
                     rebuildMarkers()
                     refreshArea()
                 }
@@ -375,15 +323,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         circle?.radius = radiusKm * 1000
         if (preferenceMode) return
         val filters = BrowseFilters(centerLat = center.latitude, centerLng = center.longitude, radiusKm = radiusKm)
-        val items = ListingFilters.apply(listings, filters)
-        adapter.updateList(items)
-        findViewById<RecyclerView>(R.id.mapItemsRecycler).isVisible = items.isNotEmpty()
-        findViewById<TextView>(R.id.mapEmptyNotice).apply {
-            text = if (listingsError) getString(R.string.map_listings_error)
-                else getString(R.string.no_items_in_radius, formatRadius(radiusKm))
-            isVisible = items.isEmpty()
-        }
-        findViewById<View>(R.id.mapRetryButton).isVisible = listingsError
         markers.forEach { marker ->
             val listing = marker.tag as Listing
             marker.alpha = if (ListingFilters.matches(listing, filters)) 1f else 0.4f
@@ -426,7 +365,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (location == null) campusFallback(R.string.location_unavailable) else {
                     locationPending = false
                     center = LatLng(location.latitude, location.longitude)
-                    hasSelection = true
                     refreshArea()
                     fitCircle()
                 }
@@ -442,8 +380,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun campusFallback(message: Int) {
         cancelLocation()
         locationPending = false
-        usesMyLocation = false
-        segments.check(R.id.mapModeButton)
         center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
         refreshArea()
         fitCircle()
@@ -511,16 +447,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onStart() {
         super.onStart()
-        if (!preferenceMode) {
-            FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
-                ListingRepo.getSavedItemIds(uid) {
-                    if (!isDestroyed) {
-                        savedIds = it.toMutableSet()
-                        adapter.updateSavedIds(savedIds)
-                    }
-                }
-            }
-        }
         if (locationPending && hasLocationPermission()) locateDevice()
     }
 
@@ -535,7 +461,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         outState.putDouble(EXTRA_CENTER_LNG, center.longitude)
         outState.putDouble(EXTRA_RADIUS_KM, radiusKm)
         outState.putBoolean(EXTRA_HAS_SELECTION, hasSelection)
-        outState.putBoolean("usesMyLocation", usesMyLocation)
         outState.putBoolean("locationPending", locationPending)
         super.onSaveInstanceState(outState)
     }

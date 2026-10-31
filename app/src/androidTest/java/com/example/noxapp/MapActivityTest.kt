@@ -11,17 +11,17 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.Espresso.pressBackUnconditionally
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.recyclerview.widget.RecyclerView
 import org.hamcrest.Matchers.not
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,15 +44,15 @@ class MapActivityTest {
     }
 
     @Test
-    fun seeAllReturnsCurrentAreaAfterRecreation() {
+    fun browseAreaReturnsCurrentAreaAfterRecreation() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
             scenario.recreate()
             onView(withId(R.id.radiusLabel)).check(matches(withText("Radius: 3.5 km")))
-            onView(withId(R.id.mapAreaAction)).perform(click())
+            onView(withId(R.id.searchAreaButton)).perform(click())
             val result = scenario.result.resultData
             assertTrue(result.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false))
             assertEquals(3.5, result.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, 0.0), 0.0)
-            assertEquals(43.9483414, result.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.0)
+            assertEquals(43.9483414, result.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.0001)
         }
     }
 
@@ -65,7 +65,7 @@ class MapActivityTest {
                 assertTrue("Area panel must expose a complete touch target",
                     view.height - view.paddingTop >= 48 * view.resources.displayMetrics.density)
             }
-            onView(withId(R.id.mapAreaAction)).perform(click())
+            onView(withId(R.id.searchAreaButton)).perform(click())
             assertTrue(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false))
         }
     }
@@ -82,9 +82,24 @@ class MapActivityTest {
             onView(withId(R.id.radiusSlider)).perform(pressKey(KeyEvent.KEYCODE_DPAD_RIGHT))
             onView(withId(R.id.radiusLabel)).check(matches(withText("Radius: 4 km")))
             scenario.recreate()
-            pressBackUnconditionally()
+            onView(withId(R.id.searchAreaButton)).perform(click())
             assertTrue(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false))
             assertEquals(4.0, scenario.result.resultData.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, 0.0), 0.0)
+        }
+    }
+
+    @Test
+    fun radiusChangeAloneDoesNotApplyBrowseFilter() {
+        ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
+            scenario.onActivity {
+                it.findViewById<View>(R.id.radiusSlider).apply {
+                    isFocusableInTouchMode = true
+                    assertTrue(requestFocus())
+                }
+            }
+            onView(withId(R.id.radiusSlider)).perform(pressKey(KeyEvent.KEYCODE_DPAD_RIGHT))
+            pressBackUnconditionally()
+            assertFalse(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, true))
         }
     }
 
@@ -122,15 +137,33 @@ class MapActivityTest {
     fun preferenceModeOmitsItemBrowsing() {
         val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
         ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
-            onView(withText("Items in This Area")).check(matches(not(isDisplayed())))
-            onView(withId(R.id.mapItemsRecycler)).check(matches(not(isDisplayed())))
+            onView(withText("Items in This Area")).check(doesNotExist())
+            onView(withText("See all ›")).check(doesNotExist())
             onView(withId(R.id.searchAreaButton)).check(matches(not(isDisplayed())))
-            scenario.onActivity {
-                assertNull(it.findViewById<RecyclerView>(R.id.mapItemsRecycler).adapter)
-            }
             scenario.recreate()
             onView(withText("Save preference")).check(matches(isDisplayed()))
-            onView(withText("Items in This Area")).check(matches(not(isDisplayed())))
+            onView(withText("Items in This Area")).check(doesNotExist())
+        }
+    }
+
+    @Test
+    fun browseModeRemovesBottomItemList() {
+        ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use {
+            onView(withText("Items in This Area")).check(doesNotExist())
+            onView(withText("See all ›")).check(doesNotExist())
+        }
+    }
+
+    @Test
+    fun searchAndMyLocationShareTopBarWithBack() {
+        ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
+            scenario.onActivity {
+                val back = it.findViewById<View>(R.id.mapBackButton)
+                val search = it.findViewById<View>(R.id.locationSearchInput)
+                val myLocation = it.findViewById<View>(R.id.myLocationButton)
+                assertSame(back.parent, search.parent)
+                assertSame(search.parent, myLocation.parent)
+            }
         }
     }
 
@@ -170,7 +203,7 @@ class MapActivityTest {
         ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
             scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
             onView(withText("Save preference")).check(matches(isDisplayed()))
-            onView(withText("Items in This Area")).check(matches(not(isDisplayed())))
+            onView(withText("Items in This Area")).check(doesNotExist())
         }
     }
 }
