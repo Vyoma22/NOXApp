@@ -22,25 +22,32 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- Brand Header -->
-            <ImageView
-                android:id="@+id/noxLogo"
-                android:layout_width="180dp"
+            <!-- Greeting, with the brand lockup inline at the top right -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:adjustViewBounds="true"
-                android:contentDescription="@string/app_name"
-                android:src="@drawable/logo_nox" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-            <!-- Personalized Greeting -->
-            <TextView
-                android:id="@+id/welcomeTextView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:text="Welcome!"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="26sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/welcomeTextView"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Welcome!"
+                    android:textColor="@color/nox_dark_green"
+                    android:textSize="26sp"
+                    android:textStyle="bold" />
+
+                <ImageView
+                    android:id="@+id/noxLogo"
+                    android:layout_width="96dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:adjustViewBounds="true"
+                    android:contentDescription="@string/app_name"
+                    android:src="@drawable/logo_nox" />
+            </LinearLayout>
 
             <TextView
                 android:layout_width="wrap_content"
