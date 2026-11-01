@@ -48,8 +48,6 @@ dependencies {
     implementation("com.google.firebase:firebase-storage")  //for images and videos
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2") // lets us .await() Firebase calls
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4") // lifecycleScope
-    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
 }

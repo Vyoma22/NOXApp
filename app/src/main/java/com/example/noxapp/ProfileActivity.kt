@@ -22,7 +22,6 @@ import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
 class ProfileActivity : AppCompatActivity() {
 
@@ -134,13 +133,17 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun loadListings(uid: String) {
-        FirebaseFirestore.getInstance().collection("listings").get()
-            .addOnSuccessListener { snapshot ->
-                allListings = snapshot.toObjects(Listing::class.java)
+        ListingRepo.loadAllListings(
+            onSuccess = { listings ->
+                allListings = listings
                 val myListingsCount = allListings.count { it.sellerId == uid }
                 findViewById<TextView>(R.id.statListingsCount).text = myListingsCount.toString()
                 renderCurrentTab()
+            },
+            onError = {
+                Toast.makeText(this, "Failed to load listings", Toast.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun setupTabs() {
