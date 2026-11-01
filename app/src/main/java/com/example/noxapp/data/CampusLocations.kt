@@ -16,4 +16,8 @@ object CampusLocations {
             ONTARIO_TECH
         }
     }
+
+    /** Default map centre for a student's school, so Durham users do not land across the street. */
+    fun forSchool(school: String?): Pair<Double, Double> =
+        if (school?.contains("durham", ignoreCase = true) == true) DURHAM_COLLEGE else ONTARIO_TECH
 }

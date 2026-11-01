@@ -1,6 +1,7 @@
 package com.example.noxapp.auth
 
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.firestore.FieldValue
@@ -68,6 +69,24 @@ object AuthRepo {
 
     suspend fun sendPasswordReset(email: String) {
         auth.sendPasswordResetEmail(email).await()
+    }
+
+    /** Firebase requires a fresh sign-in before password or account changes. */
+    suspend fun reauthenticate(password: String) {
+        val user = auth.currentUser ?: error("Not signed in")
+        val email = user.email ?: error("Account has no email")
+        user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+    }
+
+    suspend fun changePassword(currentPassword: String, newPassword: String) {
+        reauthenticate(currentPassword)
+        val user = auth.currentUser ?: error("Not signed in")
+        user.updatePassword(newPassword).await()
+    }
+
+    suspend fun deleteCurrentUser() {
+        val user = auth.currentUser ?: error("Not signed in")
+        user.delete().await()
     }
 
     // the most important function, checks: 1. signed in 2: email verified. 3: not expired account

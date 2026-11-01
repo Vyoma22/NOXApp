@@ -1,6 +1,25 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.NOXApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/nox_primary_green</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/nox_accent_text</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorPrimaryInverse">@color/nox_snackbar_action</item>
+        <item name="colorError">@color/nox_error</item>
+        <item name="colorSurface">@color/nox_field_bg</item>
+        <item name="colorOnSurface">@color/nox_dark_green</item>
+        <item name="colorSurfaceVariant">@color/nox_chip_bg</item>
+        <item name="colorOnSurfaceVariant">@color/nox_subtext</item>
+        <item name="colorSurfaceContainer">@color/nox_field_bg</item>
+        <item name="colorSurfaceContainerHigh">@color/nox_field_bg</item>
+        <item name="colorSurfaceContainerHighest">@color/nox_chip_bg</item>
+        <item name="colorOutline">@color/nox_subtext</item>
+        <item name="colorOutlineVariant">@color/nox_search_stroke</item>
+        <item name="colorAccent">@color/nox_accent_text</item>
+        <item name="android:colorAccent">@color/nox_accent_text</item>
+        <item name="android:textColorPrimary">@color/nox_dark_green</item>
+        <item name="android:textColorSecondary">@color/nox_subtext</item>
         <!-- Bottom nav active-indicator pill; Material's default lavender clashes with the palette -->
         <item name="colorSecondaryContainer">@color/nox_chip_bg</item>
         <!-- Cream from the first frame, so cold start does not flash the default surface -->

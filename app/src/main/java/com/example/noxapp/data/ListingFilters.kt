@@ -2,6 +2,7 @@ package com.example.noxapp.data
 
 import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
+import com.example.noxapp.models.SortOption
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -59,6 +60,28 @@ object ListingFilters {
         return true
     }
 
-    fun apply(listings: List<Listing>, filters: BrowseFilters): List<Listing> =
-        listings.filter { matches(it, filters) }.sortedByDescending { it.createdAt }
+    fun apply(listings: List<Listing>, filters: BrowseFilters): List<Listing> {
+        val filtered = listings.filter { matches(it, filters) }
+        return when (filters.sort) {
+            SortOption.NEWEST -> filtered.sortedByDescending { it.createdAt }
+            SortOption.PRICE_LOW -> filtered.sortedWith(
+                compareBy<Listing> { it.price }.thenByDescending { it.createdAt }
+            )
+            SortOption.PRICE_HIGH -> filtered.sortedWith(
+                compareByDescending<Listing> { it.price }.thenByDescending { it.createdAt }
+            )
+            SortOption.NEAREST -> {
+                val lat = filters.centerLat
+                val lng = filters.centerLng
+                if (lat == null || lng == null) {
+                    filtered.sortedByDescending { it.createdAt }
+                } else {
+                    filtered.sortedBy {
+                        val (listingLat, listingLng) = CampusLocations.resolve(it)
+                        haversineKm(lat, lng, listingLat, listingLng)
+                    }
+                }
+            }
+        }
+    }
 }

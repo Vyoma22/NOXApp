@@ -18,6 +18,7 @@ import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.fadeVisibility
 import com.example.noxapp.ui.goTo
+import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -34,6 +35,7 @@ class ProfileActivity : AppCompatActivity() {
     private lateinit var profileAdapter: ListingAdapter
     private var allListings: List<Listing> = emptyList()
     private var userSavedIds: Set<String> = emptySet()
+    private val pendingSaves = mutableSetOf<String>()
     private var currentTab = Tab.MY_LISTINGS
     private var accessJob: Job? = null
 
@@ -46,8 +48,12 @@ class ProfileActivity : AppCompatActivity() {
 
         applyEdgeToEdgeInsets(R.id.profileRoot, R.id.profileBottomNav, R.id.profileScroll)
 
+        savedInstanceState?.getString(STATE_TAB)?.let { saved ->
+            currentTab = runCatching { Tab.valueOf(saved) }.getOrDefault(Tab.MY_LISTINGS)
+        }
         setupRecyclerView()
         setupTabs()
+        styleTabs()
         setupBottomNav()
 
         findViewById<ImageButton>(R.id.profileSettingsButton).setOnClickListener {
@@ -81,16 +87,7 @@ class ProfileActivity : AppCompatActivity() {
         profileAdapter = ListingAdapter(
             emptyList(),
             userSavedIds,
-            onFavoriteClick = { listing, shouldSave ->
-                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@ListingAdapter
-                ListingRepo.toggleSaveItem(uid, listing.id, shouldSave) {
-                    val updated = if (shouldSave) userSavedIds + listing.id else userSavedIds - listing.id
-                    userSavedIds = updated
-                    profileAdapter.updateSavedIds(userSavedIds)
-                    findViewById<TextView>(R.id.statSavedCount).text = userSavedIds.size.toString()
-                    if (currentTab == Tab.SAVED) renderCurrentTab()
-                }
-            },
+            onFavoriteClick = { listing, shouldSave -> toggleSave(listing, shouldSave) },
             onItemClick = { listing ->
                 ItemDetailDialog.show(this, listing)
             }
@@ -98,6 +95,39 @@ class ProfileActivity : AppCompatActivity() {
 
         recycler.layoutManager = GridLayoutManager(this, 2)
         recycler.adapter = profileAdapter
+    }
+
+    private fun toggleSave(listing: Listing, shouldSave: Boolean, showUndo: Boolean = true) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        if (!pendingSaves.add(listing.id)) return
+
+        applySavedLocally(listing.id, shouldSave)
+        ListingRepo.toggleSaveItem(uid, listing.id, shouldSave) { success ->
+            pendingSaves.remove(listing.id)
+            if (isDestroyed) return@toggleSaveItem
+            if (!success) {
+                applySavedLocally(listing.id, !shouldSave)
+                Snackbar.make(findViewById(R.id.profileRoot), R.string.save_failed, Snackbar.LENGTH_LONG)
+                    .setAnchorView(R.id.profileBottomNav)
+                    .show()
+            } else if (showUndo) {
+                Snackbar.make(
+                    findViewById(R.id.profileRoot),
+                    if (shouldSave) R.string.browse_saved else R.string.browse_unsaved,
+                    Snackbar.LENGTH_LONG
+                )
+                    .setAnchorView(R.id.profileBottomNav)
+                    .setAction(R.string.undo) { toggleSave(listing, !shouldSave, showUndo = false) }
+                    .show()
+            }
+        }
+    }
+
+    private fun applySavedLocally(listingId: String, saved: Boolean) {
+        userSavedIds = if (saved) userSavedIds + listingId else userSavedIds - listingId
+        profileAdapter.updateSavedIds(userSavedIds)
+        findViewById<TextView>(R.id.statSavedCount).text = userSavedIds.size.toString()
+        if (currentTab == Tab.SAVED) renderCurrentTab()
     }
 
     private fun loadUserProfile() {
@@ -174,6 +204,23 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
+    /** Re-applies the selected styling after rotation, when the tab was restored from state. */
+    private fun styleTabs() {
+        val ids = mapOf(
+            Tab.MY_LISTINGS to R.id.tabMyListings,
+            Tab.SAVED to R.id.tabSaved,
+            Tab.SOLD to R.id.tabSold
+        )
+        val selected = findViewById<Button>(ids.getValue(currentTab))
+        val unselected = ids.filterKeys { it != currentTab }.values.map { findViewById<Button>(it) }
+        updateTabStyle(selected, unselected)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(STATE_TAB, currentTab.name)
+        super.onSaveInstanceState(outState)
+    }
+
     private fun renderCurrentTab(animate: Boolean = false) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         val emptyNotice = findViewById<TextView>(R.id.profileEmptyNotice)
@@ -207,7 +254,7 @@ class ProfileActivity : AppCompatActivity() {
                         true
                     }
                     R.id.navPost -> {
-                        Toast.makeText(this@ProfileActivity, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
+                        startActivity(Intent(this@ProfileActivity, com.example.noxapp.postlisting.PostListing::class.java))
                         false
                     }
                     R.id.navChat -> {
@@ -217,6 +264,15 @@ class ProfileActivity : AppCompatActivity() {
                     else -> false
                 }
             }
+            setOnItemReselectedListener { item ->
+                if (item.itemId == R.id.navProfile) {
+                    findViewById<androidx.core.widget.NestedScrollView>(R.id.profileScroll).smoothScrollTo(0, 0)
+                }
+            }
         }
+    }
+
+    companion object {
+        private const val STATE_TAB = "profile.tab"
     }
 }

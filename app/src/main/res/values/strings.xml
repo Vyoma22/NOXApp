@@ -1,14 +1,17 @@
 <resources>
-    <string name="app_name">NOXApp</string>
+    <string name="app_name">NOX</string>
+    <string name="home_welcome">Welcome!</string>
+    <string name="home_greeting">Welcome, %1$s!</string>
     <string name="home_subtitle">Find what you need from your campus community.</string>
     <string name="search_hint">Search for items…</string>
+    <string name="clear_search">Clear search</string>
     <string name="browse_items_title">Browse\nItems</string>
     <string name="browse_items_sub">Discover great deals from students</string>
     <string name="post_item_title">Post\nan Item</string>
     <string name="post_item_sub">Sell your items easily</string>
     <string name="featured_listings">Featured Listings</string>
     <string name="recently_added">Recently Added</string>
-    <string name="see_all">See all &gt;</string>
+    <string name="see_all">See all</string>
     <string name="browse_card_action">Browse items</string>
     <string name="post_card_action">Post an item</string>
     <string name="sign_out">Sign Out</string>
@@ -22,19 +25,109 @@
     <string name="nav_chat">Chat</string>
     <string name="nav_profile">Profile</string>
 
-    <string-array name="categories">
-        <item>Accessories</item>
-        <item>Books</item>
-        <item>Clothing</item>
-        <item>Decor</item>
-        <item>Electronics</item>
-        <item>Furniture</item>
-        <item>General</item>
-        <item>Household</item>
-        <item>Sporting</item>
-        <item>Tools</item>
+    <string name="retry">Retry</string>
+    <string name="undo">Undo</string>
+    <string name="save_item">Save item</string>
+    <string name="saved_item">Saved</string>
+    <string name="listing_title_placeholder">Item title</string>
+    <string name="listing_price_placeholder">$0</string>
+    <string name="save_failed">Couldn\'t update saved items</string>
+    <string name="saved_to_profile">Saved to your profile</string>
+    <string name="removed_from_saved">Removed from saved</string>
+    <string name="category_description">%1$s category</string>
+    <string name="category_description_selected">%1$s category, selected</string>
 
-    </string-array>
+    <string name="home_error_title">Couldn\'t load listings</string>
+    <string name="home_error_hint">Check your connection and try again.</string>
+    <string name="home_empty_title">No listings yet</string>
+    <string name="home_empty_hint">New items from your campus will show up here.</string>
+    <string name="home_no_matches_title">No items match your search</string>
+    <string name="home_no_matches_hint">Try a different search or category.</string>
+    <string name="home_refresh">Refresh</string>
+    <string name="clear_filters">Clear filters</string>
+
+    <plurals name="map_area_count">
+        <item quantity="one">%1$d item within %2$s %3$s</item>
+        <item quantity="other">%1$d items within %2$s %3$s</item>
+    </plurals>
+    <string name="map_area_loading">Loading items…</string>
+    <string name="map_area_error">Couldn\'t load items</string>
+    <string name="map_legend">Faded pins are outside your radius.</string>
+    <string name="map_apply_hint">Changes apply when you tap the button below.</string>
+    <string name="map_showing_filters">Showing: %1$s</string>
+    <string name="map_radius_min">0.5 %1$s</string>
+    <string name="map_radius_max">10 %1$s</string>
+    <string name="map_filter_separator"> · </string>
+    <string name="map_back">Back</string>
+    <string name="my_location">My Location</string>
+    <string name="browse_items_in_area">Browse items in this area</string>
+    <string name="map_center">Map center</string>
+    <string name="location_search_hint">Search for a place or address</string>
+    <string name="location_search_action">Search location</string>
+    <string name="location_search_required">Enter a place or address</string>
+    <string name="location_search_loading">Searching for locations…</string>
+    <string name="location_search_results">Choose a location</string>
+    <string name="location_search_empty">No locations found. Try a different search.</string>
+    <string name="location_search_error">Location search unavailable. Check your connection and try again.</string>
+    <string name="radius_label">Radius: %1$s %2$s</string>
+    <string name="location_denied">Location permission denied, showing campus</string>
+    <string name="location_unavailable">Location unavailable, showing campus</string>
+    <string name="map_post_toast">Post an Item Tab</string>
+    <string name="map_chat_toast">Chat Inbox Tab</string>
+
+    <string name="unit_km">km</string>
+    <string name="sort_newest">Newest</string>
+    <string name="sort_price_low">Price low</string>
+    <string name="sort_price_high">Price high</string>
+    <string name="sort_nearest">Nearest</string>
+
+    <string name="settings_profile">Profile</string>
+    <string name="settings_school">School</string>
+    <string name="settings_email">School email</string>
+    <string name="settings_access_ends">Access ends</string>
+    <string name="settings_change_password">Change password</string>
+    <string name="settings_preferences">Preferences</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_default_sort">Default Browse sort</string>
+    <string name="settings_privacy">Privacy &amp; safety</string>
+    <string name="settings_safety_tips">Campus safety tips</string>
+    <string name="settings_terms">Terms of service</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_support">Support &amp; about</string>
+    <string name="settings_help">Help &amp; FAQ</string>
+    <string name="settings_report">Report a problem</string>
+    <string name="settings_version">Version</string>
+    <string name="settings_version_value">%1$s (%2$s)</string>
+    <string name="settings_sign_out_title">Sign out?</string>
+    <string name="settings_sign_out_message">You can sign back in with your school email.</string>
+    <string name="settings_password_title">Change password</string>
+    <string name="settings_current_password">Current password</string>
+    <string name="settings_new_password">New password</string>
+    <string name="settings_confirm_password">Confirm new password</string>
+    <string name="settings_password_mismatch">Passwords don\'t match</string>
+    <string name="settings_password_short">At least 8 characters</string>
+    <string name="settings_password_updated">Password updated</string>
+    <string name="settings_saved">Saved</string>
+    <string name="settings_update_failed">Couldn\'t save. Try again.</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_delete_account_title">Delete your account?</string>
+    <string name="settings_delete_account_message">This removes your profile, listings, and saved items. It cannot be undone.</string>
+    <string name="settings_delete_confirm_hint">Type DELETE to confirm</string>
+    <string name="settings_delete_confirm_word">DELETE</string>
+    <string name="settings_delete">Delete</string>
+    <string name="settings_loading">Loading…</string>
+    <string name="settings_safety_message">Meet in a busy, well-lit campus spot. Inspect the item before paying. Never send money before you have the item. If a listing feels wrong, stop and contact campus security.</string>
+    <string name="settings_terms_message">NOX is a student-only marketplace. Listings and transactions are between students; NOX does not handle payment or delivery. Access ends after your graduation month.</string>
+    <string name="settings_privacy_message">NOX stores your display name, school email, school, graduation date, and saved items in Firebase. Your listings are visible to other signed-in students. You can delete your account from this screen.</string>
+    <string name="settings_help_message">Search by item or use Browse filters; open the map from Browse to apply a pickup radius. Saved items appear on your profile. For account help, use Report a problem.</string>
+    <string name="settings_report_subject">NOX app feedback</string>
+    <string name="settings_report_body">Describe the problem and what you expected to happen:</string>
+    <string name="settings_access_ends_format">%1$s</string>
+    <string name="settings_profile_missing">Profile unavailable</string>
+
     <string-array name="locations">
         <item>Ontario Tech (North Campus)</item>
         <item>ACE</item>
@@ -59,20 +152,4 @@
         <item>South Wing</item>
         <item></item>
     </string-array>
-    <string name="map_back">Back</string>
-    <string name="my_location">My Location</string>
-    <string name="browse_items_in_area">Browse items in this area</string>
-    <string name="map_center">Map center</string>
-    <string name="location_search_hint">Search for a place or address</string>
-    <string name="location_search_action">Search location</string>
-    <string name="location_search_required">Enter a place or address</string>
-    <string name="location_search_loading">Searching for locations…</string>
-    <string name="location_search_results">Choose a location</string>
-    <string name="location_search_empty">No locations found. Try a different search.</string>
-    <string name="location_search_error">Location search unavailable. Check your connection and try again.</string>
-    <string name="radius_label">Radius: %1$s km</string>
-    <string name="location_denied">Location permission denied, showing campus</string>
-    <string name="location_unavailable">Location unavailable, showing campus</string>
-    <string name="map_post_toast">Post an Item Tab</string>
-    <string name="map_chat_toast">Chat Inbox Tab</string>
 </resources>

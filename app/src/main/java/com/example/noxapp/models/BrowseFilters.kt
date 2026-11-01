@@ -10,6 +10,8 @@ enum class PriceRange(val label: String, val minInclusive: Double, val maxExclus
     OVER_100("$100+", 100.0, Double.MAX_VALUE)
 }
 
+enum class SortOption { NEWEST, PRICE_LOW, PRICE_HIGH, NEAREST }
+
 @Parcelize
 data class BrowseFilters(
     val query: String = "",
@@ -18,5 +20,6 @@ data class BrowseFilters(
     val condition: String? = null,
     val centerLat: Double? = null,
     val centerLng: Double? = null,
-    val radiusKm: Double? = null
+    val radiusKm: Double? = null,
+    val sort: SortOption = SortOption.NEWEST
 ) : Parcelable

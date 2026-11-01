@@ -9,6 +9,9 @@
     <!-- Primary buttons, selected navigation icons, active tabs -->
     <color name="nox_primary_green">#2F6B4F</color>
 
+    <!-- Accent text and icons that sit on the page background rather than a green fill -->
+    <color name="nox_accent_text">#2F6B4F</color>
+
     <!-- Main cream background across the app -->
     <color name="nox_cream_bg">#FBF6EA</color>
 
@@ -38,6 +41,15 @@
 
     <!-- Muted neutral details (seller info) -->
     <color name="nox_muted">#8C7F6A</color>
+
+    <!-- Destructive actions and field errors -->
+    <color name="nox_error">#B3261E</color>
+
+    <!-- Search and chip outlines -->
+    <color name="nox_search_stroke">#DCD4C4</color>
+
+    <!-- Action text on a dark snackbar -->
+    <color name="nox_snackbar_action">#A9DCBF</color>
 
     <!-- Launcher icon background, sampled from the NOX brand mark -->
     <color name="ic_launcher_background">#FF305C45</color>

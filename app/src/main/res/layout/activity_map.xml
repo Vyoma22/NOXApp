@@ -37,11 +37,11 @@
             android:textColor="@color/nox_dark_green" android:textColorHint="@color/nox_subtext" />
         <ImageButton android:id="@+id/locationSearchButton" android:layout_width="48dp" android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless" android:padding="12dp"
-            android:src="@android:drawable/ic_menu_search" android:contentDescription="@string/location_search_action"
+            android:src="@drawable/ic_search" android:contentDescription="@string/location_search_action"
             app:tint="@color/nox_primary_green" />
         <ImageButton android:id="@+id/myLocationButton" android:layout_width="48dp" android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless" android:padding="12dp"
-            android:src="@android:drawable/ic_menu_mylocation" android:contentDescription="@string/my_location"
+            android:src="@drawable/ic_my_location" android:contentDescription="@string/my_location"
             app:tint="@color/nox_primary_green" />
     </LinearLayout>
 
@@ -64,13 +64,33 @@
                     <TextView android:id="@+id/radiusLabel" android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:labelFor="@id/radiusSlider" android:textColor="@color/nox_dark_green"
                         android:textSize="16sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/mapFilterSummary" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:textColor="@color/nox_subtext" android:textSize="12sp"
+                        android:visibility="gone" />
                     <com.google.android.material.slider.Slider android:id="@+id/radiusSlider"
                         android:layout_width="match_parent" android:layout_height="48dp"
                         android:valueFrom="0.5" android:valueTo="10.0" android:stepSize="0.5" android:value="2.0"
                         app:thumbColor="@color/nox_primary_green" app:trackColorActive="@color/nox_primary_green"
                         app:trackColorInactive="@color/nox_chip_bg" app:tickVisible="false" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:layout_marginTop="-8dp">
+                        <TextView android:id="@+id/radiusMinLabel" android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:textColor="@color/nox_subtext" android:textSize="12sp" />
+                        <TextView android:id="@+id/radiusMaxLabel" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:gravity="end" android:textColor="@color/nox_subtext" android:textSize="12sp" />
+                    </LinearLayout>
+                    <TextView android:id="@+id/mapAreaSummary" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:textColor="@color/nox_dark_green" android:textSize="14sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/mapLegend" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp" android:text="@string/map_legend"
+                        android:textColor="@color/nox_subtext" android:textSize="12sp" />
+                    <TextView android:id="@+id/mapApplyHint" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp" android:text="@string/map_apply_hint"
+                        android:textColor="@color/nox_subtext" android:textSize="12sp" />
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/searchAreaButton" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
                         android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp"
                         android:text="@string/browse_items_in_area" android:textAllCaps="false" android:textColor="@color/white"
                         app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp"

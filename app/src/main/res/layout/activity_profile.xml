@@ -21,7 +21,7 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- Avatar & Settings -->
+            <!-- Avatar -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
@@ -45,17 +45,6 @@
                         android:textSize="36sp"
                         android:textStyle="bold" />
                 </androidx.cardview.widget.CardView>
-
-                <ImageButton
-                    android:id="@+id/profileSettingsButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_gravity="top|end"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/settings"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_settings"
-                    app:tint="@color/nox_dark_green" />
             </FrameLayout>
 
             <!-- Name & School -->
@@ -86,7 +75,7 @@
                 android:paddingHorizontal="14dp"
                 android:paddingVertical="6dp"
                 android:text="✓ Verified Student"
-                android:textColor="@color/nox_primary_green"
+                android:textColor="@color/nox_accent_text"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
@@ -188,7 +177,7 @@
                     android:backgroundTint="@color/nox_primary_green"
                     android:text="My Listings"
                     android:textColor="@color/white"
-                    android:textSize="11sp" />
+                    android:textSize="12sp" />
 
                 <Button
                     android:id="@+id/tabSaved"
@@ -199,7 +188,7 @@
                     android:backgroundTint="@color/nox_chip_bg"
                     android:text="Saved"
                     android:textColor="@color/nox_dark_green"
-                    android:textSize="11sp" />
+                    android:textSize="12sp" />
 
                 <Button
                     android:id="@+id/tabSold"
@@ -210,7 +199,7 @@
                     android:backgroundTint="@color/nox_chip_bg"
                     android:text="Sold"
                     android:textColor="@color/nox_dark_green"
-                    android:textSize="11sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <!-- Grid of Items -->
@@ -233,6 +222,19 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <ImageButton
+        android:id="@+id/profileSettingsButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/settings"
+        android:padding="12dp"
+        android:src="@drawable/ic_settings"
+        app:tint="@color/nox_dark_green" />
 
     <include
         android:id="@+id/profileBottomNav"
