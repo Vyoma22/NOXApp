@@ -19,7 +19,7 @@ Buy, sell, and exchange textbooks, electronics, furniture, and dorm supplies wit
 
 <br>
 
-[Overview](#overview) &nbsp;·&nbsp; [Design preview](#design-preview) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Tech stack](#tech-stack) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Getting started](#getting-started) &nbsp;·&nbsp; [Testing](#testing) &nbsp;·&nbsp; [Status](#status) &nbsp;·&nbsp; [Team](#team)
+[Overview](#overview) &nbsp;·&nbsp; [Design preview](#design-preview) &nbsp;·&nbsp; [Features](#features) &nbsp;·&nbsp; [Tech stack](#tech-stack) &nbsp;·&nbsp; [Architecture](#architecture) &nbsp;·&nbsp; [Getting started](#getting-started) &nbsp;·&nbsp; [Testing](#testing) &nbsp;·&nbsp; [Status](#status)
 
 </div>
 
