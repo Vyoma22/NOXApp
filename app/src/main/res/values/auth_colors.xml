@@ -8,5 +8,4 @@
     <color name="nox_logo_arrow_light">#8DAF9A</color>  <!-- light arrow in the logo files -->
     <color name="nox_logo_subtitle">#5C7C68</color>     <!-- "North Oshawa Exchange" in the logo files -->
     <color name="nox_field_border">#E3DED1</color>      <!-- text-field outline from the Figma login frame -->
-    <color name="nox_error">#B3261E</color>
 </resources>
