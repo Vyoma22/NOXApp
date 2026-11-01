@@ -9,8 +9,6 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.addTextChangedListener
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -25,6 +23,7 @@ import com.example.noxapp.models.CategoryItem
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
@@ -46,12 +45,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
-
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+        applyEdgeToEdgeInsets(R.id.main, R.id.bottomNavBar, R.id.mainScroll)
 
         // 1. Sign out
         findViewById<Button>(R.id.signOutButton).setOnClickListener {

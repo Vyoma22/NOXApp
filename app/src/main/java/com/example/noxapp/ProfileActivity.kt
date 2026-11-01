@@ -9,13 +9,12 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.goTo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -43,11 +42,7 @@ class ProfileActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_profile)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.profileRoot)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+        applyEdgeToEdgeInsets(R.id.profileRoot, R.id.profileBottomNav, R.id.profileScroll)
 
         setupRecyclerView()
         setupTabs()
