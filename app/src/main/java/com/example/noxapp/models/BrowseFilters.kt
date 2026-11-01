@@ -1,5 +1,8 @@
 package com.example.noxapp.models
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
 enum class PriceRange(val label: String, val minInclusive: Double, val maxExclusive: Double) {
     UNDER_25("Under $25", 0.0, 25.0),
     FROM_25_TO_50("$25 - $50", 25.0, 50.0),
@@ -7,6 +10,7 @@ enum class PriceRange(val label: String, val minInclusive: Double, val maxExclus
     OVER_100("$100+", 100.0, Double.MAX_VALUE)
 }
 
+@Parcelize
 data class BrowseFilters(
     val query: String = "",
     val category: String? = null,
@@ -15,4 +19,4 @@ data class BrowseFilters(
     val centerLat: Double? = null,
     val centerLng: Double? = null,
     val radiusKm: Double? = null
-)
+) : Parcelable

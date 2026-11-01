@@ -85,44 +85,10 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <LinearLayout android:id="@+id/mapBottomNav" android:layout_width="0dp" android:layout_height="64dp"
-        android:background="@color/nox_nav_bg" android:gravity="center" android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-        <LinearLayout android:id="@+id/mNavHome" android:layout_width="0dp" android:layout_height="match_parent"
-            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
-            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
-                android:src="@android:drawable/ic_menu_rotate" app:tint="@color/nox_dark_green" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/map_nav_home" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
-        </LinearLayout>
-        <LinearLayout android:id="@+id/mNavBrowse" android:layout_width="0dp" android:layout_height="match_parent"
-            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
-            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
-                android:src="@android:drawable/ic_menu_search" app:tint="@color/nox_primary_green" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:textStyle="bold"
-                android:text="@string/map_nav_browse" android:textColor="@color/nox_primary_green" android:textSize="11sp" />
-        </LinearLayout>
-        <LinearLayout android:id="@+id/mNavPost" android:layout_width="0dp" android:layout_height="match_parent"
-            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
-            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
-                android:src="@android:drawable/ic_input_add" app:tint="@color/nox_dark_green" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/map_nav_post" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
-        </LinearLayout>
-        <LinearLayout android:id="@+id/mNavChat" android:layout_width="0dp" android:layout_height="match_parent"
-            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
-            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
-                android:src="@android:drawable/stat_notify_chat" app:tint="@color/nox_dark_green" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/map_nav_chat" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
-        </LinearLayout>
-        <LinearLayout android:id="@+id/mNavProfile" android:layout_width="0dp" android:layout_height="match_parent"
-            android:layout_weight="1" android:gravity="center" android:orientation="vertical" android:focusable="true">
-            <ImageView android:layout_width="22dp" android:layout_height="22dp" android:importantForAccessibility="no"
-                android:src="@android:drawable/ic_menu_myplaces" app:tint="@color/nox_dark_green" />
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="@string/map_nav_profile" android:textColor="@color/nox_dark_green" android:textSize="11sp" />
-        </LinearLayout>
-    </LinearLayout>
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/mapBottomNav" android:layout_width="0dp" android:layout_height="64dp"
+        android:background="@color/nox_nav_bg" app:itemIconTint="@color/bottom_nav_item"
+        app:itemTextColor="@color/bottom_nav_item" app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_navigation" app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

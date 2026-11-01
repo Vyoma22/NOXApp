@@ -12,7 +12,6 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
-import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -50,6 +49,7 @@ import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
@@ -115,7 +115,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         refreshArea()
         (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
         if (!preferenceMode) loadListings()
-        onBackPressedDispatcher.addCallback(this) { finish() }
     }
 
     private fun arrangeLayout() {
@@ -417,31 +416,39 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun setupNavigation() {
         findViewById<View>(R.id.mapBackButton).setOnClickListener { finish() }
-        findViewById<View>(R.id.mNavBrowse).setOnClickListener {
-            if (preferenceMode) {
-                startActivity(Intent(this, BrowseActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        findViewById<BottomNavigationView>(R.id.mapBottomNav).apply {
+            selectedItemId = R.id.navBrowse
+            val openBrowse = {
+                if (preferenceMode) {
+                    startActivity(Intent(this@MapActivity, BrowseActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                }
+                finish()
             }
-            finish()
-        }
-        findViewById<View>(R.id.mNavHome).setOnClickListener {
-            if (preferenceMode) {
-                startActivity(Intent(this, MainActivity::class.java)
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-            } else {
-                navigation = NAV_HOME
+            setOnItemSelectedListener { item ->
+                when (item.itemId) {
+                    R.id.navBrowse -> openBrowse()
+                    R.id.navHome -> {
+                        if (preferenceMode) {
+                            startActivity(Intent(this@MapActivity, MainActivity::class.java)
+                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                        } else {
+                            navigation = NAV_HOME
+                        }
+                        finish()
+                    }
+                    R.id.navProfile -> {
+                        if (!preferenceMode) navigation = NAV_PROFILE
+                        finish()
+                    }
+                    R.id.navPost -> Toast.makeText(this@MapActivity, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navChat -> Toast.makeText(this@MapActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                }
+                item.itemId == R.id.navBrowse
             }
-            finish()
-        }
-        findViewById<View>(R.id.mNavProfile).setOnClickListener {
-            if (!preferenceMode) navigation = NAV_PROFILE
-            finish()
-        }
-        findViewById<View>(R.id.mNavPost).setOnClickListener {
-            Toast.makeText(this, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
-        }
-        findViewById<View>(R.id.mNavChat).setOnClickListener {
-            Toast.makeText(this, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+            setOnItemReselectedListener { item ->
+                if (item.itemId == R.id.navBrowse) openBrowse()
+            }
         }
     }
 

@@ -71,11 +71,6 @@
     <string name="location_denied">Location permission denied, showing campus</string>
     <string name="location_unavailable">Location unavailable, showing campus</string>
     <string name="pickup_settings">Settings</string>
-    <string name="map_nav_home">Home</string>
-    <string name="map_nav_browse">Browse</string>
-    <string name="map_nav_post">Post</string>
-    <string name="map_nav_chat">Chat</string>
-    <string name="map_nav_profile">Profile</string>
     <string name="map_post_toast">Post an Item Tab</string>
     <string name="map_chat_toast">Chat Inbox Tab</string>
 </resources>

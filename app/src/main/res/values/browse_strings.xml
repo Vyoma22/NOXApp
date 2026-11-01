@@ -24,11 +24,6 @@
     <string name="browse_unsaved">Removed from saved</string>
     <string name="browse_post_toast">Post an Item Tab</string>
     <string name="browse_chat_toast">Chat Inbox Tab</string>
-    <string name="browse_nav_home">Home</string>
-    <string name="browse_nav_browse">Browse</string>
-    <string name="browse_nav_post">Post</string>
-    <string name="browse_nav_chat">Chat</string>
-    <string name="browse_nav_profile">Profile</string>
     <string-array name="browse_conditions">
         <item>New</item>
         <item>Like New</item>

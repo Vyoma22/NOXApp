@@ -106,7 +106,7 @@ class MapActivityTest {
     @Test
     fun profileNavigationReturnsAreaBeforeOpeningProfile() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
-            onView(withId(R.id.mNavProfile)).perform(click())
+            onView(withId(R.id.navProfile)).perform(click())
             assertEquals(Activity.RESULT_OK, scenario.result.resultCode)
             assertEquals("profile", scenario.result.resultData.getStringExtra("navigation"))
             assertFalse(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, true))
@@ -117,7 +117,7 @@ class MapActivityTest {
     @Test
     fun homeNavigationReturnsAreaBeforeClearingBrowse() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
-            onView(withId(R.id.mNavHome)).perform(click())
+            onView(withId(R.id.navHome)).perform(click())
             assertEquals(Activity.RESULT_OK, scenario.result.resultCode)
             assertEquals("home", scenario.result.resultData.getStringExtra("navigation"))
         }

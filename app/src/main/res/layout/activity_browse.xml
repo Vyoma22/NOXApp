@@ -101,63 +101,18 @@
 
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/browseCategoryFilter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:minWidth="48dp"
-                        android:minHeight="48dp"
-                        android:background="@drawable/browse_filter_pill"
-                        android:drawableEnd="@drawable/ic_chevron_down"
-                        android:drawablePadding="8dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="12dp"
-                        android:singleLine="true"
-                        android:text="@string/browse_category"
-                        android:textAllCaps="false"
-                        android:textColor="@color/nox_dark_green"
-                        android:textSize="14sp"
-                        app:backgroundTint="@null" />
+                        style="@style/BrowseFilterButton"
+                        android:text="@string/browse_category" />
 
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/browsePriceFilter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:minWidth="48dp"
-                        android:minHeight="48dp"
-                        android:background="@drawable/browse_filter_pill"
-                        android:drawableEnd="@drawable/ic_chevron_down"
-                        android:drawablePadding="8dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="12dp"
-                        android:singleLine="true"
-                        android:text="@string/browse_price"
-                        android:textAllCaps="false"
-                        android:textColor="@color/nox_dark_green"
-                        android:textSize="14sp"
-                        app:backgroundTint="@null" />
+                        style="@style/BrowseFilterButton"
+                        android:text="@string/browse_price" />
 
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/browseConditionFilter"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="8dp"
-                        android:minWidth="48dp"
-                        android:minHeight="48dp"
-                        android:background="@drawable/browse_filter_pill"
-                        android:drawableEnd="@drawable/ic_chevron_down"
-                        android:drawablePadding="8dp"
-                        android:foreground="?attr/selectableItemBackground"
-                        android:paddingHorizontal="16dp"
-                        android:paddingVertical="12dp"
-                        android:singleLine="true"
-                        android:text="@string/browse_condition"
-                        android:textAllCaps="false"
-                        android:textColor="@color/nox_dark_green"
-                        android:textSize="14sp"
-                        app:backgroundTint="@null" />
+                        style="@style/BrowseFilterButton"
+                        android:text="@string/browse_condition" />
 
                     <LinearLayout
                         android:id="@+id/browseRadiusPill"
@@ -238,132 +193,14 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Same bottom navigation block as Home, with Browse highlighted. -->
-    <LinearLayout
+    <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavBar"
         android:layout_width="match_parent"
         android:layout_height="64dp"
         android:layout_gravity="bottom"
         android:background="@color/nox_nav_bg"
-        android:elevation="8dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:weightSum="5">
-
-        <LinearLayout
-            android:id="@+id/navHome"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical">
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:contentDescription="@string/browse_nav_home"
-                android:src="@android:drawable/ic_menu_rotate"
-                app:tint="@color/nox_dark_green" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/browse_nav_home"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navBrowse"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical">
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:contentDescription="@string/browse_nav_browse"
-                android:src="@android:drawable/ic_menu_search"
-                app:tint="@color/nox_primary_green" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/browse_nav_browse"
-                android:textColor="@color/nox_primary_green"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navPost"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical">
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:contentDescription="@string/browse_nav_post"
-                android:src="@android:drawable/ic_input_add"
-                app:tint="@color/nox_dark_green" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/browse_nav_post"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navChat"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical">
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:contentDescription="@string/browse_nav_chat"
-                android:src="@android:drawable/stat_notify_chat"
-                app:tint="@color/nox_dark_green" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/browse_nav_chat"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/navProfile"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical">
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:contentDescription="@string/browse_nav_profile"
-                android:src="@android:drawable/ic_menu_myplaces"
-                app:tint="@color/nox_dark_green" />
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/browse_nav_profile"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="11sp" />
-        </LinearLayout>
-    </LinearLayout>
+        app:itemIconTint="@color/bottom_nav_item"
+        app:itemTextColor="@color/bottom_nav_item"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_navigation" />
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -13,6 +13,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
+import androidx.core.os.BundleCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
@@ -37,6 +38,7 @@ import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.goTo
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CancellationException
@@ -388,18 +390,18 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
-        findViewById<View>(R.id.navHome).setOnClickListener { goHome() }
-        findViewById<View>(R.id.navBrowse).apply {
-            isSelected = true
-            setOnClickListener { /* Already browsing. */ }
+        findViewById<BottomNavigationView>(R.id.bottomNavBar).apply {
+            selectedItemId = R.id.navBrowse
+            setOnItemSelectedListener { item ->
+                when (item.itemId) {
+                    R.id.navHome -> goHome()
+                    R.id.navPost -> Toast.makeText(this@BrowseActivity, R.string.browse_post_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navChat -> Toast.makeText(this@BrowseActivity, R.string.browse_chat_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navProfile -> openProfile()
+                }
+                item.itemId == R.id.navBrowse
+            }
         }
-        findViewById<View>(R.id.navPost).setOnClickListener {
-            Toast.makeText(this, R.string.browse_post_toast, Toast.LENGTH_SHORT).show()
-        }
-        findViewById<View>(R.id.navChat).setOnClickListener {
-            Toast.makeText(this, R.string.browse_chat_toast, Toast.LENGTH_SHORT).show()
-        }
-        findViewById<View>(R.id.navProfile).setOnClickListener { openProfile() }
     }
 
     private fun goHome() {
@@ -416,15 +418,7 @@ class BrowseActivity : AppCompatActivity() {
     private fun restoreFilters(state: Bundle?) {
         restoredPreference = state != null
         if (state == null) return
-        filters = BrowseFilters(
-            query = state.getString("browse.query").orEmpty(),
-            category = state.getString("browse.category"),
-            priceRange = PriceRange.entries.firstOrNull { it.name == state.getString("browse.price") },
-            condition = state.getString("browse.condition"),
-            centerLat = state.optionalDouble("browse.lat"),
-            centerLng = state.optionalDouble("browse.lng"),
-            radiusKm = state.optionalDouble("browse.radius")
-        )
+        filters = BundleCompat.getParcelable(state, "browse.filters", BrowseFilters::class.java) ?: BrowseFilters()
         categoriesExpanded = state.getBoolean("browse.expanded")
         radiusTouched = state.getBoolean("browse.radiusTouched")
         mapVisitInProgress = state.getBoolean("browse.mapVisit")
@@ -432,21 +426,13 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putString("browse.query", filters.query)
-        outState.putString("browse.category", filters.category)
-        outState.putString("browse.price", filters.priceRange?.name)
-        outState.putString("browse.condition", filters.condition)
-        filters.centerLat?.let { outState.putDouble("browse.lat", it) }
-        filters.centerLng?.let { outState.putDouble("browse.lng", it) }
-        filters.radiusKm?.let { outState.putDouble("browse.radius", it) }
+        outState.putParcelable("browse.filters", filters)
         outState.putBoolean("browse.expanded", categoriesExpanded)
         outState.putBoolean("browse.radiusTouched", radiusTouched)
         outState.putBoolean("browse.mapVisit", mapVisitInProgress)
         outState.putInt("browse.scrollY", pendingScrollY ?: findViewById<NestedScrollView>(R.id.browseScroll).scrollY)
         super.onSaveInstanceState(outState)
     }
-
-    private fun Bundle.optionalDouble(key: String): Double? = if (containsKey(key)) getDouble(key) else null
 
     private fun validArea(lat: Double?, lng: Double?, radius: Double?): Boolean =
         lat != null && lng != null && radius != null && lat.isFinite() && lng.isFinite() &&
