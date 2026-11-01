@@ -1,3 +1,31 @@
 <resources>
     <string name="app_name">NOXApp</string>
+
+    <!-- Shared auth copy -->
+    <string name="nox_tagline">A student marketplace for\nOntario Tech &amp; Durham College</string>
+    <string name="nox_logo_description">NOX, North Oshawa Exchange</string>
+    <string name="student_access_notice">Student access only:\nUse your Ontario Tech / Durham College\nstudent email.</string>
+    <string name="verified_students_only">Verified students only</string>
+    <string name="label_student_email">Student Email</string>
+    <string name="label_password">Password</string>
+    <string name="hint_student_email">your.name@school.ca</string>
+
+    <!-- Login -->
+    <string name="hint_password">Enter password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="log_in">Log In</string>
+    <string name="create_an_account">Create an Account</string>
+
+    <!-- Sign up -->
+    <string name="sign_up_title">Create your account</string>
+    <string name="label_full_name">Full Name</string>
+    <string name="hint_full_name">First and last name</string>
+    <string name="email_domains_helper">@ontariotechu.net or @dcmail.ca</string>
+    <string name="hint_new_password">At least 8 characters</string>
+    <string name="label_confirm_password">Confirm Password</string>
+    <string name="hint_confirm_password">Re-enter password</string>
+    <string name="label_expected_graduation">Expected Graduation</string>
+    <string name="graduation_note">Your account will close after the month you graduate.</string>
+    <string name="create_account">Create Account</string>
+    <string name="already_have_account">Already have an account? Log in</string>
 </resources>
