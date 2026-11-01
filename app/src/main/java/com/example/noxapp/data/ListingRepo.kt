@@ -2,6 +2,7 @@ package com.example.noxapp.data
 
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.UserProfile
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -15,11 +16,21 @@ object ListingRepo {
     fun loadAllListings(onSuccess: (List<Listing>) -> Unit, onError: (Exception) -> Unit) {
         listingsRef.orderBy("createdAt", Query.Direction.DESCENDING).get()
             .addOnSuccessListener { snapshot ->
-                onSuccess(snapshot.documents.mapNotNull { doc ->
-                    doc.toObject(Listing::class.java)?.apply { id = doc.id }
-                })
+                onSuccess(snapshot.documents.mapNotNull { it.toListing() })
             }
             .addOnFailureListener(onError)
+    }
+
+    // ponytail: documents written before the model merge use name/location/imageUrl.
+    // Delete these fallbacks once the old listings have been re-posted.
+    private fun DocumentSnapshot.toListing(): Listing? {
+        val listing = toObject(Listing::class.java) ?: return null
+        return listing.copy(
+            id = id,
+            title = listing.title.ifBlank { getString("name").orEmpty() },
+            pickupLocation = getString("location") ?: listing.pickupLocation,
+            imageUrls = listing.imageUrls.ifEmpty { listOfNotNull(getString("imageUrl")) }
+        )
     }
 
     // Fetch complete user profile from Firestore

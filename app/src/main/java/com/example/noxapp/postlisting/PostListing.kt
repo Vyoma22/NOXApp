@@ -21,6 +21,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.data.ListingRepo
+import com.example.noxapp.models.Listing
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -158,11 +159,11 @@ class PostListing : AppCompatActivity() {
                                         val listing = Listing(
                                             sellerId = uid,
                                             sellerName = displayName,
-                                            name = name,
+                                            title = name,
                                             category = category,
                                             price = price,
                                             description = desc,
-                                            location = location,
+                                            pickupLocation = location,
                                             condition = conditionTxt,
                                             imageUrls = imageURLS
                                         )
