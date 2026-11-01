@@ -75,11 +75,6 @@
                         android:text="@string/browse_items_in_area" android:textAllCaps="false" android:textColor="@color/white"
                         app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp"
                         app:icon="@drawable/ic_map_pin" app:iconTint="@color/white" app:iconGravity="textStart" />
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/savePreferenceButton" android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp" android:visibility="gone"
-                        android:text="@string/save_preference" android:textAllCaps="false" android:textColor="@color/white"
-                        app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>

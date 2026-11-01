@@ -20,7 +20,6 @@ import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
-import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -49,10 +48,7 @@ import java.text.NumberFormat
 class BrowseActivity : AppCompatActivity() {
     private var filters = BrowseFilters()
     private var categoriesExpanded = false
-    private var radiusTouched = false
-    private var restoredPreference = false
     private var mapVisitInProgress = false
-    private var preferenceGeneration = 0
     private var favoritesGeneration = 0
     private var accessAllowed = false
     private var accessJob: Job? = null
@@ -74,15 +70,8 @@ class BrowseActivity : AppCompatActivity() {
             val lng = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LNG, Double.NaN)
             val radius = data.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, Double.NaN)
             if (validArea(lat, lng, radius)) {
-                touchRadius()
                 filters = filters.copy(centerLat = lat, centerLng = lng, radiusKm = radius)
                 renderState()
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                if (uid != null) {
-                    ListingRepo.saveGeoPreference(uid, lat, lng, radius) { success ->
-                        reportPreferenceWrite(success)
-                    }
-                }
             }
         }
         if (result.resultCode == RESULT_OK) {
@@ -90,16 +79,6 @@ class BrowseActivity : AppCompatActivity() {
                 MapActivity.NAV_HOME -> goHome()
                 MapActivity.NAV_PROFILE -> openProfile()
             }
-        }
-    }
-
-    private val profileLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        // Profile settings may have changed the stored area, even after a local apply/clear or rotation.
-        radiusTouched = false
-        restoredPreference = false
-        preferenceGeneration++
-        if (accessAllowed && lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-            loadStoredPreference()
         }
     }
 
@@ -130,8 +109,6 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     override fun onStart() {
-        // Capture before super: a pending Activity Result can be delivered during super.onStart().
-        val returningFromMap = mapVisitInProgress
         super.onStart()
         accessAllowed = false
         accessJob?.cancel()
@@ -153,15 +130,12 @@ class BrowseActivity : AppCompatActivity() {
             accessAllowed = true
             loadFavorites()
             if (!listingsLoaded && !listingsLoading) loadListings()
-            // Merely looking at the map must not replace an existing radius, even on a failed read.
-            if (!returningFromMap) loadStoredPreference()
         }
     }
 
     override fun onStop() {
         accessAllowed = false
         accessJob?.cancel()
-        preferenceGeneration++
         favoritesGeneration++
         super.onStop()
     }
@@ -338,55 +312,18 @@ class BrowseActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadStoredPreference() {
-        if (radiusTouched || restoredPreference || mapVisitInProgress) return
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val generation = ++preferenceGeneration
-        ListingRepo.getUserProfile(uid) { profile ->
-            if (!isDestroyed && !isFinishing && generation == preferenceGeneration &&
-                !radiusTouched && !restoredPreference && FirebaseAuth.getInstance().currentUser?.uid == uid) {
-                val lat = profile?.preferredLat
-                val lng = profile?.preferredLng
-                val radius = profile?.preferredRadiusKm
-                filters = if (validArea(lat, lng, radius)) {
-                    filters.copy(centerLat = lat, centerLng = lng, radiusKm = radius)
-                } else {
-                    filters.copy(centerLat = null, centerLng = null, radiusKm = null)
-                }
-                renderState()
-            }
-        }
-    }
-
     private fun openMap() {
-        preferenceGeneration++
         mapVisitInProgress = true
         mapLauncher.launch(Intent(this, MapActivity::class.java).apply {
-            putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_BROWSE)
             putExtra(MapActivity.EXTRA_CENTER_LAT, filters.centerLat ?: CampusLocations.ONTARIO_TECH.first)
             putExtra(MapActivity.EXTRA_CENTER_LNG, filters.centerLng ?: CampusLocations.ONTARIO_TECH.second)
             putExtra(MapActivity.EXTRA_RADIUS_KM, filters.radiusKm ?: 2.0)
         })
     }
 
-    private fun touchRadius() {
-        radiusTouched = true
-        preferenceGeneration++
-    }
-
     private fun clearRadius() {
-        touchRadius()
         filters = filters.copy(centerLat = null, centerLng = null, radiusKm = null)
         renderState()
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        ListingRepo.clearGeoPreference(uid) { success -> reportPreferenceWrite(success) }
-    }
-
-    private fun reportPreferenceWrite(success: Boolean) {
-        if (!success && !isDestroyed && !isFinishing) {
-            Snackbar.make(findViewById(R.id.browseRoot), R.string.browse_preference_error, Snackbar.LENGTH_LONG)
-                .setAnchorView(R.id.bottomNavBar).show()
-        }
     }
 
     private fun setupBottomNavigation() {
@@ -411,16 +348,13 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun openProfile() {
-        preferenceGeneration++
-        profileLauncher.launch(Intent(this, ProfileActivity::class.java))
+        startActivity(Intent(this, ProfileActivity::class.java))
     }
 
     private fun restoreFilters(state: Bundle?) {
-        restoredPreference = state != null
         if (state == null) return
         filters = BundleCompat.getParcelable(state, "browse.filters", BrowseFilters::class.java) ?: BrowseFilters()
         categoriesExpanded = state.getBoolean("browse.expanded")
-        radiusTouched = state.getBoolean("browse.radiusTouched")
         mapVisitInProgress = state.getBoolean("browse.mapVisit")
         pendingScrollY = state.getInt("browse.scrollY")
     }
@@ -428,7 +362,6 @@ class BrowseActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putParcelable("browse.filters", filters)
         outState.putBoolean("browse.expanded", categoriesExpanded)
-        outState.putBoolean("browse.radiusTouched", radiusTouched)
         outState.putBoolean("browse.mapVisit", mapVisitInProgress)
         outState.putInt("browse.scrollY", pendingScrollY ?: findViewById<NestedScrollView>(R.id.browseScroll).scrollY)
         super.onSaveInstanceState(outState)

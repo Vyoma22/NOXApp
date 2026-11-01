@@ -124,29 +124,6 @@ class MapActivityTest {
     }
 
     @Test
-    fun preferenceModeBackDiscardsWithoutResult() {
-        val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
-        ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
-            onView(withText("Save preference")).check(matches(isDisplayed()))
-            pressBackUnconditionally()
-            assertEquals(Activity.RESULT_CANCELED, scenario.result.resultCode)
-        }
-    }
-
-    @Test
-    fun preferenceModeOmitsItemBrowsing() {
-        val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
-        ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
-            onView(withText("Items in This Area")).check(doesNotExist())
-            onView(withText("See all ›")).check(doesNotExist())
-            onView(withId(R.id.searchAreaButton)).check(matches(not(isDisplayed())))
-            scenario.recreate()
-            onView(withText("Save preference")).check(matches(isDisplayed()))
-            onView(withText("Items in This Area")).check(doesNotExist())
-        }
-    }
-
-    @Test
     fun browseModeRemovesBottomItemList() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use {
             onView(withText("Items in This Area")).check(doesNotExist())
@@ -194,16 +171,6 @@ class MapActivityTest {
                     assertFalse("The pin must not intercept map gestures", pin.isClickable)
                 }
             }
-        }
-    }
-
-    @Test
-    fun landscapePreferenceKeepsSaveReachableWithoutItems() {
-        val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
-        ActivityScenario.launchActivityForResult<MapActivity>(intent).use { scenario ->
-            scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE }
-            onView(withText("Save preference")).check(matches(isDisplayed()))
-            onView(withText("Items in This Area")).check(doesNotExist())
         }
     }
 }

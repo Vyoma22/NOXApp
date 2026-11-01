@@ -53,7 +53,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -71,11 +70,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
     private var radiusKm = 2.0
     private var hasSelection = false
-    private var preferenceMode = false
     private var locationPending = false
     private var locationCancellation: CancellationTokenSource? = null
     private var restoredCamera = false
-    private var saveInProgress = false
     private var navigation: String? = null
     private var searchJob: Job? = null
     private var searchResultsDialog: AlertDialog? = null
@@ -92,7 +89,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_map)
-        preferenceMode = intent.getStringExtra(EXTRA_MODE) == MODE_PREFERENCE
         arrangeLayout()
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mapRoot)) { view, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
@@ -114,12 +110,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         setupNavigation()
         refreshArea()
         (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
-        if (!preferenceMode) loadListings()
+        loadListings()
     }
 
     private fun arrangeLayout() {
-        findViewById<View>(R.id.searchAreaButton).isVisible = !preferenceMode
-        findViewById<View>(R.id.savePreferenceButton).isVisible = preferenceMode
         val root = findViewById<ConstraintLayout>(R.id.mapRoot)
         val margin = (12 * resources.displayMetrics.density).toInt()
         ConstraintSet().apply {
@@ -171,10 +165,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                     finish()
                 }
             }
-        }
-        findViewById<View>(R.id.savePreferenceButton).apply {
-            isEnabled = false
-            setOnClickListener { savePreference() }
         }
     }
 
@@ -264,7 +254,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             true
         }
         findViewById<View>(R.id.searchAreaButton).isEnabled = true
-        findViewById<View>(R.id.savePreferenceButton).isEnabled = true
         findViewById<View>(R.id.locationSearchButton).isEnabled = true
         googleMap.setOnCameraMoveListener {
             center = googleMap.cameraPosition.target
@@ -295,7 +284,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun rebuildMarkers() {
-        if (preferenceMode) return
         val readyMap = map ?: return
         markers.forEach { it.remove() }
         markers.clear()
@@ -320,7 +308,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<Slider>(R.id.radiusSlider).contentDescription = label
         circle?.center = center
         circle?.radius = radiusKm * 1000
-        if (preferenceMode) return
         val filters = BrowseFilters(centerLat = center.latitude, centerLng = center.longitude, radiusKm = radiusKm)
         markers.forEach { marker ->
             val listing = marker.tag as Listing
@@ -391,54 +378,19 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         locationCancellation = null
     }
 
-    private fun savePreference() {
-        if (saveInProgress) return
-        val readyMap = map ?: return
-        readyMap.stopAnimation()
-        center = readyMap.cameraPosition.target
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
-        if (uid == null) {
-            Toast.makeText(this, R.string.map_preference_error, Toast.LENGTH_SHORT).show()
-            return
-        }
-        saveInProgress = true
-        findViewById<View>(R.id.savePreferenceButton).isEnabled = false
-        ListingRepo.saveGeoPreference(uid, center.latitude, center.longitude, radiusKm) { success ->
-            if (!isDestroyed && !isFinishing) {
-                saveInProgress = false
-                findViewById<View>(R.id.savePreferenceButton).isEnabled = true
-                Toast.makeText(this, if (success) R.string.preference_saved else R.string.map_preference_error,
-                    Toast.LENGTH_SHORT).show()
-                if (success) finish()
-            }
-        }
-    }
-
     private fun setupNavigation() {
         findViewById<View>(R.id.mapBackButton).setOnClickListener { finish() }
         findViewById<BottomNavigationView>(R.id.mapBottomNav).apply {
             selectedItemId = R.id.navBrowse
-            val openBrowse = {
-                if (preferenceMode) {
-                    startActivity(Intent(this@MapActivity, BrowseActivity::class.java)
-                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-                }
-                finish()
-            }
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
-                    R.id.navBrowse -> openBrowse()
+                    R.id.navBrowse -> finish()
                     R.id.navHome -> {
-                        if (preferenceMode) {
-                            startActivity(Intent(this@MapActivity, MainActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-                        } else {
-                            navigation = NAV_HOME
-                        }
+                        navigation = NAV_HOME
                         finish()
                     }
                     R.id.navProfile -> {
-                        if (!preferenceMode) navigation = NAV_PROFILE
+                        navigation = NAV_PROFILE
                         finish()
                     }
                     R.id.navPost -> Toast.makeText(this@MapActivity, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
@@ -447,7 +399,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 item.itemId == R.id.navBrowse
             }
             setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navBrowse) openBrowse()
+                if (item.itemId == R.id.navBrowse) finish()
             }
         }
     }
@@ -473,7 +425,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun finish() {
-        if (!preferenceMode) setResult(RESULT_OK, Intent()
+        setResult(RESULT_OK, Intent()
             .putExtra(EXTRA_HAS_SELECTION, hasSelection)
             .putExtra(EXTRA_CENTER_LAT, center.latitude)
             .putExtra(EXTRA_CENTER_LNG, center.longitude)
@@ -487,9 +439,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }.format(value)
 
     companion object {
-        const val EXTRA_MODE = "mode"
-        const val MODE_BROWSE = "browse"
-        const val MODE_PREFERENCE = "preference"
         const val EXTRA_HAS_SELECTION = "hasSelection"
         const val EXTRA_CENTER_LAT = "centerLat"
         const val EXTRA_CENTER_LNG = "centerLng"

@@ -50,13 +50,11 @@ class MapLocationSearchTest {
     }
 
     @Test
-    fun searchQuerySurvivesRecreationInPreferenceMode() {
-        val intent = mapIntent().putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
-        ActivityScenario.launch<MapActivity>(intent).use { scenario ->
+    fun searchQuerySurvivesRecreation() {
+        ActivityScenario.launch<MapActivity>(mapIntent()).use { scenario ->
             onView(withHint("Search for a place or address")).perform(replaceText("Ottawa, Ontario"), closeSoftKeyboard())
             scenario.recreate()
             onView(withHint("Search for a place or address")).check(matches(withText("Ottawa, Ontario")))
-            onView(withText("Save preference")).check(matches(isDisplayed()))
         }
     }
 

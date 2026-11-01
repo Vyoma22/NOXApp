@@ -15,7 +15,6 @@ import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
-import com.example.noxapp.models.UserProfile
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.goTo
 import kotlinx.coroutines.CancellationException
@@ -36,7 +35,6 @@ class ProfileActivity : AppCompatActivity() {
     private var allListings: List<Listing> = emptyList()
     private var userSavedIds: Set<String> = emptySet()
     private var currentTab = Tab.MY_LISTINGS
-    private var userProfile: UserProfile? = null
     private var accessJob: Job? = null
 
     private enum class Tab { MY_LISTINGS, SAVED, SOLD }
@@ -55,26 +53,10 @@ class ProfileActivity : AppCompatActivity() {
         setupRecyclerView()
         setupTabs()
         setupBottomNav()
-        findViewById<View>(R.id.profileSettingsButton).apply {
-            isEnabled = false
-            setOnClickListener {
-                val intent = Intent(this@ProfileActivity, MapActivity::class.java)
-                    .putExtra(MapActivity.EXTRA_MODE, MapActivity.MODE_PREFERENCE)
-                userProfile?.let { profile ->
-                    if (profile.preferredLat != null && profile.preferredLng != null && profile.preferredRadiusKm != null) {
-                        intent.putExtra(MapActivity.EXTRA_CENTER_LAT, profile.preferredLat)
-                            .putExtra(MapActivity.EXTRA_CENTER_LNG, profile.preferredLng)
-                            .putExtra(MapActivity.EXTRA_RADIUS_KM, profile.preferredRadiusKm)
-                    }
-                }
-                startActivity(intent)
-            }
-        }
     }
 
     override fun onStart() {
         super.onStart()
-        findViewById<View>(R.id.profileSettingsButton).isEnabled = false
         accessJob?.cancel()
         accessJob = lifecycleScope.launch {
             val state = try {
@@ -123,8 +105,6 @@ class ProfileActivity : AppCompatActivity() {
 
         ListingRepo.getUserProfile(uid) { profile ->
             if (isDestroyed) return@getUserProfile
-            userProfile = profile
-            findViewById<View>(R.id.profileSettingsButton).isEnabled = profile != null
             if (profile != null) {
                 val name = profile.displayName ?: "Student"
                 findViewById<TextView>(R.id.profileNameText).text = name

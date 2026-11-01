@@ -65,12 +65,8 @@
     <string name="location_search_empty">No locations found. Try a different search.</string>
     <string name="location_search_error">Location search unavailable. Check your connection and try again.</string>
     <string name="radius_label">Radius: %1$s km</string>
-    <string name="save_preference">Save preference</string>
-    <string name="preference_saved">Pickup preference saved</string>
-    <string name="map_preference_error">Couldn\'t save preference</string>
     <string name="location_denied">Location permission denied, showing campus</string>
     <string name="location_unavailable">Location unavailable, showing campus</string>
-    <string name="pickup_settings">Settings</string>
     <string name="map_post_toast">Post an Item Tab</string>
     <string name="map_chat_toast">Chat Inbox Tab</string>
 </resources>

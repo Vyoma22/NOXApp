@@ -218,17 +218,6 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <ImageButton
-        android:id="@+id/profileSettingsButton"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_gravity="top|end"
-        android:layout_margin="12dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:src="@drawable/ic_settings"
-        android:contentDescription="@string/pickup_settings"
-        app:tint="@color/nox_dark_green" />
-
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/profileBottomNav"
         android:layout_width="match_parent"

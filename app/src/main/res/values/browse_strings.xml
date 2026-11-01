@@ -19,7 +19,6 @@
     <string name="browse_empty_hint">Try clearing a filter</string>
     <string name="browse_load_error">Couldn\'t load listings</string>
     <string name="browse_retry">Retry</string>
-    <string name="browse_preference_error">Couldn\'t save preference</string>
     <string name="browse_saved">Saved to your profile!</string>
     <string name="browse_unsaved">Removed from saved</string>
     <string name="browse_post_toast">Post an Item Tab</string>
