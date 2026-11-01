@@ -10,7 +10,6 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -31,8 +30,8 @@ import com.example.noxapp.models.CategoryItem
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.goTo
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -142,16 +141,6 @@ class MainActivity : AppCompatActivity() {
 
         featuredRecycler.adapter = featuredAdapter
         recentRecycler.adapter = recentAdapter
-
-        // Load saved state from Cloud Firestore
-        val currentUid = FirebaseAuth.getInstance().currentUser?.uid
-        if (currentUid != null) {
-            ListingRepo.getSavedItemIds(currentUid) { savedList ->
-                userSavedIds = savedList.toMutableSet()
-                featuredAdapter.updateSavedIds(userSavedIds)
-                recentAdapter.updateSavedIds(userSavedIds)
-            }
-        }
     }
 
     private fun setupLiveSearch() {
@@ -233,44 +222,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
-        findViewById<LinearLayout>(R.id.navHome).setOnClickListener {
-            // Already home
-        }
-        findViewById<LinearLayout>(R.id.navBrowse).setOnClickListener {
-            Toast.makeText(this, "Browse Tab (Maps & Filter page)", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<LinearLayout>(R.id.navPost).setOnClickListener {
-            val intent = Intent(this, PostListing::class.java)
-            startActivity(intent)
-            Toast.makeText(this, "Post an Item Tab", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<LinearLayout>(R.id.navChat).setOnClickListener {
-            Toast.makeText(this, "Chat Inbox Tab", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<LinearLayout>(R.id.navProfile).setOnClickListener {
-            val intent = Intent(this, ProfileActivity::class.java)
-            startActivity(intent)
+        findViewById<BottomNavigationView>(R.id.bottomNavBar).apply {
+            selectedItemId = R.id.navHome
+            setOnItemSelectedListener { item ->
+                when (item.itemId) {
+                    R.id.navBrowse -> Toast.makeText(this@MainActivity, "Browse Tab (Maps & Filter page)", Toast.LENGTH_SHORT).show()
+                    R.id.navPost -> {
+                        startActivity(Intent(this@MainActivity, PostListing::class.java))
+                        Toast.makeText(this@MainActivity, "Post an Item Tab", Toast.LENGTH_SHORT).show()
+                    }
+                    R.id.navChat -> Toast.makeText(this@MainActivity, "Chat Inbox Tab", Toast.LENGTH_SHORT).show()
+                    R.id.navProfile -> startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
+                }
+                item.itemId == R.id.navHome
+            }
         }
     }
 
     private fun loadListingData() {
-        FirebaseFirestore.getInstance().collection("listings")
-            .get()
-            .addOnSuccessListener { snapshot ->
-                allMasterListings = snapshot.toObjects(Listing::class.java)
+        ListingRepo.loadAllListings(
+            onSuccess = { listings ->
+                allMasterListings = listings
                 applyFilters()
+            },
+            onError = {
+                Toast.makeText(this, "Failed to connect to listings", Toast.LENGTH_SHORT).show()
             }
-            .addOnFailureListener {
-                ListingRepo.loadHomeFeed(
-                    onSuccess = { featured, recent ->
-                        allMasterListings = (featured + recent).distinctBy { it.id }
-                        applyFilters()
-                    },
-                    onError = {
-                        Toast.makeText(this, "Failed to connect to listings", Toast.LENGTH_SHORT).show()
-                    }
-                )
-            }
+        )
     }
 
     override fun onStart() {
