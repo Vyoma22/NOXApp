@@ -9,6 +9,7 @@ import android.widget.TextView
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import com.example.noxapp.R
 import com.example.noxapp.models.Listing
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -48,6 +49,12 @@ class ListingAdapter(
         val context = holder.itemView.context
         holder.title.text = item.title
         holder.price.text = "$${item.price.toInt()}"
+
+        holder.image.load(item.imageUrls.firstOrNull()) {
+            crossfade(true)
+            placeholder(R.color.nox_field_bg)
+            error(R.color.nox_field_bg)
+        }
 
         // Alternate colors
         val bgColor = if (position % 2 == 0) R.color.nox_card_pink else R.color.nox_card_green

@@ -1,6 +1,14 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+    id("org.jetbrains.kotlin.plugin.parcelize")
     id("com.google.gms.google-services")
+}
+
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -17,6 +25,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["MAPS_API_KEY"] = localProperties.getProperty("MAPS_API_KEY", "")
     }
 
     buildTypes {
@@ -46,10 +55,11 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")       // signup / login / verification
     implementation("com.google.firebase:firebase-firestore")  // users/{uid} profile docs
     implementation("com.google.firebase:firebase-storage")  //for images and videos
+    implementation("io.coil-kt:coil:2.7.0")                 //renders listing photos
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.10.2") // lets us .await() Firebase calls
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.4") // lifecycleScope
-    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.cardview:cardview:1.0.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("com.google.android.gms:play-services-maps:20.1.0")
+    implementation("com.google.android.gms:play-services-location:21.4.0")
 }

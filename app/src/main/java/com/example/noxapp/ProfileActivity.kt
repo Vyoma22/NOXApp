@@ -1,28 +1,32 @@
 package com.example.noxapp
 
-import android.app.Dialog
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
-import android.widget.ImageView
-import android.widget.LinearLayout
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.noxapp.auth.AccessState
+import com.example.noxapp.auth.AuthRepo
+import com.example.noxapp.auth.LoginActivity
+import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.goTo
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 
 class ProfileActivity : AppCompatActivity() {
 
@@ -30,6 +34,7 @@ class ProfileActivity : AppCompatActivity() {
     private var allListings: List<Listing> = emptyList()
     private var userSavedIds: Set<String> = emptySet()
     private var currentTab = Tab.MY_LISTINGS
+    private var accessJob: Job? = null
 
     private enum class Tab { MY_LISTINGS, SAVED, SOLD }
 
@@ -38,16 +43,36 @@ class ProfileActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_profile)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.profileRoot)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
-        }
+        applyEdgeToEdgeInsets(R.id.profileRoot, R.id.profileBottomNav, R.id.profileScroll)
 
         setupRecyclerView()
         setupTabs()
         setupBottomNav()
-        loadUserProfile()
+
+        findViewById<ImageButton>(R.id.profileSettingsButton).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        accessJob?.cancel()
+        accessJob = lifecycleScope.launch {
+            val state = try {
+                AuthRepo.checkAccess()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            if (isFinishing || isDestroyed) return@launch
+            if (state != AccessState.Allowed) goTo(LoginActivity::class.java) else loadUserProfile()
+        }
+    }
+
+    override fun onStop() {
+        accessJob?.cancel()
+        super.onStop()
     }
 
     private fun setupRecyclerView() {
@@ -66,8 +91,7 @@ class ProfileActivity : AppCompatActivity() {
                 }
             },
             onItemClick = { listing ->
-                // Opens the item detail dialog when tapped
-                showItemDetailDialog(listing)
+                ItemDetailDialog.show(this, listing)
             }
         )
 
@@ -75,46 +99,11 @@ class ProfileActivity : AppCompatActivity() {
         recycler.adapter = profileAdapter
     }
 
-    private fun showItemDetailDialog(listing: Listing) {
-        val dialog = Dialog(this)
-        dialog.setContentView(R.layout.dialog_item_details)
-        dialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
-
-        dialog.findViewById<TextView>(R.id.detailTitle).text = listing.title
-        dialog.findViewById<TextView>(R.id.detailPrice).text = "$${listing.price.toInt()}"
-        dialog.findViewById<TextView>(R.id.detailCondition).text = listing.condition
-        dialog.findViewById<TextView>(R.id.detailCategory).text = listing.category
-        dialog.findViewById<TextView>(R.id.detailDescription).text = listing.description
-        dialog.findViewById<TextView>(R.id.detailLocation).text = "Pickup: ${listing.pickupLocation}"
-
-        dialog.findViewById<ImageView>(R.id.detailClose).setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.findViewById<Button>(R.id.messageSellerButton).setOnClickListener {
-            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:")
-                putExtra(Intent.EXTRA_SUBJECT, "Inquiry about: ${listing.title} on NOX")
-                putExtra(Intent.EXTRA_TEXT, "Hi, I'm interested in buying your ${listing.title} for $${listing.price.toInt()}!")
-            }
-            runCatching {
-                startActivity(Intent.createChooser(emailIntent, "Contact Seller"))
-            }.onFailure {
-                Toast.makeText(this, "Message sent to seller!", Toast.LENGTH_SHORT).show()
-            }
-            dialog.dismiss()
-        }
-
-        dialog.show()
-    }
-
     private fun loadUserProfile() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
         ListingRepo.getUserProfile(uid) { profile ->
+            if (isDestroyed) return@getUserProfile
             if (profile != null) {
                 val name = profile.displayName ?: "Student"
                 findViewById<TextView>(R.id.profileNameText).text = name
@@ -134,13 +123,17 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun loadListings(uid: String) {
-        FirebaseFirestore.getInstance().collection("listings").get()
-            .addOnSuccessListener { snapshot ->
-                allListings = snapshot.toObjects(Listing::class.java)
+        ListingRepo.loadAllListings(
+            onSuccess = { listings ->
+                allListings = listings
                 val myListingsCount = allListings.count { it.sellerId == uid }
                 findViewById<TextView>(R.id.statListingsCount).text = myListingsCount.toString()
                 renderCurrentTab()
+            },
+            onError = {
+                Toast.makeText(this, "Failed to load listings", Toast.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun setupTabs() {
@@ -191,11 +184,33 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNav() {
-        findViewById<LinearLayout>(R.id.pNavHome).setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            startActivity(intent)
-            finish()
+        findViewById<BottomNavigationView>(R.id.profileBottomNav).apply {
+            selectedItemId = R.id.navProfile
+            setOnItemSelectedListener { item ->
+                when (item.itemId) {
+                    R.id.navHome -> {
+                        startActivity(Intent(this@ProfileActivity, MainActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                        finish()
+                        true
+                    }
+                    R.id.navBrowse -> {
+                        startActivity(Intent(this@ProfileActivity, BrowseActivity::class.java)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                        finish()
+                        true
+                    }
+                    R.id.navPost -> {
+                        Toast.makeText(this@ProfileActivity, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
+                        false
+                    }
+                    R.id.navChat -> {
+                        Toast.makeText(this@ProfileActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                        false
+                    }
+                    else -> false
+                }
+            }
         }
     }
 }

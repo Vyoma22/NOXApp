@@ -24,10 +24,10 @@
                 android:id="@+id/itemImageView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/nox_field_bg"
-                android:contentDescription="Listing Image"
-                android:scaleType="centerInside"
-                android:src="@android:drawable/ic_menu_gallery" />
+                android:background="@drawable/bg_listing_image"
+                android:clipToOutline="true"
+                android:contentDescription="Listing image"
+                android:scaleType="centerCrop" />
 
             <!-- Circular Heart Button matching Figma -->
             <androidx.cardview.widget.CardView
