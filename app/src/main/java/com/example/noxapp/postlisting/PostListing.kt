@@ -1,36 +1,16 @@
 package com.example.noxapp.postlisting
-<<<<<<< Updated upstream
-import com.example.noxapp.R
-=======
->>>>>>> Stashed changes
 
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-<<<<<<< Updated upstream
 import android.util.Log
-=======
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
-import android.text.style.RelativeSizeSpan
-import android.util.Log
-import android.view.View
->>>>>>> Stashed changes
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
-<<<<<<< Updated upstream
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.Spinner
-=======
-import android.widget.LinearLayout
-import android.widget.RadioButton
-import android.widget.RadioGroup
-import android.widget.Spinner
-import android.widget.TextView
->>>>>>> Stashed changes
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
@@ -39,12 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-<<<<<<< Updated upstream
-=======
-import com.example.noxapp.MainActivity
-import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
->>>>>>> Stashed changes
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.google.firebase.auth.FirebaseAuth
@@ -56,10 +31,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
 class PostListing : AppCompatActivity() {
 
     var imagesAndVideos: List<Uri> = emptyList()
@@ -124,12 +95,7 @@ class PostListing : AppCompatActivity() {
         val itmConditions: RadioGroup = findViewById(R.id.radgroupCondition)
         val itmDesc: EditText = findViewById(R.id.etDescription)
         val listingLocation: Spinner = findViewById(R.id.spiLocation)
-<<<<<<< Updated upstream
-=======
-        val backtextBtn: Button = findViewById(R.id.backtextBtn)
         val backBtn: ImageButton = findViewById(R.id.backBtn)
-
->>>>>>> Stashed changes
 
         var adapter= ArrayAdapter.createFromResource(this, R.array.categories, android.R.layout.simple_spinner_item)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -139,18 +105,9 @@ class PostListing : AppCompatActivity() {
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         listingLocation.adapter = adapter
 
-<<<<<<< Updated upstream
-=======
-        backtextBtn.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
-        }
-        backBtn.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
-        }
+        // Finish rather than launching a second Home, so Back returns where the user came from.
+        backBtn.setOnClickListener { finish() }
 
->>>>>>> Stashed changes
         cameraBtn.setOnClickListener {
             val intent = Intent("android.media.action.IMAGE_CAPTURE")
             startActivity(intent)
@@ -252,28 +209,4 @@ class PostListing : AppCompatActivity() {
         }
     }
 
-<<<<<<< Updated upstream
-=======
-    private fun setupBottomNavigation() {
-        findViewById<LinearLayout>(R.id.navHome).setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            startActivity(intent)
-            // Already home
-        }
-        findViewById<LinearLayout>(R.id.navBrowse).setOnClickListener {
-            Toast.makeText(this, "Browse Tab (Maps & Filter page)", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<LinearLayout>(R.id.navPost).setOnClickListener {
-
-        }
-        findViewById<LinearLayout>(R.id.navChat).setOnClickListener {
-            Toast.makeText(this, "Chat Inbox Tab", Toast.LENGTH_SHORT).show()
-        }
-        findViewById<LinearLayout>(R.id.navProfile).setOnClickListener {
-            val intent = Intent(this, ProfileActivity::class.java)
-            startActivity(intent)
-        }
-    }
-
->>>>>>> Stashed changes
 }
