@@ -22,7 +22,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
 import androidx.core.widget.doAfterTextChanged
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -34,6 +33,7 @@ import com.example.noxapp.data.LocationSearch
 import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -90,11 +90,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         enableEdgeToEdge()
         setContentView(R.layout.activity_map)
         arrangeLayout()
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.mapRoot)) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
-        }
+        applyEdgeToEdgeInsets(R.id.mapRoot, R.id.mapBottomNav)
         val state = savedInstanceState ?: intent.extras
         center = LatLng(
             state?.getDouble(EXTRA_CENTER_LAT, center.latitude) ?: center.latitude,
