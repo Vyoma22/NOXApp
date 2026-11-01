@@ -228,6 +228,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<CardView>(R.id.postCard).setOnClickListener {
+            val intent = Intent(this, PostListing::class.java)
+            startActivity(intent)
             Toast.makeText(this, "Sell feature coming on Post branch", Toast.LENGTH_SHORT).show()
         }
     }
