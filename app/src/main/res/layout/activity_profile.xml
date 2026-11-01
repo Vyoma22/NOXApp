@@ -221,9 +221,10 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/profileBottomNav"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:background="@color/nox_nav_bg"
+        app:paddingBottomSystemWindowInsets="false"
         app:itemIconTint="@color/bottom_nav_item"
         app:itemTextColor="@color/bottom_nav_item"
         app:labelVisibilityMode="labeled"
