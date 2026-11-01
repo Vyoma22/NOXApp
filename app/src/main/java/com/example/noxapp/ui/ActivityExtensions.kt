@@ -32,6 +32,10 @@ fun Activity.applySystemBarPadding() {
  * the tab bar's own bottom padding (so its background runs all the way to the bottom of the
  * screen, behind the system navigation bar) and to [scrollId]'s bottom padding (so scrolled
  * content still clears the bar).
+ *
+ * The IME is deliberately not handled here: `adjustResize` shrinks the window instead, and
+ * Material's BottomNavigationView already pads itself for the keyboard, so adding IME padding to
+ * the root would double-count it and collapse the screen.
  */
 fun Activity.applyEdgeToEdgeInsets(
     rootId: Int,
