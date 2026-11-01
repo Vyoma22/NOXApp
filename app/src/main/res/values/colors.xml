@@ -38,4 +38,7 @@
 
     <!-- Muted neutral details (seller info) -->
     <color name="nox_muted">#8C7F6A</color>
+
+    <!-- Launcher icon background, sampled from the NOX brand mark -->
+    <color name="ic_launcher_background">#FF305C45</color>
 </resources>
