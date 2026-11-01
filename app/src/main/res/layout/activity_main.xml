@@ -17,6 +17,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipToPadding="false"
             android:orientation="vertical"
             android:padding="20dp">
 
@@ -204,7 +205,8 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="6dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/see_all"
                     android:textColor="@color/nox_primary_green"
                     android:textSize="13sp"
@@ -215,9 +217,13 @@
                 android:id="@+id/featuredRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="-20dp"
                 android:layout_marginTop="12dp"
+                android:layout_marginEnd="-20dp"
                 android:clipToPadding="false"
-                android:orientation="horizontal" />
+                android:orientation="horizontal"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp" />
 
             <!-- Recently Added Header -->
             <RelativeLayout
@@ -247,7 +253,8 @@
                     android:clickable="true"
                     android:focusable="true"
                     android:gravity="center_vertical"
-                    android:paddingHorizontal="6dp"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
                     android:text="@string/see_all"
                     android:textColor="@color/nox_primary_green"
                     android:textSize="13sp"
@@ -258,9 +265,13 @@
                 android:id="@+id/recentRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginStart="-20dp"
                 android:layout_marginTop="12dp"
+                android:layout_marginEnd="-20dp"
                 android:clipToPadding="false"
-                android:orientation="horizontal" />
+                android:orientation="horizontal"
+                android:paddingStart="20dp"
+                android:paddingEnd="20dp" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
