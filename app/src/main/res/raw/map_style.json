@@ -1,0 +1,11 @@
+[
+  {"elementType":"geometry","stylers":[{"color":"#fbf6ea"}]},
+  {"elementType":"labels.text.fill","stylers":[{"color":"#69746b"}]},
+  {"elementType":"labels.text.stroke","stylers":[{"color":"#fffcf6"}]},
+  {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#e8f0e5"}]},
+  {"featureType":"poi.school","elementType":"geometry","stylers":[{"color":"#e3e9d9"}]},
+  {"featureType":"poi.business","elementType":"labels","stylers":[{"visibility":"off"}]},
+  {"featureType":"transit","elementType":"labels","stylers":[{"visibility":"off"}]},
+  {"featureType":"road","elementType":"geometry","stylers":[{"color":"#ffffff"}]},
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#b8d1bf"}]}
+]

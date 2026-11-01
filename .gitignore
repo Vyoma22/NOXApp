@@ -30,5 +30,8 @@ local.properties
 Thumbs.db
 *.log
 
+# docs
+docs/
+
 # Optional: Firebase / Google Services config (Ignore if repo is public)
 # google-services.json

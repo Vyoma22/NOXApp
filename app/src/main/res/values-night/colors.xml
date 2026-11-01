@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark palette. Every screen reads these names, so the theme flips without layout changes. -->
+    <color name="nox_dark_green">#E6EFE9</color>
+    <color name="nox_primary_green">#35795A</color>
+    <color name="nox_accent_text">#8FD3AD</color>
+    <color name="nox_cream_bg">#0F1613</color>
+    <color name="nox_card_green">#2E4A3C</color>
+    <color name="nox_card_pink">#4A342E</color>
+    <color name="nox_nav_bg">#18211C</color>
+    <color name="nox_field_bg">#1B2620</color>
+    <color name="nox_chip_bg">#24332B</color>
+    <color name="nox_accent_green">#4C7A63</color>
+    <color name="nox_accent_pink">#5A3E37</color>
+    <color name="nox_subtext">#A9B7AE</color>
+    <color name="nox_muted">#9C907C</color>
+    <color name="nox_error">#F2B8B5</color>
+    <color name="nox_search_stroke">#3A4A41</color>
+    <color name="nox_snackbar_action">#1E5A3E</color>
+    <color name="ic_launcher_background">#FF305C45</color>
+</resources>
