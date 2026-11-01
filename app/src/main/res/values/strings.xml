@@ -53,4 +53,20 @@
         <item>South Wing</item>
         <item></item>
     </string-array>
+    <string name="map_back">Back</string>
+    <string name="my_location">My Location</string>
+    <string name="browse_items_in_area">Browse items in this area</string>
+    <string name="map_center">Map center</string>
+    <string name="location_search_hint">Search for a place or address</string>
+    <string name="location_search_action">Search location</string>
+    <string name="location_search_required">Enter a place or address</string>
+    <string name="location_search_loading">Searching for locations…</string>
+    <string name="location_search_results">Choose a location</string>
+    <string name="location_search_empty">No locations found. Try a different search.</string>
+    <string name="location_search_error">Location search unavailable. Check your connection and try again.</string>
+    <string name="radius_label">Radius: %1$s km</string>
+    <string name="location_denied">Location permission denied, showing campus</string>
+    <string name="location_unavailable">Location unavailable, showing campus</string>
+    <string name="map_post_toast">Post an Item Tab</string>
+    <string name="map_chat_toast">Chat Inbox Tab</string>
 </resources>

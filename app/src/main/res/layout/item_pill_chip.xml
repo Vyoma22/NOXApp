@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/pillChipText"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginEnd="8dp"
+    android:minWidth="48dp"
+    android:minHeight="48dp"
+    android:background="@drawable/browse_filter_pill"
+    android:foreground="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center"
+    android:paddingHorizontal="18dp"
+    android:paddingVertical="12dp"
+    android:textColor="@color/nox_dark_green"
+    android:textSize="14sp" />
