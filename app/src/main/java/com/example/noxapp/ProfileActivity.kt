@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -47,6 +48,10 @@ class ProfileActivity : AppCompatActivity() {
         setupRecyclerView()
         setupTabs()
         setupBottomNav()
+
+        findViewById<ImageButton>(R.id.profileSettingsButton).setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
     }
 
     override fun onStart() {

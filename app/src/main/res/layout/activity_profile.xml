@@ -21,25 +21,43 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- Circular Avatar -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="90dp"
-                android:layout_height="90dp"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/nox_card_green"
-                app:cardCornerRadius="45dp"
-                app:cardElevation="0dp">
+            <!-- Avatar & Settings -->
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-                <TextView
-                    android:id="@+id/profileAvatarInitial"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="V"
-                    android:textColor="@color/nox_dark_green"
-                    android:textSize="36sp"
-                    android:textStyle="bold" />
-            </androidx.cardview.widget.CardView>
+                <!-- Circular Avatar -->
+                <androidx.cardview.widget.CardView
+                    android:layout_width="90dp"
+                    android:layout_height="90dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="16dp"
+                    app:cardBackgroundColor="@color/nox_card_green"
+                    app:cardCornerRadius="45dp"
+                    app:cardElevation="0dp">
+
+                    <TextView
+                        android:id="@+id/profileAvatarInitial"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="V"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="36sp"
+                        android:textStyle="bold" />
+                </androidx.cardview.widget.CardView>
+
+                <ImageButton
+                    android:id="@+id/profileSettingsButton"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="top|end"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/settings"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_settings"
+                    app:tint="@color/nox_dark_green" />
+            </FrameLayout>
 
             <!-- Name & School -->
             <TextView

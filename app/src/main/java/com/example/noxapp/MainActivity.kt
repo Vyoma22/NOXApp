@@ -2,7 +2,6 @@ package com.example.noxapp
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -47,28 +46,22 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         applyEdgeToEdgeInsets(R.id.main, R.id.bottomNavBar, R.id.mainScroll)
 
-        // 1. Sign out
-        findViewById<Button>(R.id.signOutButton).setOnClickListener {
-            userSavedIds.clear() // Clear in-memory favorites before logging out, can comment out later to save cache
-            AuthRepo.signOut()
-            goTo(LoginActivity::class.java)
-        }
-
-        // 2. User Greeting
+        // 1. User Greeting
         setupUserGreeting()
 
-        // 3. Category & Feeds RecyclerViews
+        // 2. Category & Feeds RecyclerViews
         setupCategories()
         setupListingFeeds()
 
-        // 4. Action Cards & Bottom Nav
+        // 3. See-all links, Action Cards & Bottom Nav
+        setupHeaderLinks()
         setupActionCards()
         setupBottomNavigation()
 
-        // 5. Live Search Filter
+        // 4. Live Search Filter
         setupLiveSearch()
 
-        // 6. Load Data from Firestore
+        // 5. Load Data from Firestore
         loadListingData()
     }
 
@@ -156,17 +149,22 @@ class MainActivity : AppCompatActivity() {
         recentAdapter.updateList(recent)
     }
 
+    private fun setupHeaderLinks() {
+        findViewById<TextView>(R.id.featuredSeeAll).setOnClickListener { openBrowse() }
+        findViewById<TextView>(R.id.recentSeeAll).setOnClickListener { openBrowse() }
+    }
+
     private fun setupActionCards() {
-        findViewById<CardView>(R.id.browseCard).setOnClickListener {
-            categoryAdapter.setSelected(0)
-            currentCategory = "All"
-            applyFilters()
-            Toast.makeText(this, "Browsing all campus listings", Toast.LENGTH_SHORT).show()
-        }
+        findViewById<CardView>(R.id.browseCard).setOnClickListener { openBrowse() }
 
         findViewById<CardView>(R.id.postCard).setOnClickListener {
-            Toast.makeText(this, "Sell feature coming on Post branch", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, PostListing::class.java))
         }
+    }
+
+    // The "See all" links and the Browse card all land on the full browse screen
+    private fun openBrowse() {
+        startActivity(Intent(this, BrowseActivity::class.java))
     }
 
     private fun setupBottomNavigation() {
