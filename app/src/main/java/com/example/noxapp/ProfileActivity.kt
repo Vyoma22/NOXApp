@@ -8,7 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
@@ -191,11 +191,16 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNav() {
-        findViewById<LinearLayout>(R.id.pNavHome).setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            startActivity(intent)
-            finish()
+        findViewById<BottomNavigationView>(R.id.profileBottomNav).apply {
+            selectedItemId = R.id.navProfile
+            setOnItemSelectedListener { item ->
+                if (item.itemId == R.id.navHome) {
+                    startActivity(Intent(this@ProfileActivity, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+                    finish()
+                    true
+                } else false
+            }
         }
     }
 }
