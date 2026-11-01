@@ -14,8 +14,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.os.BundleCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
@@ -36,6 +34,7 @@ import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.snackbar.Snackbar
@@ -86,11 +85,7 @@ class BrowseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_browse)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.browseRoot)) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            insets
-        }
+        applyEdgeToEdgeInsets(R.id.browseRoot, R.id.bottomNavBar, R.id.browseScroll)
         restoreFilters(savedInstanceState)
         setupCategories()
         setupResults()

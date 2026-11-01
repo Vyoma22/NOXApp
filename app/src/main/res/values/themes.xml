@@ -1,8 +1,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.NOXApp" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Bottom nav active-indicator pill; Material's default lavender clashes with the palette -->
+        <item name="colorSecondaryContainer">@color/nox_chip_bg</item>
     </style>
 
     <style name="Theme.NOXApp" parent="Base.Theme.NOXApp" />
