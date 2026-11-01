@@ -105,21 +105,25 @@ class ProfileActivity : AppCompatActivity() {
 
         ListingRepo.getUserProfile(uid) { profile ->
             if (isDestroyed) return@getUserProfile
+            // The signed-in account is always available, so the header never shows canned text
+            // when the Firestore document is missing or has no displayName.
+            val fallbackName = FirebaseAuth.getInstance().currentUser?.email?.substringBefore("@").orEmpty()
+            val name = profile?.displayName?.takeIf { it.isNotBlank() } ?: fallbackName
+
+            findViewById<TextView>(R.id.profileNameText).text = name
+            findViewById<TextView>(R.id.profileAvatarInitial).text = name.take(1).uppercase()
+
+            val school = profile?.school.orEmpty()
+            val gradInfo = profile?.gradYear?.let { " • Class of $it" }.orEmpty()
+            findViewById<TextView>(R.id.profileSchoolText).text = "$school$gradInfo"
+
             if (profile != null) {
-                val name = profile.displayName ?: "Student"
-                findViewById<TextView>(R.id.profileNameText).text = name
-                findViewById<TextView>(R.id.profileAvatarInitial).text = name.take(1).uppercase()
-
-                val school = profile.school ?: "Campus Member"
-                val gradInfo = if (profile.gradYear != null) " • Class of ${profile.gradYear}" else ""
-                findViewById<TextView>(R.id.profileSchoolText).text = "$school$gradInfo"
-
                 userSavedIds = profile.savedItemIds.toSet()
                 profileAdapter.updateSavedIds(userSavedIds)
                 findViewById<TextView>(R.id.statSavedCount).text = userSavedIds.size.toString()
-
-                loadListings(uid)
             }
+
+            loadListings(uid)
         }
     }
 
