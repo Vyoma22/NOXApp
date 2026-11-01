@@ -207,6 +207,14 @@ Then sign up with a real `@ontariotechu.net` or `@dcmail.ca` mailbox you can ope
 
 Both suites pass: **39 unit tests** and **26 instrumented tests**, 65 in total.
 
+**Instrumented runs turn the device's animations off and leave them off.** The connected test harness sets all three animation scales to 0 for deterministic Espresso runs, so afterwards every transition and list animation in the app becomes an instant cut. Restore them:
+
+```bash
+adb shell settings put global window_animation_scale 1
+adb shell settings put global transition_animation_scale 1
+adb shell settings put global animator_duration_scale 1
+```
+
 | Suite | Tests | Covers |
 |---|:--:|---|
 | `ListingFiltersTest` | 16 | Query, category, condition, exact price boundaries, radius boundary, combined filters |
