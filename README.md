@@ -14,7 +14,7 @@ Buy, sell, and exchange textbooks, electronics, furniture, and dorm supplies wit
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=flat-square)](#tech-stack)
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black&style=flat-square)](#tech-stack)
 [![Google Maps](https://img.shields.io/badge/Google%20Maps-4285F4?logo=googlemaps&logoColor=white&style=flat-square)](#tech-stack)
-[![Tests](https://img.shields.io/badge/tests-64%20passing-2F6B4F?style=flat-square)](#testing)
+[![Tests](https://img.shields.io/badge/tests-65%20passing-2F6B4F?style=flat-square)](#testing)
 [![Status](https://img.shields.io/badge/status-in%20development-D9A99C?style=flat-square)](#status)
 
 <br>
@@ -76,6 +76,12 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 - Up to five photos from the gallery or the camera, uploaded to Firebase Storage
 - Validation that reports every problem before anything uploads
 
+**Motion and feedback**
+
+- Screens cross-fade instead of cutting, and the cream background is painted from the first frame, so cold start matches the splash instead of flashing white
+- Feeds, result grids, and the profile tabs stagger their cards in; a card dips under the finger and the heart pops on tap
+- Item details slide up as a rounded sheet from the bottom edge, and the Browse category row grows in and out instead of snapping
+
 ## Tech stack
 
 | Layer | Technology |
@@ -126,7 +132,7 @@ app/src/main/java/com/example/noxapp/
 ├── data/            Firestore access, distance filtering, campus coordinates
 ├── models/          Listing, UserProfile, BrowseFilters
 ├── adapters/        Listing, category, and filter pill adapters
-├── ui/              Shared item detail dialog and activity helpers
+├── ui/              Shared item detail sheet, motion helpers, activity helpers
 ├── postlisting/     Post flow (owns a second Listing model)
 ├── MainActivity.kt      Home feed
 ├── BrowseActivity.kt    Filtered search
@@ -198,7 +204,7 @@ Then sign up with a real `@ontariotechu.net` or `@dcmail.ca` mailbox you can ope
 ./gradlew connectedDebugAndroidTest  # needs an emulator with Play services
 ```
 
-Both suites pass: **39 unit tests** and **25 instrumented tests**, 64 in total.
+Both suites pass: **39 unit tests** and **26 instrumented tests**, 65 in total.
 
 | Suite | Tests | Covers |
 |---|:--:|---|
@@ -207,7 +213,7 @@ Both suites pass: **39 unit tests** and **25 instrumented tests**, 64 in total.
 | `HaversineTest` | 6 | Known distances, symmetry, identical points |
 | `EmailValidatorTest` | 5 | Domain allowlist, malformed addresses |
 | `CampusLocationsTest` | 5 | Explicit coordinates and pickup-location fallback |
-| `BrowseActivityTest` | 5 | Filter interaction and result rendering |
+| `BrowseActivityTest` | 6 | Filter interaction, chip expansion notifications, and result rendering |
 | `MapLocationSearchTest` | 5 | Place search against a fake geocoder |
 | `GradDateTest` | 2 | Month rollover and year boundary |
 | `LocationSearchTest` | 2 | Result filtering and deduplication |

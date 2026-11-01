@@ -130,6 +130,63 @@ class BrowseActivityTest {
         assertEquals(listOf("More"), bindChips(root, adapter).filter { it.isSelected }.map { it.text.toString() })
     }
 
+    /**
+     * Expanding and collapsing notifies the live RecyclerView with insert and remove ranges rather
+     * than a blanket rebind. A wrong range still leaves the adapter looking right, so this scrolls
+     * the row to the end and reads the labels RecyclerView itself mapped to each position.
+     */
+    @Test
+    fun expandingAndCollapsingChipRowKeepsAdapterPositionsValid() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.runOnMainSync {
+            val context = ContextThemeWrapper(instrumentation.targetContext, R.style.Theme_NOXApp)
+            val root = LayoutInflater.from(context).inflate(R.layout.activity_browse, null)
+            val chips = root.findViewById<RecyclerView>(R.id.browseCategories)
+            chips.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+            val adapter = PillChipAdapter({}, {})
+            chips.adapter = adapter
+            layout(root)
+
+            adapter.updateState(null, true)
+            layout(root)
+            assertEquals(10, adapter.itemCount)
+            chips.scrollToPosition(9)
+            layout(root)
+            assertEquals("Less", visibleChips(chips).last())
+            assertEquals("Clothing", chipAt(adapter, chips, 4).text.toString())
+
+            adapter.updateState("Tickets", false)
+            layout(root)
+            assertEquals(5, adapter.itemCount)
+            chips.scrollToPosition(4)
+            layout(root)
+            assertEquals("More", visibleChips(chips).last())
+            assertTrue(
+                "A hidden selection is represented by More",
+                chipAt(adapter, chips, 4).isSelected
+            )
+        }
+    }
+
+    private fun visibleChips(chips: RecyclerView): List<String> =
+        (0 until chips.childCount).map { (chips.getChildAt(it) as TextView).text.toString() }
+
+    private fun layout(root: View) {
+        val density = root.resources.displayMetrics.density
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec((320 * density).toInt(), View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec((640 * density).toInt(), View.MeasureSpec.EXACTLY)
+        )
+        root.layout(0, 0, root.measuredWidth, root.measuredHeight)
+    }
+
+    // Binds [position] by hand: off-screen chips are never attached, so getChildAt cannot see them.
+    private fun chipAt(adapter: PillChipAdapter, parent: RecyclerView, position: Int): TextView {
+        val holder = adapter.onCreateViewHolder(parent, adapter.getItemViewType(position))
+        adapter.onBindViewHolder(holder, position)
+        return holder.itemView as TextView
+    }
+
     private fun bindChips(root: View, adapter: PillChipAdapter): List<TextView> {
         val parent = root.findViewById<RecyclerView>(R.id.browseCategories)
         return (0 until adapter.itemCount).map { position ->
