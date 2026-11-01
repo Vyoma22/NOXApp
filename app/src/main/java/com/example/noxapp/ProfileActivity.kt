@@ -2,7 +2,6 @@ package com.example.noxapp
 
 import android.content.Intent
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
@@ -15,7 +14,9 @@ import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.fadeVisibility
 import com.example.noxapp.ui.goTo
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -144,19 +145,19 @@ class ProfileActivity : AppCompatActivity() {
         btnMyListings.setOnClickListener {
             currentTab = Tab.MY_LISTINGS
             updateTabStyle(btnMyListings, listOf(btnSaved, btnSold))
-            renderCurrentTab()
+            renderCurrentTab(animate = true)
         }
 
         btnSaved.setOnClickListener {
             currentTab = Tab.SAVED
             updateTabStyle(btnSaved, listOf(btnMyListings, btnSold))
-            renderCurrentTab()
+            renderCurrentTab(animate = true)
         }
 
         btnSold.setOnClickListener {
             currentTab = Tab.SOLD
             updateTabStyle(btnSold, listOf(btnMyListings, btnSaved))
-            renderCurrentTab()
+            renderCurrentTab(animate = true)
         }
     }
 
@@ -169,7 +170,7 @@ class ProfileActivity : AppCompatActivity() {
         }
     }
 
-    private fun renderCurrentTab() {
+    private fun renderCurrentTab(animate: Boolean = false) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         val emptyNotice = findViewById<TextView>(R.id.profileEmptyNotice)
 
@@ -180,7 +181,8 @@ class ProfileActivity : AppCompatActivity() {
         }
 
         profileAdapter.updateList(itemsToDisplay)
-        emptyNotice.visibility = if (itemsToDisplay.isEmpty()) View.VISIBLE else View.GONE
+        emptyNotice.fadeVisibility(itemsToDisplay.isEmpty())
+        if (animate) findViewById<RecyclerView>(R.id.profileRecyclerView).animateChildrenIn(staggerMs = 30L)
     }
 
     private fun setupBottomNav() {
