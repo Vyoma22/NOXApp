@@ -8,112 +8,155 @@
     android:background="@color/nox_cream_bg"
     android:focusableInTouchMode="true">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/browseScroll"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/browseRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:paddingBottom="72dp">
+        android:layout_height="match_parent">
 
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/browseScroll"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:paddingBottom="72dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <ImageButton
-                    android:id="@+id/browseBackButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/browse_back"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_arrow_back"
-                    app:tint="@color/nox_dark_green" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:accessibilityHeading="true"
-                    android:text="@string/browse_title"
-                    android:textColor="@color/nox_dark_green"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-                <ImageButton
-                    android:id="@+id/browseMapButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="@string/browse_map"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_map_pin"
-                    app:tint="@color/nox_dark_green" />
-            </LinearLayout>
-
-            <EditText
-                android:id="@+id/browseSearch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:minHeight="48dp"
-                android:background="@drawable/rounded_search_box"
-                android:drawableStart="@android:drawable/ic_menu_search"
-                android:drawablePadding="12dp"
-                android:hint="@string/browse_search_hint"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="12dp"
-                android:textColor="@color/nox_dark_green"
-                android:textColorHint="@color/nox_subtext"
-                android:textSize="14sp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/browseCategories"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:minHeight="48dp"
-                android:clipToPadding="false"
-                android:orientation="horizontal" />
-
-            <HorizontalScrollView
-                android:id="@+id/browseFilterScroll"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:scrollbars="none">
+                android:orientation="vertical"
+                android:padding="20dp">
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:animateLayoutChanges="true"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/browseCategoryFilter"
-                        style="@style/BrowseFilterButton"
-                        android:text="@string/browse_category" />
+                    <ImageButton
+                        android:id="@+id/browseBackButton"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/browse_back"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_arrow_back"
+                        app:tint="@color/nox_dark_green" />
 
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/browsePriceFilter"
-                        style="@style/BrowseFilterButton"
-                        android:text="@string/browse_price" />
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:accessibilityHeading="true"
+                        android:text="@string/browse_title"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
 
-                    <androidx.appcompat.widget.AppCompatButton
-                        android:id="@+id/browseConditionFilter"
-                        style="@style/BrowseFilterButton"
-                        android:text="@string/browse_condition" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/browseMapButton"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:contentDescription="@string/browse_map"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:minWidth="48dp"
+                        android:text="@string/browse_map_label"
+                        android:textColor="@color/nox_accent_text"
+                        android:textSize="13sp"
+                        app:backgroundTint="@android:color/transparent"
+                        app:cornerRadius="24dp"
+                        app:icon="@drawable/ic_map_pin"
+                        app:iconGravity="textStart"
+                        app:iconPadding="4dp"
+                        app:iconTint="@color/nox_accent_text" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/rounded_search_box">
+
+                    <EditText
+                        android:id="@+id/browseSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@null"
+                        android:drawableStart="@drawable/ic_search"
+                        android:drawablePadding="12dp"
+                        android:drawableTint="@color/nox_subtext"
+                        android:hint="@string/browse_search_hint"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:paddingStart="16dp"
+                        android:paddingEnd="48dp"
+                        android:textColor="@color/nox_dark_green"
+                        android:textColorHint="@color/nox_subtext"
+                        android:textSize="14sp" />
+
+                    <ImageButton
+                        android:id="@+id/browseSearchClear"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/clear_search"
+                        android:padding="14dp"
+                        android:src="@drawable/ic_close"
+                        android:visibility="gone"
+                        app:tint="@color/nox_subtext" />
+                </FrameLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/browseCategories"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:minHeight="48dp"
+                    android:clipToPadding="false"
+                    android:orientation="horizontal" />
+
+                <HorizontalScrollView
+                    android:id="@+id/browseFilterScroll"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:animateLayoutChanges="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/browsePriceFilter"
+                            style="@style/BrowseFilterButton"
+                            android:text="@string/browse_price" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/browseConditionFilter"
+                            style="@style/BrowseFilterButton"
+                            android:text="@string/browse_condition" />
+
+                        <androidx.appcompat.widget.AppCompatButton
+                            android:id="@+id/browseSortFilter"
+                            style="@style/BrowseFilterButton"
+                            android:text="@string/sort_newest" />
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <LinearLayout
+                    android:id="@+id/browseActiveRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
                     <LinearLayout
                         android:id="@+id/browseRadiusPill"
@@ -141,58 +184,143 @@
                             android:background="?attr/selectableItemBackgroundBorderless"
                             android:contentDescription="@string/browse_clear_radius"
                             android:padding="14dp"
-                            android:src="@android:drawable/ic_menu_close_clear_cancel"
+                            android:src="@drawable/ic_close"
                             app:tint="@color/nox_dark_green" />
                     </LinearLayout>
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="1dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/browseClearAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="8dp"
+                        android:text="@string/browse_clear_all"
+                        android:textColor="@color/nox_accent_text"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:visibility="gone" />
                 </LinearLayout>
-            </HorizontalScrollView>
 
-            <TextView
-                android:id="@+id/browseResultCount"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:accessibilityLiveRegion="polite"
-                android:textColor="@color/nox_subtext"
-                android:textSize="14sp" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/browseResults"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:clipToPadding="false"
-                android:nestedScrollingEnabled="false" />
-
-            <LinearLayout
-                android:id="@+id/browseEmptyState"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:gravity="center"
-                    android:text="@string/browse_empty_title"
-                    android:textColor="@color/nox_dark_green"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="20dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <TextView
+                    <TextView
+                        android:id="@+id/browseResultCount"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:accessibilityLiveRegion="polite"
+                        android:textColor="@color/nox_subtext"
+                        android:textSize="14sp" />
+
+                    <ProgressBar
+                        android:id="@+id/browseLoading"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:indeterminateTint="@color/nox_primary_green"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/browseResults"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="12dp"
+                    android:clipToPadding="false"
+                    android:nestedScrollingEnabled="false" />
+
+                <LinearLayout
+                    android:id="@+id/browseErrorState"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
                     android:gravity="center"
-                    android:text="@string/browse_empty_hint"
-                    android:textColor="@color/nox_subtext"
-                    android:textSize="14sp" />
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/browse_error_title"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/browse_error_hint"
+                        android:textColor="@color/nox_subtext"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/browseErrorRetry"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/nox_primary_green"
+                        android:text="@string/browse_retry"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/browseEmptyState"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/browseEmptyTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="@string/browse_empty_title"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/browseEmptyHint"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/browse_empty_hint"
+                        android:textColor="@color/nox_subtext"
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/browseEmptyAction"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/nox_primary_green"
+                        android:text="@string/browse_empty_action_clear"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <include
         layout="@layout/nav_bar"

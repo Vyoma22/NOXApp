@@ -21,6 +21,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.R
 import com.example.noxapp.data.ListingRepo
+import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -97,13 +98,13 @@ class PostListing : AppCompatActivity() {
         val listingLocation: Spinner = findViewById(R.id.spiLocation)
         val backBtn: ImageButton = findViewById(R.id.backBtn)
 
-        var adapter= ArrayAdapter.createFromResource(this, R.array.categories, android.R.layout.simple_spinner_item)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        itmCategory.adapter = adapter
+        val categoryAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, CategoryCatalog.NAMES)
+        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        itmCategory.adapter = categoryAdapter
 
-        adapter = ArrayAdapter.createFromResource(this, R.array.locations, android.R.layout.simple_spinner_item)
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        listingLocation.adapter = adapter
+        val locationAdapter = ArrayAdapter.createFromResource(this, R.array.locations, android.R.layout.simple_spinner_item)
+        locationAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        listingLocation.adapter = locationAdapter
 
         // Finish rather than launching a second Home, so Back returns where the user came from.
         backBtn.setOnClickListener { finish() }

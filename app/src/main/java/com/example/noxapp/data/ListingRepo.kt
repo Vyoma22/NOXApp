@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import kotlinx.coroutines.tasks.await
 import java.lang.Exception
 
 object ListingRepo {
@@ -52,7 +53,7 @@ object ListingRepo {
     }
 
     // Toggle save/favorite state in the user's Firestore document
-    fun toggleSaveItem(userId: String, itemId: String, shouldSave: Boolean, onComplete: () -> Unit) {
+    fun toggleSaveItem(userId: String, itemId: String, shouldSave: Boolean, onComplete: (Boolean) -> Unit) {
         val userDoc = db.collection("users").document(userId)
         val updateOperation = if (shouldSave) {
             FieldValue.arrayUnion(itemId)
@@ -61,8 +62,8 @@ object ListingRepo {
         }
 
         userDoc.update("savedItemIds", updateOperation)
-            .addOnSuccessListener { onComplete() }
-            .addOnFailureListener { onComplete() }
+            .addOnSuccessListener { onComplete(true) }
+            .addOnFailureListener { onComplete(false) }
     }
 
     // Fetch user's saved item IDs
@@ -77,6 +78,15 @@ object ListingRepo {
             .addOnFailureListener {
                 onResult(emptyList())
             }
+    }
+
+    /** Removes the student's listings and profile document before Firebase Auth deletes the user. */
+    suspend fun deleteAccountData(userId: String) {
+        val snapshot = listingsRef.whereEqualTo("sellerId", userId).get().await()
+        val batch = db.batch()
+        snapshot.documents.forEach { batch.delete(it.reference) }
+        batch.delete(db.collection("users").document(userId))
+        batch.commit().await()
     }
 
 }

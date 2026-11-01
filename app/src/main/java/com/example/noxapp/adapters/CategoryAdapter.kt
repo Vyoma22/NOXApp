@@ -31,19 +31,29 @@ class CategoryAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = categories[position]
+        val context = holder.itemView.context
         holder.name.text = item.name
         holder.icon.setImageResource(item.iconResId)
 
-        val context = holder.itemView.context
         if (item.isSelected) {
             holder.card.setCardBackgroundColor(ContextCompat.getColor(context, R.color.nox_primary_green))
             holder.icon.setColorFilter(ContextCompat.getColor(context, R.color.white))
-            holder.name.setTextColor(ContextCompat.getColor(context, R.color.nox_primary_green))
+            holder.name.setTextColor(ContextCompat.getColor(context, R.color.nox_accent_text))
         } else {
             holder.card.setCardBackgroundColor(ContextCompat.getColor(context, R.color.nox_chip_bg))
             holder.icon.setColorFilter(ContextCompat.getColor(context, R.color.nox_dark_green))
             holder.name.setTextColor(ContextCompat.getColor(context, R.color.nox_dark_green))
         }
+
+        // The row is one accessibility node: the label already names the category, so the
+        // decorative icon and the child text are not read a second time.
+        holder.name.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        holder.itemView.contentDescription = if (item.isSelected) {
+            context.getString(R.string.category_description_selected, item.name)
+        } else {
+            context.getString(R.string.category_description, item.name)
+        }
+        holder.itemView.isSelected = item.isSelected
 
         holder.itemView.setOnClickListener {
             setSelected(position)

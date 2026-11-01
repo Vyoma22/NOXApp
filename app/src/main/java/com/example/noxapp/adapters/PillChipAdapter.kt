@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
+import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.ui.pop
 
 class PillChipAdapter(
@@ -85,8 +86,8 @@ class PillChipAdapter(
     }
 
     companion object {
-        // Canonical Listing.category values, shared by the inline row and Category popup.
-        val CATEGORIES = listOf("Books", "Electronics", "Furniture", "Clothing", "Decor", "Accessories", "Tickets", "Other")
+        // One canonical list, shared with Home and the post spinner.
+        val CATEGORIES: List<String> = CategoryCatalog.NAMES
 
         // All + the first three categories + the toggle.
         private const val COLLAPSED_CHIPS = 5

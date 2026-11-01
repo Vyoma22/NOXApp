@@ -2,30 +2,15 @@ package com.example.noxapp
 
 import android.content.Context
 import android.content.Intent
-import android.view.ContextThemeWrapper
-import android.view.LayoutInflater
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class RemovedPickupPreferenceUiTest {
-    @Test
-    fun profileLayoutOmitsSettingsAction() {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        instrumentation.runOnMainSync {
-            val context = ContextThemeWrapper(instrumentation.targetContext, R.style.Theme_NOXApp)
-            val root = LayoutInflater.from(context).inflate(R.layout.activity_profile, null)
-            val actionId = root.resources.getIdentifier("profileSettingsButton", "id", context.packageName)
-
-            assertTrue("profileSettingsButton must be removed", actionId == 0)
-        }
-    }
-
     @Test
     fun mapActivityOmitsSavePreferenceAction() {
         val context = ApplicationProvider.getApplicationContext<Context>()

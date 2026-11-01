@@ -18,17 +18,21 @@ import androidx.recyclerview.widget.LinearLayoutManager
 
 class ListingAdapter(
     private var items: List<Listing>,
-    private var savedIds: Set<String> = emptySet(),
+    savedIds: Set<String> = emptySet(),
     private val onFavoriteClick: (Listing, Boolean) -> Unit,
     private val onItemClick: (Listing) -> Unit
 ) : RecyclerView.Adapter<ListingAdapter.ViewHolder>() {
+
+    // A private snapshot, so an optimistic mutation in the screen can still be diffed here.
+    private var savedIds: Set<String> = savedIds.toSet()
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val card: CardView = view.findViewById(R.id.listingCardContainer)
         val image: ImageView = view.findViewById(R.id.itemImageView)
         val title: TextView = view.findViewById(R.id.itemTitleTextView)
         val price: TextView = view.findViewById(R.id.itemPriceTextView)
-        val favoriteBtn: ImageView = view.findViewById(R.id.favoriteButton)
+        val favoriteBtn: View = view.findViewById(R.id.favoriteButton)
+        val favoriteIcon: ImageView = view.findViewById(R.id.favoriteIcon)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -62,23 +66,23 @@ class ListingAdapter(
         val bgColor = if (position % 2 == 0) R.color.nox_card_pink else R.color.nox_card_green
         holder.card.setCardBackgroundColor(ContextCompat.getColor(context, bgColor))
 
-        // Check if item is saved
-        // Check if item is saved and set proper heart icon
+        // The saved state is read from the set the screen owns, so a tap updates both at once.
         val isSaved = savedIds.contains(item.id)
         if (isSaved) {
-            holder.favoriteBtn.setImageResource(R.drawable.ic_heart_filled)
-            holder.favoriteBtn.setColorFilter(ContextCompat.getColor(context, R.color.nox_primary_green))
+            holder.favoriteIcon.setImageResource(R.drawable.ic_heart_filled)
+            holder.favoriteIcon.setColorFilter(ContextCompat.getColor(context, R.color.nox_accent_text))
         } else {
-            holder.favoriteBtn.setImageResource(R.drawable.ic_heart_outline)
-            holder.favoriteBtn.setColorFilter(ContextCompat.getColor(context, R.color.nox_dark_green))
+            holder.favoriteIcon.setImageResource(R.drawable.ic_heart_outline)
+            holder.favoriteIcon.setColorFilter(ContextCompat.getColor(context, R.color.nox_dark_green))
         }
+        holder.favoriteBtn.contentDescription =
+            context.getString(if (isSaved) R.string.saved_item else R.string.save_item)
 
         // Heart click event
         holder.favoriteBtn.setOnClickListener {
-            // Acknowledge the tap now; the icon flips when Firestore answers.
-            holder.favoriteBtn.pop()
-            val newSavedState = !savedIds.contains(item.id)
-            onFavoriteClick(item, newSavedState)
+            // Acknowledge the tap now; the screen owns the optimistic saved set.
+            holder.favoriteIcon.pop()
+            onFavoriteClick(item, !savedIds.contains(item.id))
         }
 
         // Card click event
@@ -106,9 +110,15 @@ class ListingAdapter(
         notifyDataSetChanged()
     }
 
-    @SuppressLint("NotifyDataSetChanged")
+    /** Rebinds only the hearts whose saved state changed, so photos and taps stay stable. */
     fun updateSavedIds(newSavedIds: Set<String>) {
-        savedIds = newSavedIds
-        notifyDataSetChanged()
+        val old = savedIds
+        val updated = newSavedIds.toSet()
+        savedIds = updated
+        items.forEachIndexed { index, item ->
+            if (old.contains(item.id) != updated.contains(item.id)) {
+                notifyItemChanged(index)
+            }
+        }
     }
 }

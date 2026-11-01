@@ -20,9 +20,10 @@
             android:layout_width="26dp"
             android:layout_height="26dp"
             android:layout_gravity="center"
-            android:contentDescription="Category Icon"
-            android:tint="@color/nox_dark_green"
-            android:src="@android:drawable/ic_menu_agenda" />
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_cat_all"
+            app:tint="@color/nox_dark_green" />
     </androidx.cardview.widget.CardView>
 
     <TextView
@@ -30,7 +31,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
-        android:text="All"
+        android:text="@string/browse_all"
         android:textColor="@color/nox_dark_green"
         android:textSize="12sp" />
 </LinearLayout>

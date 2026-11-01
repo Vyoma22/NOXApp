@@ -3,17 +3,19 @@ package com.example.noxapp
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.view.inputmethod.EditorInfo
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
 import androidx.core.os.BundleCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
@@ -22,29 +24,33 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.adapters.PillChipAdapter
 import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
+import com.example.noxapp.data.BrowseSession
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
 import com.example.noxapp.data.ListingRepo
+import com.example.noxapp.data.Prefs
 import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
+import com.example.noxapp.models.SortOption
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.fadeVisibility
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.text.NumberFormat
 
 class BrowseActivity : AppCompatActivity() {
     private var filters = BrowseFilters()
@@ -55,12 +61,14 @@ class BrowseActivity : AppCompatActivity() {
     private var accessJob: Job? = null
     private var allListings: List<Listing> = emptyList()
     private var savedIds = mutableSetOf<String>()
+    private val pendingSaves = mutableSetOf<String>()
     private var listingsLoading = false
     private var listingsLoaded = false
     private var listingsError = false
     private var resultsAnimated = false
     private var pendingScrollY: Int? = null
     private var loadErrorSnackbar: Snackbar? = null
+    private var userCampus: Pair<Double, Double>? = null
     private lateinit var categoryAdapter: PillChipAdapter
     private lateinit var listingAdapter: ListingAdapter
 
@@ -89,7 +97,7 @@ class BrowseActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_browse)
         applyEdgeToEdgeInsets(R.id.browseRoot, R.id.bottomNavBar, R.id.browseScroll)
-        restoreFilters(savedInstanceState)
+        restoreState(savedInstanceState)
         setupCategories()
         setupResults()
         setupFilterMenus()
@@ -97,12 +105,11 @@ class BrowseActivity : AppCompatActivity() {
         findViewById<View>(R.id.browseBackButton).setOnClickListener { finish() }
         findViewById<View>(R.id.browseMapButton).setOnClickListener { openMap() }
         findViewById<View>(R.id.browseClearRadius).setOnClickListener { clearRadius() }
-        val search = findViewById<EditText>(R.id.browseSearch)
-        search.setText(filters.query)
-        search.addTextChangedListener { text ->
-            filters = filters.copy(query = text?.toString().orEmpty())
-            renderResults()
-        }
+        findViewById<View>(R.id.browseClearAll).setOnClickListener { clearAllFilters() }
+        findViewById<View>(R.id.browseErrorRetry).setOnClickListener { loadListings() }
+        findViewById<View>(R.id.browseEmptyAction).setOnClickListener { onEmptyAction() }
+        findViewById<SwipeRefreshLayout>(R.id.browseRefresh).setOnRefreshListener { loadListings() }
+        setupSearch()
         renderState()
     }
 
@@ -127,6 +134,7 @@ class BrowseActivity : AppCompatActivity() {
             }
             accessAllowed = true
             loadFavorites()
+            loadUserCampus()
             if (!listingsLoaded && !listingsLoading) loadListings()
         }
     }
@@ -147,6 +155,7 @@ class BrowseActivity : AppCompatActivity() {
             onExpansionToggle = {
                 categoriesExpanded = !categoriesExpanded
                 categoryAdapter.updateState(filters.category, categoriesExpanded)
+                saveSession()
             }
         )
         findViewById<RecyclerView>(R.id.browseCategories).apply {
@@ -157,19 +166,7 @@ class BrowseActivity : AppCompatActivity() {
 
     private fun setupResults() {
         listingAdapter = ListingAdapter(emptyList(), savedIds,
-            onFavoriteClick = { listing, shouldSave ->
-                val uid = FirebaseAuth.getInstance().currentUser?.uid
-                if (uid != null) {
-                    favoritesGeneration++
-                    ListingRepo.toggleSaveItem(uid, listing.id, shouldSave) {
-                        if (!isDestroyed && FirebaseAuth.getInstance().currentUser?.uid == uid) {
-                            if (shouldSave) savedIds.add(listing.id) else savedIds.remove(listing.id)
-                            listingAdapter.updateSavedIds(savedIds)
-                            Toast.makeText(this, if (shouldSave) R.string.browse_saved else R.string.browse_unsaved, Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            },
+            onFavoriteClick = { listing, shouldSave -> toggleSave(listing, shouldSave) },
             onItemClick = { listing -> ItemDetailDialog.show(this, listing) }
         ).apply {
             stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
@@ -181,16 +178,32 @@ class BrowseActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupFilterMenus() {
-        findViewById<View>(R.id.browseCategoryFilter).setOnClickListener { anchor ->
-            showFilterMenu(anchor, PillChipAdapter.CATEGORIES, filters.category) { category ->
-                filters = filters.copy(category = category)
-                renderState()
-                val index = PillChipAdapter.CATEGORIES.indexOfFirst { it.equals(category, ignoreCase = true) }
-                val position = if (category == null) 0 else if (!categoriesExpanded && index >= 3) 4 else index + 1
-                findViewById<RecyclerView>(R.id.browseCategories).scrollToPosition(position)
+    private fun setupSearch() {
+        val search = findViewById<EditText>(R.id.browseSearch)
+        val clear = findViewById<ImageButton>(R.id.browseSearchClear)
+
+        search.setText(filters.query)
+        clear.isVisible = filters.query.isNotEmpty()
+        search.addTextChangedListener { text ->
+            filters = filters.copy(query = text?.toString().orEmpty())
+            clear.isVisible = !text.isNullOrEmpty()
+            renderResults()
+            saveSession()
+        }
+        clear.setOnClickListener { search.setText("") }
+        search.setOnEditorActionListener { _, action, _ ->
+            if (action == EditorInfo.IME_ACTION_SEARCH) {
+                WindowCompat.getInsetsController(window, search)
+                    .hide(WindowInsetsCompat.Type.ime())
+                search.clearFocus()
+                true
+            } else {
+                false
             }
         }
+    }
+
+    private fun setupFilterMenus() {
         findViewById<View>(R.id.browsePriceFilter).setOnClickListener { anchor ->
             showFilterMenu(anchor, PriceRange.entries.map { it.label }, filters.priceRange?.label) { label ->
                 filters = filters.copy(priceRange = PriceRange.entries.firstOrNull { it.label == label })
@@ -202,6 +215,9 @@ class BrowseActivity : AppCompatActivity() {
                 filters = filters.copy(condition = condition)
                 renderState()
             }
+        }
+        findViewById<View>(R.id.browseSortFilter).setOnClickListener { anchor ->
+            showSortMenu(anchor)
         }
     }
 
@@ -223,26 +239,60 @@ class BrowseActivity : AppCompatActivity() {
         }
     }
 
+    private fun showSortMenu(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            SortOption.entries.forEachIndexed { index, option ->
+                menu.add(0, index, index, getString(Prefs.sortLabelRes(option))).apply {
+                    isCheckable = true
+                    isChecked = option == filters.sort
+                }
+            }
+            menu.setGroupCheckable(0, true, true)
+            setOnMenuItemClickListener { item ->
+                filters = filters.copy(sort = SortOption.entries[item.itemId])
+                renderState()
+                true
+            }
+            show()
+        }
+    }
+
     private fun renderState() {
         categoryAdapter.updateState(filters.category, categoriesExpanded)
-        renderFilterLabel(R.id.browseCategoryFilter, R.string.browse_category, filters.category)
         renderFilterLabel(R.id.browsePriceFilter, R.string.browse_price, filters.priceRange?.label)
         renderFilterLabel(R.id.browseConditionFilter, R.string.browse_condition, filters.condition)
+        val sortOption = filters.sort
+        findViewById<TextView>(R.id.browseSortFilter).apply {
+            text = getString(Prefs.sortLabelRes(sortOption))
+            isSelected = sortOption != SortOption.NEWEST
+        }
+
         val hasArea = validArea(filters.centerLat, filters.centerLng, filters.radiusKm)
         findViewById<View>(R.id.browseRadiusPill).apply {
             isVisible = hasArea
             isSelected = hasArea
         }
         if (hasArea) {
-            val formatted = NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }.format(filters.radiusKm)
-            findViewById<TextView>(R.id.browseRadiusLabel).text = getString(R.string.browse_radius, formatted)
+            val distance = Prefs.formatDistance(filters.radiusKm!!)
+            findViewById<TextView>(R.id.browseRadiusLabel).text =
+                getString(R.string.browse_radius, distance, Prefs.distanceUnit(this))
         }
-        findViewById<ImageButton>(R.id.browseMapButton).apply {
+
+        val hasFilters = filters.query.isNotBlank() || filters.category != null ||
+            filters.priceRange != null || filters.condition != null || hasArea
+        findViewById<View>(R.id.browseActiveRow).isVisible = hasFilters
+        findViewById<View>(R.id.browseClearAll).isVisible = hasFilters
+
+        findViewById<MaterialButton>(R.id.browseMapButton).apply {
             isSelected = hasArea
-            imageTintList = ColorStateList.valueOf(ContextCompat.getColor(
-                this@BrowseActivity, if (hasArea) R.color.nox_primary_green else R.color.nox_dark_green
+            val color = ColorStateList.valueOf(ContextCompat.getColor(
+                this@BrowseActivity, if (hasArea) R.color.nox_accent_text else R.color.nox_dark_green
             ))
+            iconTint = color
+            setTextColor(color)
         }
+
+        saveSession()
         renderResults()
     }
 
@@ -256,12 +306,43 @@ class BrowseActivity : AppCompatActivity() {
     private fun renderResults() {
         val results = ListingFilters.apply(allListings, filters)
         listingAdapter.updateList(results)
-        findViewById<TextView>(R.id.browseResultCount).text = resources.getQuantityString(
-            R.plurals.browse_result_count, results.size, results.size
-        )
-        findViewById<View>(R.id.browseResults).isVisible = results.isNotEmpty()
+        findViewById<TextView>(R.id.browseResultCount).text = if (listingsLoading) {
+            getString(R.string.browse_loading)
+        } else {
+            resources.getQuantityString(R.plurals.browse_result_count, results.size, results.size)
+        }
+        findViewById<View>(R.id.browseLoading).isVisible = listingsLoading
+        findViewById<View>(R.id.browseErrorState).isVisible = listingsError
+        findViewById<View>(R.id.browseResults).isVisible = results.isNotEmpty() && !listingsError
         findViewById<View>(R.id.browseEmptyState)
             .fadeVisibility(listingsLoaded && !listingsLoading && !listingsError && results.isEmpty())
+
+        val noListings = allListings.isEmpty()
+        findViewById<TextView>(R.id.browseEmptyTitle)
+            .setText(if (noListings) R.string.browse_empty_no_items_title else R.string.browse_empty_title)
+        findViewById<TextView>(R.id.browseEmptyHint)
+            .setText(if (noListings) R.string.browse_empty_no_items_hint else R.string.browse_empty_hint)
+        findViewById<TextView>(R.id.browseEmptyAction)
+            .setText(if (noListings) R.string.browse_empty_action_refresh else R.string.browse_empty_action_clear)
+    }
+
+    private fun onEmptyAction() {
+        if (allListings.isEmpty()) loadListings() else clearAllFilters()
+    }
+
+    private fun clearAllFilters() {
+        filters = filters.copy(
+            query = "",
+            category = null,
+            priceRange = null,
+            condition = null,
+            centerLat = null,
+            centerLng = null,
+            radiusKm = null
+        )
+        categoriesExpanded = false
+        findViewById<EditText>(R.id.browseSearch).setText("")
+        renderState()
     }
 
     private fun loadListings() {
@@ -275,6 +356,7 @@ class BrowseActivity : AppCompatActivity() {
                     allListings = listings
                     listingsLoading = false
                     listingsLoaded = true
+                    findViewById<SwipeRefreshLayout>(R.id.browseRefresh).isRefreshing = false
                     renderResults()
                     if (!resultsAnimated) {
                         resultsAnimated = true
@@ -293,7 +375,9 @@ class BrowseActivity : AppCompatActivity() {
                 if (!isDestroyed && !isFinishing) {
                     allListings = emptyList()
                     listingsLoading = false
+                    listingsLoaded = true
                     listingsError = true
+                    findViewById<SwipeRefreshLayout>(R.id.browseRefresh).isRefreshing = false
                     renderResults()
                     loadErrorSnackbar = Snackbar.make(findViewById(R.id.browseRoot), R.string.browse_load_error, Snackbar.LENGTH_INDEFINITE)
                         .setAnchorView(R.id.bottomNavBar)
@@ -315,12 +399,59 @@ class BrowseActivity : AppCompatActivity() {
         }
     }
 
+    private fun loadUserCampus() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        ListingRepo.getUserProfile(uid) { profile ->
+            userCampus = CampusLocations.forSchool(profile?.school)
+        }
+    }
+
+    private fun toggleSave(listing: Listing, shouldSave: Boolean, showUndo: Boolean = true) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        if (!pendingSaves.add(listing.id)) return
+
+        applySavedLocally(listing.id, shouldSave)
+        ListingRepo.toggleSaveItem(uid, listing.id, shouldSave) { success ->
+            pendingSaves.remove(listing.id)
+            if (isDestroyed) return@toggleSaveItem
+            if (!success) {
+                applySavedLocally(listing.id, !shouldSave)
+                Snackbar.make(findViewById(R.id.browseRoot), R.string.save_failed, Snackbar.LENGTH_LONG)
+                    .setAnchorView(R.id.bottomNavBar)
+                    .show()
+            } else if (showUndo) {
+                Snackbar.make(
+                    findViewById(R.id.browseRoot),
+                    if (shouldSave) R.string.browse_saved else R.string.browse_unsaved,
+                    Snackbar.LENGTH_LONG
+                )
+                    .setAnchorView(R.id.bottomNavBar)
+                    .setAction(R.string.undo) { toggleSave(listing, !shouldSave, showUndo = false) }
+                    .show()
+            }
+        }
+    }
+
+    private fun applySavedLocally(listingId: String, saved: Boolean) {
+        if (saved) savedIds.add(listingId) else savedIds.remove(listingId)
+        listingAdapter.updateSavedIds(savedIds)
+    }
+
     private fun openMap() {
         mapVisitInProgress = true
+        val center = if (filters.centerLat != null && filters.centerLng != null) {
+            filters.centerLat!! to filters.centerLng!!
+        } else {
+            userCampus ?: CampusLocations.ONTARIO_TECH
+        }
         mapLauncher.launch(Intent(this, MapActivity::class.java).apply {
-            putExtra(MapActivity.EXTRA_CENTER_LAT, filters.centerLat ?: CampusLocations.ONTARIO_TECH.first)
-            putExtra(MapActivity.EXTRA_CENTER_LNG, filters.centerLng ?: CampusLocations.ONTARIO_TECH.second)
+            putExtra(MapActivity.EXTRA_CENTER_LAT, center.first)
+            putExtra(MapActivity.EXTRA_CENTER_LNG, center.second)
             putExtra(MapActivity.EXTRA_RADIUS_KM, filters.radiusKm ?: 2.0)
+            putExtra(MapActivity.EXTRA_QUERY, filters.query)
+            putExtra(MapActivity.EXTRA_CATEGORY, filters.category)
+            putExtra(MapActivity.EXTRA_PRICE, filters.priceRange?.name)
+            putExtra(MapActivity.EXTRA_CONDITION, filters.condition)
         })
     }
 
@@ -335,11 +466,18 @@ class BrowseActivity : AppCompatActivity() {
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
                     R.id.navHome -> goHome()
-                    R.id.navPost -> Toast.makeText(this@BrowseActivity, R.string.browse_post_toast, Toast.LENGTH_SHORT).show()
-                    R.id.navChat -> Toast.makeText(this@BrowseActivity, R.string.browse_chat_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navPost -> startActivity(Intent(this@BrowseActivity, com.example.noxapp.postlisting.PostListing::class.java))
+                    R.id.navChat -> android.widget.Toast.makeText(
+                        this@BrowseActivity, R.string.browse_chat_toast, android.widget.Toast.LENGTH_SHORT
+                    ).show()
                     R.id.navProfile -> openProfile()
                 }
                 item.itemId == R.id.navBrowse
+            }
+            setOnItemReselectedListener { item ->
+                if (item.itemId == R.id.navBrowse) {
+                    findViewById<NestedScrollView>(R.id.browseScroll).smoothScrollTo(0, 0)
+                }
             }
         }
     }
@@ -354,12 +492,29 @@ class BrowseActivity : AppCompatActivity() {
         startActivity(Intent(this, ProfileActivity::class.java))
     }
 
-    private fun restoreFilters(state: Bundle?) {
-        if (state == null) return
+    private fun restoreState(state: Bundle?) {
+        if (state != null) {
+            restoreFilters(state)
+            return
+        }
+        val restored = BrowseSession.restore(FirebaseAuth.getInstance().currentUser?.uid)
+        if (restored != null) {
+            filters = restored.first
+            categoriesExpanded = restored.second
+        } else {
+            filters = BrowseFilters(sort = Prefs.defaultSort(this))
+        }
+    }
+
+    private fun restoreFilters(state: Bundle) {
         filters = BundleCompat.getParcelable(state, "browse.filters", BrowseFilters::class.java) ?: BrowseFilters()
         categoriesExpanded = state.getBoolean("browse.expanded")
         mapVisitInProgress = state.getBoolean("browse.mapVisit")
         pendingScrollY = state.getInt("browse.scrollY")
+    }
+
+    private fun saveSession() {
+        BrowseSession.save(FirebaseAuth.getInstance().currentUser?.uid, filters, categoriesExpanded)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

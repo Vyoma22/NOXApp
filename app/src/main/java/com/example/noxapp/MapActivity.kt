@@ -30,8 +30,10 @@ import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.data.LocationSearch
+import com.example.noxapp.data.Prefs
 import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
+import com.example.noxapp.models.PriceRange
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.google.android.gms.location.LocationServices
@@ -57,7 +59,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
-import java.text.NumberFormat
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.sin
@@ -67,6 +68,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var circle: Circle? = null
     private val markers = mutableListOf<Marker>()
     private var listings = emptyList<Listing>()
+    private var baseFilters = BrowseFilters()
+    private var listingsLoaded = false
+    private var listingsError = false
     private var center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
     private var radiusKm = 2.0
     private var hasSelection = false
@@ -97,6 +101,14 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             state?.getDouble(EXTRA_CENTER_LNG, center.longitude) ?: center.longitude
         )
         radiusKm = state?.getDouble(EXTRA_RADIUS_KM, 2.0) ?: 2.0
+        baseFilters = BrowseFilters(
+            query = intent.getStringExtra(EXTRA_QUERY).orEmpty(),
+            category = intent.getStringExtra(EXTRA_CATEGORY),
+            priceRange = intent.getStringExtra(EXTRA_PRICE)?.let { name ->
+                runCatching { PriceRange.valueOf(name) }.getOrNull()
+            },
+            condition = intent.getStringExtra(EXTRA_CONDITION)
+        )
         hasSelection = savedInstanceState?.getBoolean(EXTRA_HAS_SELECTION) ?: false
         locationPending = savedInstanceState?.getBoolean("locationPending") ?: false
         restoredCamera = savedInstanceState != null
@@ -141,7 +153,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         findViewById<Slider>(R.id.radiusSlider).apply {
             value = radiusKm.toFloat()
-            setLabelFormatter { getString(R.string.radius_label, formatRadius(it.toDouble())) }
+            setLabelFormatter {
+                getString(R.string.radius_label, formatRadius(it.toDouble()), Prefs.distanceUnit(this@MapActivity))
+            }
             addOnChangeListener { _, value, _ ->
                 radiusKm = value.toDouble()
                 refreshArea()
@@ -152,14 +166,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             })
         }
         findViewById<View>(R.id.searchAreaButton).apply {
-            isEnabled = false
+            // The chosen centre and radius are already known, so the action can commit before
+            // the map tiles finish loading. If the camera is ready, take its current target.
             setOnClickListener {
-                map?.let { readyMap ->
-                    readyMap.stopAnimation()
-                    center = readyMap.cameraPosition.target
-                    hasSelection = true
-                    finish()
-                }
+                map?.stopAnimation()
+                center = map?.cameraPosition?.target ?: center
+                hasSelection = true
+                finish()
             }
         }
     }
@@ -238,7 +251,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         if (isDestroyed || isFinishing) return
         map = googleMap
-        googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(this, R.raw.map_style))
+        val nightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+        googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(
+            this,
+            if (nightMode) R.raw.map_style_night else R.raw.map_style
+        ))
         googleMap.uiSettings.isMapToolbarEnabled = false
         googleMap.uiSettings.isMyLocationButtonEnabled = false
         val green = ContextCompat.getColor(this, R.color.nox_primary_green)
@@ -265,6 +283,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             onSuccess = {
                 if (!isDestroyed) {
                     listings = it
+                    listingsLoaded = true
+                    listingsError = false
                     rebuildMarkers()
                     refreshArea()
                 }
@@ -272,8 +292,14 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             onError = {
                 if (!isDestroyed) {
                     listings = emptyList()
+                    listingsLoaded = true
+                    listingsError = true
                     rebuildMarkers()
                     refreshArea()
+                    Snackbar.make(findViewById(R.id.mapRoot), R.string.browse_load_error, Snackbar.LENGTH_INDEFINITE)
+                        .setAnchorView(R.id.mapBottomNav)
+                        .setAction(R.string.browse_retry) { loadListings() }
+                        .show()
                 }
             }
         )
@@ -288,7 +314,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         drawable.setBounds(0, 0, bitmap.width, bitmap.height)
         drawable.draw(Canvas(bitmap))
         val icon = BitmapDescriptorFactory.fromBitmap(bitmap)
-        listings.forEach { listing ->
+        // Pins follow the Browse filters too, so the map does not contradict the grid.
+        listings.filter { ListingFilters.matches(it, baseFilters) }.forEach { listing ->
             val (lat, lng) = CampusLocations.resolve(listing)
             readyMap.addMarker(MarkerOptions().position(LatLng(lat, lng)).title(listing.title)
                 .icon(icon).anchor(0.5f, 0.5f))?.let { marker ->
@@ -299,15 +326,56 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun refreshArea() {
-        val label = getString(R.string.radius_label, formatRadius(radiusKm))
+        val unit = Prefs.distanceUnit(this)
+        val label = getString(R.string.radius_label, formatRadius(radiusKm), unit)
         findViewById<TextView>(R.id.radiusLabel).text = label
         findViewById<Slider>(R.id.radiusSlider).contentDescription = label
+        findViewById<TextView>(R.id.radiusMinLabel).text = getString(R.string.map_radius_min, unit)
+        findViewById<TextView>(R.id.radiusMaxLabel).text = getString(R.string.map_radius_max, unit)
         circle?.center = center
         circle?.radius = radiusKm * 1000
-        val filters = BrowseFilters(centerLat = center.latitude, centerLng = center.longitude, radiusKm = radiusKm)
+        val areaFilters = baseFilters.copy(
+            centerLat = center.latitude,
+            centerLng = center.longitude,
+            radiusKm = radiusKm
+        )
         markers.forEach { marker ->
             val listing = marker.tag as Listing
-            marker.alpha = if (ListingFilters.matches(listing, filters)) 1f else 0.4f
+            marker.alpha = if (ListingFilters.matches(listing, areaFilters)) 1f else 0.4f
+        }
+        updateAreaSummary(unit)
+        updateFilterSummary()
+    }
+
+    private fun updateAreaSummary(unit: String) {
+        val summary = findViewById<TextView>(R.id.mapAreaSummary)
+        summary.text = when {
+            listingsError -> getString(R.string.map_area_error)
+            !listingsLoaded -> getString(R.string.map_area_loading)
+            else -> {
+                val areaFilters = baseFilters.copy(
+                    centerLat = center.latitude,
+                    centerLng = center.longitude,
+                    radiusKm = radiusKm
+                )
+                val count = listings.count { ListingFilters.matches(it, areaFilters) }
+                resources.getQuantityString(
+                    R.plurals.map_area_count, count, count, formatRadius(radiusKm), unit
+                )
+            }
+        }
+    }
+
+    private fun updateFilterSummary() {
+        val parts = mutableListOf<String>()
+        baseFilters.category?.let { parts.add(it) }
+        baseFilters.priceRange?.let { parts.add(it.label) }
+        baseFilters.condition?.let { parts.add(it) }
+        if (baseFilters.query.isNotBlank()) parts.add("\"${baseFilters.query}\"")
+        val summary = findViewById<TextView>(R.id.mapFilterSummary)
+        summary.isVisible = parts.isNotEmpty()
+        if (parts.isNotEmpty()) {
+            summary.text = getString(R.string.map_showing_filters, parts.joinToString(" · "))
         }
     }
 
@@ -389,7 +457,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                         navigation = NAV_PROFILE
                         finish()
                     }
-                    R.id.navPost -> Toast.makeText(this@MapActivity, R.string.map_post_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navPost -> startActivity(Intent(this@MapActivity, com.example.noxapp.postlisting.PostListing::class.java))
                     R.id.navChat -> Toast.makeText(this@MapActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
                 }
                 item.itemId == R.id.navBrowse
@@ -430,9 +498,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         super.finish()
     }
 
-    private fun formatRadius(value: Double) = NumberFormat.getNumberInstance().apply {
-        maximumFractionDigits = 1
-    }.format(value)
+    private fun formatRadius(value: Double) = Prefs.formatDistance(value)
 
     companion object {
         const val EXTRA_HAS_SELECTION = "hasSelection"
@@ -440,6 +506,10 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_CENTER_LNG = "centerLng"
         const val EXTRA_RADIUS_KM = "radiusKm"
         const val EXTRA_NAVIGATION = "navigation"
+        const val EXTRA_QUERY = "query"
+        const val EXTRA_CATEGORY = "category"
+        const val EXTRA_PRICE = "priceRange"
+        const val EXTRA_CONDITION = "condition"
         const val NAV_HOME = "home"
         const val NAV_PROFILE = "profile"
     }

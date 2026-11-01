@@ -282,7 +282,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="Home"
                     android:src="@android:drawable/ic_menu_rotate"
-                    android:tint="@color/nox_primary_green" />
+                    app:tint="@color/nox_primary_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -306,7 +306,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="Browse"
                     android:src="@android:drawable/ic_menu_search"
-                    android:tint="@color/nox_dark_green" />
+                    app:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -329,7 +329,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="Post"
                     android:src="@android:drawable/ic_input_add"
-                    android:tint="@color/nox_dark_green" />
+                    app:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -352,7 +352,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="Chat"
                     android:src="@android:drawable/stat_notify_chat"
-                    android:tint="@color/nox_dark_green" />
+                    app:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -375,7 +375,7 @@
                     android:layout_height="22dp"
                     android:contentDescription="Profile"
                     android:src="@android:drawable/ic_menu_myplaces"
-                    android:tint="@color/nox_dark_green" />
+                    app:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"

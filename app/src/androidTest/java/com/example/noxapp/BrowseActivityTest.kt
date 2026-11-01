@@ -43,13 +43,13 @@ class BrowseActivityTest {
     @Test
     fun narrowLayoutKeepsFiltersScrollableAndTouchTargetsAccessible() = withLayout(configure = {
         it.findViewById<TextView>(R.id.browsePriceFilter).text = "Price: $25 - $50"
-        it.findViewById<TextView>(R.id.browseCategoryFilter).text = "Category: Electronics"
+        it.findViewById<TextView>(R.id.browseSortFilter).text = "Newest"
     }) { root ->
         val density = root.resources.displayMetrics.density
         val strip = root.findViewById<HorizontalScrollView>(R.id.browseFilterScroll)
         assertTrue(strip.getChildAt(0).measuredWidth > strip.measuredWidth)
         listOf(
-            R.id.browseCategoryFilter, R.id.browsePriceFilter, R.id.browseConditionFilter,
+            R.id.browseSortFilter, R.id.browsePriceFilter, R.id.browseConditionFilter,
             R.id.browseBackButton, R.id.browseMapButton
         ).forEach { id ->
             val target = root.findViewById<View>(id)
@@ -69,7 +69,7 @@ class BrowseActivityTest {
         assertFalse(root.findViewById<RecyclerView>(R.id.browseResults).isNestedScrollingEnabled)
         assertEquals(View.GONE, root.findViewById<View>(R.id.browseRadiusPill).visibility)
         assertEquals(View.GONE, root.findViewById<View>(R.id.browseEmptyState).visibility)
-        assertEquals("Category", root.findViewById<TextView>(R.id.browseCategoryFilter).text.toString())
+        assertEquals("Newest", root.findViewById<TextView>(R.id.browseSortFilter).text.toString())
         assertEquals("Price", root.findViewById<TextView>(R.id.browsePriceFilter).text.toString())
         assertEquals("Condition", root.findViewById<TextView>(R.id.browseConditionFilter).text.toString())
         assertEquals("1 result", root.resources.getQuantityString(R.plurals.browse_result_count, 1, 1))
@@ -98,7 +98,10 @@ class BrowseActivityTest {
         bindChips(root, adapter).last().performClick()
         var chips = bindChips(root, adapter)
         assertEquals(
-            listOf("All", "Books", "Electronics", "Furniture", "Clothing", "Decor", "Accessories", "Tickets", "Other", "Less"),
+            listOf(
+                "All", "Books", "Electronics", "Furniture", "Clothing", "Decor", "Accessories",
+                "Tickets", "Household", "Sporting", "Tools", "Less"
+            ),
             chips.map { it.text.toString() }
         )
         chips.single { it.text == "Tickets" }.performClick()
@@ -149,8 +152,8 @@ class BrowseActivityTest {
 
             adapter.updateState(null, true)
             layout(root)
-            assertEquals(10, adapter.itemCount)
-            chips.scrollToPosition(9)
+            assertEquals(12, adapter.itemCount)
+            chips.scrollToPosition(11)
             layout(root)
             assertEquals("Less", visibleChips(chips).last())
             assertEquals("Clothing", chipAt(adapter, chips, 4).text.toString())

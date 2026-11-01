@@ -4,6 +4,7 @@ import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.firestore.FirebaseFirestoreException
@@ -15,6 +16,7 @@ object AuthErrors {
         is FirebaseAuthUserCollisionException -> "An account with this email already exists. Try logging in."
         is FirebaseAuthWeakPasswordException -> "Password must have at least 8 characters."
         is FirebaseAuthInvalidCredentialsException -> "Incorrect email or password."
+        is FirebaseAuthRecentLoginRequiredException -> "Please sign in again and try that."
         is FirebaseAuthInvalidUserException -> "Email is not linked to an account, try creating an account."
         is FirebaseTooManyRequestsException -> "Too many failed attempts. Try again in a few minutes."
         is FirebaseNetworkException -> "No internet connection. Check your network and try again."

@@ -3,6 +3,7 @@ package com.example.noxapp.data
 import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
+import com.example.noxapp.models.SortOption
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -209,5 +210,43 @@ class ListingFiltersTest {
         )
 
         assertEquals(listOf(newerBook, book), ListingFilters.apply(listings, filters))
+    }
+
+    @Test
+    fun sortOptionOrdersResultsByPriceWithoutLosingNewestDefault() {
+        val cheap = book.copy(id = "cheap", price = 5.0, createdAt = 10L)
+        val mid = book.copy(id = "mid", price = 50.0, createdAt = 20L)
+        val pricey = book.copy(id = "pricey", price = 500.0, createdAt = 30L)
+        val listings = listOf(mid, pricey, cheap)
+
+        assertEquals(
+            listOf(cheap, mid, pricey),
+            ListingFilters.apply(listings, BrowseFilters(sort = SortOption.PRICE_LOW))
+        )
+        assertEquals(
+            listOf(pricey, mid, cheap),
+            ListingFilters.apply(listings, BrowseFilters(sort = SortOption.PRICE_HIGH))
+        )
+        assertEquals(
+            listOf(pricey, mid, cheap),
+            ListingFilters.apply(listings, BrowseFilters(sort = SortOption.NEWEST))
+        )
+    }
+
+    @Test
+    fun nearestSortUsesTheFilterCentreAndFallsBackToNewestWithoutOne() {
+        val centerLat = 43.9483414
+        val centerLng = -78.8982025
+        val near = book.copy(id = "near", latitude = centerLat + 0.001, longitude = centerLng, createdAt = 1L)
+        val far = book.copy(id = "far", latitude = centerLat + 0.1, longitude = centerLng, createdAt = 2L)
+        val middle = book.copy(id = "middle", latitude = centerLat + 0.01, longitude = centerLng, createdAt = 3L)
+        val listings = listOf(far, middle, near)
+        val filters = BrowseFilters(centerLat = centerLat, centerLng = centerLng, sort = SortOption.NEAREST)
+
+        assertEquals(listOf(near, middle, far), ListingFilters.apply(listings, filters))
+        assertEquals(
+            listOf(middle, far, near),
+            ListingFilters.apply(listings, BrowseFilters(sort = SortOption.NEAREST))
+        )
     }
 }
