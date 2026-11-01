@@ -1,5 +1,4 @@
 package com.example.noxapp.postlisting
-import com.example.noxapp.R
 
 import android.content.Intent
 import android.net.Uri
@@ -20,7 +19,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.noxapp.R
 import com.example.noxapp.data.ListingRepo
+import com.example.noxapp.models.Listing
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
@@ -94,6 +95,7 @@ class PostListing : AppCompatActivity() {
         val itmConditions: RadioGroup = findViewById(R.id.radgroupCondition)
         val itmDesc: EditText = findViewById(R.id.etDescription)
         val listingLocation: Spinner = findViewById(R.id.spiLocation)
+        val backBtn: ImageButton = findViewById(R.id.backBtn)
 
         var adapter= ArrayAdapter.createFromResource(this, R.array.categories, android.R.layout.simple_spinner_item)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
@@ -102,6 +104,9 @@ class PostListing : AppCompatActivity() {
         adapter = ArrayAdapter.createFromResource(this, R.array.locations, android.R.layout.simple_spinner_item)
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         listingLocation.adapter = adapter
+
+        // Finish rather than launching a second Home, so Back returns where the user came from.
+        backBtn.setOnClickListener { finish() }
 
         cameraBtn.setOnClickListener {
             val intent = Intent("android.media.action.IMAGE_CAPTURE")
@@ -158,11 +163,11 @@ class PostListing : AppCompatActivity() {
                                         val listing = Listing(
                                             sellerId = uid,
                                             sellerName = displayName,
-                                            name = name,
+                                            title = name,
                                             category = category,
                                             price = price,
                                             description = desc,
-                                            location = location,
+                                            pickupLocation = location,
                                             condition = conditionTxt,
                                             imageUrls = imageURLS
                                         )

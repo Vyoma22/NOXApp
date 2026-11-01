@@ -10,8 +10,10 @@ import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import coil.load
 import com.example.noxapp.R
 import com.example.noxapp.models.Listing
 
@@ -37,6 +39,10 @@ object ItemDetailDialog {
         dialog.findViewById<TextView>(R.id.detailCategory).text = listing.category
         dialog.findViewById<TextView>(R.id.detailDescription).text = listing.description
         dialog.findViewById<TextView>(R.id.detailLocation).text = "Pickup: ${listing.pickupLocation}"
+        dialog.findViewById<ImageView>(R.id.detailImage).load(listing.imageUrls.firstOrNull()) {
+            placeholder(R.color.nox_field_bg)
+            error(R.color.nox_field_bg)
+        }
         dialog.findViewById<ImageButton>(R.id.detailClose).setOnClickListener { dialog.dismiss() }
         dialog.findViewById<Button>(R.id.messageSellerButton).setOnClickListener {
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {

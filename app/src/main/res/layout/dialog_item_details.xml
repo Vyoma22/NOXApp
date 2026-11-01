@@ -32,7 +32,18 @@
             android:contentDescription="Close"
             android:padding="12dp"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            app:tint="@color/nox_dark_green" />    </RelativeLayout>
+            app:tint="@color/nox_dark_green" />
+    </RelativeLayout>
+
+    <ImageView
+        android:id="@+id/detailImage"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_listing_image"
+        android:clipToOutline="true"
+        android:contentDescription="Listing photo"
+        android:scaleType="centerCrop" />
 
     <TextView
         android:id="@+id/detailPrice"

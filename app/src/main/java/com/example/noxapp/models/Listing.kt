@@ -8,7 +8,7 @@ data class Listing(
     val condition: String = "Used",
     val description: String = "",
     val pickupLocation: String = "Ontario Tech (North Campus)",
-    val imageUrl: String = "",
+    val imageUrls: List<String> = emptyList(),
     val sellerId: String = "",
     val sellerName: String = "",
     val featured: Boolean = false,

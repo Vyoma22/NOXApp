@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FBF6EA"
+    android:background="@color/nox_cream_bg"
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -20,7 +20,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="60dp"
             android:layout_marginEnd="16dp"
-            android:background="#88B897"
+            android:background="@drawable/photo_upload"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -133,9 +133,11 @@
             android:layout_height="30dp"
             android:layout_marginStart="10dp"
             android:layout_marginTop="12dp"
-            android:background="#FFFCF6"
+            android:background="@drawable/rounded_search_box"
             android:ems="10"
-            android:hint="e.g. Desk chair, MacBook, Textbook..."
+            android:hint="  e.g. Desk chair, MacBook, Textbook..."
+            android:drawablePadding="12dp"
+            android:textSize="12sp"
             android:inputType="text"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -148,7 +150,7 @@
             android:layout_marginStart="10dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-            android:background="#FFFCF6"
+            android:background="@drawable/rounded_search_box"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/hdrCategory" />
@@ -159,10 +161,9 @@
             android:layout_height="30dp"
             android:layout_marginStart="10dp"
             android:layout_marginTop="12dp"
-            android:layout_marginBottom="12dp"
-            android:background="#FFFCF6"
+            android:background="@drawable/rounded_search_box"
             android:ems="10"
-            android:hint="$ 0.00"
+            android:hint="  $ 0.00"
             android:inputType="numberDecimal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -173,10 +174,9 @@
             android:layout_width="360dp"
             android:layout_height="30dp"
             android:layout_marginTop="12dp"
-            android:layout_marginBottom="12dp"
-            android:background="#FFFCF6"
+            android:background="@drawable/rounded_search_box"
             android:ems="10"
-            android:hint="Tell us more about your item..."
+            android:hint="  Tell us more about your item..."
             android:inputType="text"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -188,7 +188,7 @@
             android:layout_height="30dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-            android:background="#FFFCF6"
+            android:background="@drawable/rounded_search_box"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/hdrLocation" />
@@ -197,7 +197,7 @@
             android:id="@+id/radgroupCondition"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="50dp"
+            android:layout_marginStart="40dp"
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
             app:layout_constraintStart_toStartOf="parent"
@@ -205,42 +205,42 @@
 
             <RadioButton
                 android:id="@+id/radBtnNew"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFCF6"
+                android:layout_width="80dp"
+                android:layout_height="60dp"
                 android:layout_margin="12dp"
                 android:layout_weight="1"
+                android:background="@drawable/chip_box"
                 android:checked="false"
                 android:text="New" />
 
             <RadioButton
                 android:id="@+id/radBtnLikeNew"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFCF6"
+                android:layout_width="100dp"
+                android:layout_height="60dp"
                 android:layout_margin="12dp"
                 android:layout_weight="1"
+                android:background="@drawable/chip_box"
                 android:checked="true"
                 android:text="Like New" />
 
             <RadioButton
                 android:id="@+id/radBtnUsed"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFCF6"
+                android:layout_width="80dp"
+                android:layout_height="60dp"
                 android:layout_margin="12dp"
                 android:layout_weight="1"
+                android:background="@drawable/chip_box"
                 android:checked="false"
                 android:text="Used" />
         </RadioGroup>
 
         <Button
             android:id="@+id/btnPostList"
-            android:layout_width="wrap_content"
+            android:layout_width="300dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
+            android:background="@drawable/button_box"
             android:text="Post Listing"
-            android:background="#2F6B4F"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/spiLocation" />
@@ -281,8 +281,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Home"
-                    android:tint="@color/nox_primary_green"
-                    android:src="@android:drawable/ic_menu_rotate" />
+                    android:src="@android:drawable/ic_menu_rotate"
+                    android:tint="@color/nox_primary_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -305,8 +305,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Browse"
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/ic_menu_search" />
+                    android:src="@android:drawable/ic_menu_search"
+                    android:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -328,8 +328,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Post"
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/ic_input_add" />
+                    android:src="@android:drawable/ic_input_add"
+                    android:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -351,8 +351,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Chat"
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/stat_notify_chat" />
+                    android:src="@android:drawable/stat_notify_chat"
+                    android:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -374,8 +374,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Profile"
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/ic_menu_myplaces" />
+                    android:src="@android:drawable/ic_menu_myplaces"
+                    android:tint="@color/nox_dark_green" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -385,6 +385,33 @@
                     android:textSize="11sp" />
             </LinearLayout>
         </LinearLayout>
+
+        <Button
+            android:id="@+id/backtextBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="160dp"
+            android:layout_marginBottom="12dp"
+            android:backgroundTint="@color/nox_cream_bg"
+            android:text="Post An Item"
+            android:textColor="@color/black"
+            android:textSize="18sp"
+            app:layout_constraintBottom_toTopOf="@+id/btnAddImage"
+            app:layout_constraintEnd_toStartOf="@+id/btnCamera" />
+
+        <ImageButton
+            android:id="@+id/backBtn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginBottom="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/browse_back"
+            android:padding="12dp"
+            app:layout_constraintBottom_toTopOf="@+id/btnAddImage"
+            app:layout_constraintEnd_toStartOf="@+id/backtextBtn"
+            app:layout_constraintStart_toStartOf="parent"
+            app:srcCompat="@drawable/ic_arrow_back"
+            app:tint="@color/nox_dark_green" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
