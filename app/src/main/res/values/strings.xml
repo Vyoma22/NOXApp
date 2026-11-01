@@ -9,6 +9,10 @@
     <string name="post_item_sub">Sell your items easily</string>
     <string name="featured_listings">Featured Listings</string>
     <string name="recently_added">Recently Added</string>
-    <string name="see_all">See all ›</string>
     <string name="sign_out">Sign Out</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_browse">Browse</string>
+    <string name="nav_post">Post</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_profile">Profile</string>
 </resources>
