@@ -92,6 +92,7 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 | Auth | Firebase Authentication, email and password with verification |
 | Database | Cloud Firestore (`users/{uid}`, `listings/{id}`) |
 | Media | Firebase Storage |
+| Images | Coil (listing photos, crossfaded into cards and the detail sheet) |
 | Maps | Google Maps SDK for Android |
 | Location | Google Play Services Location (FusedLocationProvider) |
 | Place search | Android `Geocoder`, async API on 33+ with an executor fallback |
@@ -133,7 +134,7 @@ app/src/main/java/com/example/noxapp/
 ├── models/          Listing, UserProfile, BrowseFilters
 ├── adapters/        Listing, category, and filter pill adapters
 ├── ui/              Shared item detail sheet, motion helpers, activity helpers
-├── postlisting/     Post flow (owns a second Listing model)
+├── postlisting/     Post flow (writes through the shared Listing model)
 ├── MainActivity.kt      Home feed
 ├── BrowseActivity.kt    Filtered search
 ├── MapActivity.kt       Campus map and pickup radius
@@ -224,13 +225,13 @@ Both suites pass: **39 unit tests** and **26 instrumented tests**, 65 in total.
 
 ## Status
 
-NOX is under active development as a course project. What works today: verified sign-up and sign-in, the Home feed, Browse with filters, the campus map with radius and place search, the profile with saved items, and photo upload on the post screen.
+NOX is under active development as a course project. What works today: verified sign-up and sign-in, the Home feed, Browse with filters, the campus map with radius and place search, the profile with saved items, and posting an item whose photos now render in the cards and the detail sheet.
 
 Known gaps:
 
-- **Posting does not reach the feeds yet.** The post flow writes `name`, `location`, and `imageUrls`, while every feed reads `title`, `pickupLocation`, and `imageUrl`. The two `Listing` models need to be reconciled. This is the top priority.
-- **Listing photos do not render.** `ListingAdapter` declares an `ImageView` but never binds it, and no image-loading library is included. Coil or Glide needs adding.
 - **Chat is not built.** The Chat tab shows a placeholder toast, and the item dialog's email hand-off is the current stand-in.
+- **Old listings rely on a compatibility shim.** Documents written before the model merge use `name`, `location`, and `imageUrl`; `ListingRepo` maps them onto the current fields. Re-post them, then delete the shim.
+- **The post screen keeps its own tab bar.** It is the one screen that does not use the shared `nav_bar` include, and its tabs are inert.
 - **Map pins fall back to campus anchors.** Coordinates are not captured at post time, so pins cluster at the two campus centres instead of marking buildings.
 - **Video and voice search are not implemented.** Both appear in the project proposal.
 - **The Sold tab is always empty.**
