@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/nox_background"
+    android:background="@color/nox_cream_bg"
     android:fillViewport="true">
 
     <LinearLayout
@@ -43,7 +43,7 @@
             android:layout_marginTop="20dp"
             android:fontFamily="@font/poppins_semibold"
             android:text="@string/sign_up_title"
-            android:textColor="@color/nox_ink"
+            android:textColor="@color/nox_dark_green"
             android:textSize="22sp" />
 
         <TextView
@@ -147,7 +147,7 @@
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_spinner"
-                android:popupBackground="@color/nox_surface"
+                android:popupBackground="@color/nox_field_bg"
                 android:spinnerMode="dropdown" />
 
             <Spinner
@@ -157,7 +157,7 @@
                 android:layout_marginStart="6dp"
                 android:layout_weight="1"
                 android:background="@drawable/bg_spinner"
-                android:popupBackground="@color/nox_surface"
+                android:popupBackground="@color/nox_field_bg"
                 android:spinnerMode="dropdown" />
         </LinearLayout>
 
@@ -177,7 +177,7 @@
             android:layout_marginTop="6dp"
             android:fontFamily="@font/poppins_regular"
             android:text="@string/graduation_note"
-            android:textColor="@color/nox_muted"
+            android:textColor="@color/nox_subtext"
             android:textSize="12sp" />
 
         <com.google.android.material.button.MaterialButton
@@ -192,7 +192,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
-            android:indeterminateTint="@color/nox_green"
+            android:indeterminateTint="@color/nox_primary_green"
             android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton

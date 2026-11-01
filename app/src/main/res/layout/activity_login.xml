@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/nox_background"
+    android:background="@color/nox_cream_bg"
     android:fillViewport="true">
 
     <LinearLayout
@@ -45,7 +45,7 @@
             android:gravity="center"
             android:lineSpacingExtra="-2sp"
             android:text="@string/nox_tagline"
-            android:textColor="@color/nox_ink"
+            android:textColor="@color/nox_dark_green"
             android:textSize="16sp" />
 
         <TextView
@@ -118,7 +118,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="16dp"
-            android:indeterminateTint="@color/nox_green"
+            android:indeterminateTint="@color/nox_primary_green"
             android:visibility="gone" />
 
         <!-- Pushes the footer to the bottom on tall screens -->

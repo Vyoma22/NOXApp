@@ -8,5 +8,5 @@
     android:paddingStart="14dp"
     android:paddingEnd="36dp"
     android:fontFamily="@font/poppins_regular"
-    android:textColor="@color/nox_ink"
+    android:textColor="@color/nox_dark_green"
     android:textSize="15sp" />

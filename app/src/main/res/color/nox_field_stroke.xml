@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Input border: green while focused, soft beige otherwise -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="@color/nox_green" android:state_focused="true" />
+    <item android:color="@color/nox_primary_green" android:state_focused="true" />
     <item android:color="@color/nox_field_border" />
 </selector>
