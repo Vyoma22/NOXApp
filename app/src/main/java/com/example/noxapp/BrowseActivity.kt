@@ -34,7 +34,9 @@ import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.fadeVisibility
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.snackbar.Snackbar
@@ -56,6 +58,7 @@ class BrowseActivity : AppCompatActivity() {
     private var listingsLoading = false
     private var listingsLoaded = false
     private var listingsError = false
+    private var resultsAnimated = false
     private var pendingScrollY: Int? = null
     private var loadErrorSnackbar: Snackbar? = null
     private lateinit var categoryAdapter: PillChipAdapter
@@ -257,7 +260,8 @@ class BrowseActivity : AppCompatActivity() {
             R.plurals.browse_result_count, results.size, results.size
         )
         findViewById<View>(R.id.browseResults).isVisible = results.isNotEmpty()
-        findViewById<View>(R.id.browseEmptyState).isVisible = listingsLoaded && !listingsLoading && !listingsError && results.isEmpty()
+        findViewById<View>(R.id.browseEmptyState)
+            .fadeVisibility(listingsLoaded && !listingsLoading && !listingsError && results.isEmpty())
     }
 
     private fun loadListings() {
@@ -272,6 +276,10 @@ class BrowseActivity : AppCompatActivity() {
                     listingsLoading = false
                     listingsLoaded = true
                     renderResults()
+                    if (!resultsAnimated) {
+                        resultsAnimated = true
+                        findViewById<RecyclerView>(R.id.browseResults).animateChildrenIn(staggerMs = 30L)
+                    }
                     pendingScrollY?.let { scrollY ->
                         // The first restored layout can precede Firestore data and otherwise clamp to zero.
                         val scroll = findViewById<NestedScrollView>(R.id.browseScroll)

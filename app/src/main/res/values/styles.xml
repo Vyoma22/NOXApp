@@ -1,5 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Screens swap instantly. Motion lives inside each screen, not between them. -->
+    <style name="Animation.NOX.Activity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/nox_activity_instant</item>
+        <item name="android:activityOpenExitAnimation">@anim/nox_activity_instant</item>
+        <item name="android:activityCloseEnterAnimation">@anim/nox_activity_instant</item>
+        <item name="android:activityCloseExitAnimation">@anim/nox_activity_instant</item>
+    </style>
+
+    <style name="Animation.NOX.Sheet" parent="@android:style/Animation.Dialog">
+        <item name="android:windowEnterAnimation">@anim/nox_sheet_in</item>
+        <item name="android:windowExitAnimation">@anim/nox_sheet_out</item>
+    </style>
+
     <style name="BrowseFilterButton" parent="Widget.AppCompat.Button">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>

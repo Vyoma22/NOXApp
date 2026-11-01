@@ -8,6 +8,7 @@ import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
+import com.example.noxapp.ui.pop
 
 class PillChipAdapter(
     private val onCategorySelected: (String?) -> Unit,
@@ -22,7 +23,7 @@ class PillChipAdapter(
         LayoutInflater.from(parent.context).inflate(R.layout.item_pill_chip, parent, false) as TextView
     )
 
-    override fun getItemCount(): Int = if (expanded) CATEGORIES.size + 2 else 5
+    override fun getItemCount(): Int = if (expanded) CATEGORIES.size + 2 else COLLAPSED_CHIPS
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val text = holder.text
@@ -54,19 +55,40 @@ class PillChipAdapter(
             context, if (selected) R.color.white else R.color.nox_dark_green
         ))
         text.setOnClickListener {
-            if (isToggle) onExpansionToggle() else onCategorySelected(category)
+            if (isToggle) {
+                onExpansionToggle()
+            } else {
+                text.pop()
+                onCategorySelected(category)
+            }
         }
     }
 
     @SuppressLint("NotifyDataSetChanged")
     fun updateState(category: String?, isExpanded: Boolean) {
+        val wasExpanded = expanded
         selectedCategory = category
         expanded = isExpanded
-        notifyDataSetChanged()
+        when {
+            // Only the selection moved: every chip can be rebound without losing a frame.
+            wasExpanded == isExpanded -> notifyDataSetChanged()
+            // Reveal or hide the categories behind the toggle, then relabel it "Less" or "More".
+            else -> {
+                if (isExpanded) {
+                    notifyItemRangeInserted(COLLAPSED_CHIPS - 1, CATEGORIES.size - 3)
+                } else {
+                    notifyItemRangeRemoved(COLLAPSED_CHIPS - 1, CATEGORIES.size - 3)
+                }
+                notifyItemChanged(itemCount - 1)
+            }
+        }
     }
 
     companion object {
         // Canonical Listing.category values, shared by the inline row and Category popup.
         val CATEGORIES = listOf("Books", "Electronics", "Furniture", "Clothing", "Decor", "Accessories", "Tickets", "Other")
+
+        // All + the first three categories + the toggle.
+        private const val COLLAPSED_CHIPS = 5
     }
 }

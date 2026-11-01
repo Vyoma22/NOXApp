@@ -4,10 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-<<<<<<< Updated upstream
-    android:background="#FBF6EA"
-=======
->>>>>>> Stashed changes
+    android:background="@color/nox_cream_bg"
     android:fillViewport="true">
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -23,11 +20,7 @@
             android:layout_marginStart="16dp"
             android:layout_marginTop="60dp"
             android:layout_marginEnd="16dp"
-<<<<<<< Updated upstream
-            android:background="#88B897"
-=======
             android:background="@drawable/photo_upload"
->>>>>>> Stashed changes
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -140,17 +133,11 @@
             android:layout_height="30dp"
             android:layout_marginStart="10dp"
             android:layout_marginTop="12dp"
-<<<<<<< Updated upstream
-            android:background="#FFFCF6"
-            android:ems="10"
-            android:hint="e.g. Desk chair, MacBook, Textbook..."
-=======
             android:background="@drawable/rounded_search_box"
             android:ems="10"
             android:hint="  e.g. Desk chair, MacBook, Textbook..."
             android:drawablePadding="12dp"
             android:textSize="12sp"
->>>>>>> Stashed changes
             android:inputType="text"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -163,11 +150,7 @@
             android:layout_marginStart="10dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-<<<<<<< Updated upstream
-            android:background="#FFFCF6"
-=======
             android:background="@drawable/rounded_search_box"
->>>>>>> Stashed changes
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/hdrCategory" />
@@ -178,16 +161,9 @@
             android:layout_height="30dp"
             android:layout_marginStart="10dp"
             android:layout_marginTop="12dp"
-<<<<<<< Updated upstream
-            android:layout_marginBottom="12dp"
-            android:background="#FFFCF6"
-            android:ems="10"
-            android:hint="$ 0.00"
-=======
             android:background="@drawable/rounded_search_box"
             android:ems="10"
             android:hint="  $ 0.00"
->>>>>>> Stashed changes
             android:inputType="numberDecimal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -198,16 +174,9 @@
             android:layout_width="360dp"
             android:layout_height="30dp"
             android:layout_marginTop="12dp"
-<<<<<<< Updated upstream
-            android:layout_marginBottom="12dp"
-            android:background="#FFFCF6"
-            android:ems="10"
-            android:hint="Tell us more about your item..."
-=======
             android:background="@drawable/rounded_search_box"
             android:ems="10"
             android:hint="  Tell us more about your item..."
->>>>>>> Stashed changes
             android:inputType="text"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -219,11 +188,7 @@
             android:layout_height="30dp"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-<<<<<<< Updated upstream
-            android:background="#FFFCF6"
-=======
             android:background="@drawable/rounded_search_box"
->>>>>>> Stashed changes
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/hdrLocation" />
@@ -232,11 +197,7 @@
             android:id="@+id/radgroupCondition"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-<<<<<<< Updated upstream
-            android:layout_marginStart="50dp"
-=======
             android:layout_marginStart="40dp"
->>>>>>> Stashed changes
             android:layout_marginTop="12dp"
             android:orientation="horizontal"
             app:layout_constraintStart_toStartOf="parent"
@@ -244,74 +205,42 @@
 
             <RadioButton
                 android:id="@+id/radBtnNew"
-<<<<<<< Updated upstream
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFCF6"
-                android:layout_margin="12dp"
-                android:layout_weight="1"
-=======
                 android:layout_width="80dp"
                 android:layout_height="60dp"
                 android:layout_margin="12dp"
                 android:layout_weight="1"
                 android:background="@drawable/chip_box"
->>>>>>> Stashed changes
                 android:checked="false"
                 android:text="New" />
 
             <RadioButton
                 android:id="@+id/radBtnLikeNew"
-<<<<<<< Updated upstream
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFCF6"
-                android:layout_margin="12dp"
-                android:layout_weight="1"
-=======
                 android:layout_width="100dp"
                 android:layout_height="60dp"
                 android:layout_margin="12dp"
                 android:layout_weight="1"
                 android:background="@drawable/chip_box"
->>>>>>> Stashed changes
                 android:checked="true"
                 android:text="Like New" />
 
             <RadioButton
                 android:id="@+id/radBtnUsed"
-<<<<<<< Updated upstream
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="#FFFCF6"
-                android:layout_margin="12dp"
-                android:layout_weight="1"
-=======
                 android:layout_width="80dp"
                 android:layout_height="60dp"
                 android:layout_margin="12dp"
                 android:layout_weight="1"
                 android:background="@drawable/chip_box"
->>>>>>> Stashed changes
                 android:checked="false"
                 android:text="Used" />
         </RadioGroup>
 
         <Button
             android:id="@+id/btnPostList"
-<<<<<<< Updated upstream
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="Post Listing"
-            android:background="#2F6B4F"
-=======
             android:layout_width="300dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:background="@drawable/button_box"
             android:text="Post Listing"
->>>>>>> Stashed changes
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/spiLocation" />
@@ -352,13 +281,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Home"
-<<<<<<< Updated upstream
-                    android:tint="@color/nox_primary_green"
-                    android:src="@android:drawable/ic_menu_rotate" />
-=======
                     android:src="@android:drawable/ic_menu_rotate"
                     android:tint="@color/nox_primary_green" />
->>>>>>> Stashed changes
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -381,13 +305,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Browse"
-<<<<<<< Updated upstream
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/ic_menu_search" />
-=======
                     android:src="@android:drawable/ic_menu_search"
                     android:tint="@color/nox_dark_green" />
->>>>>>> Stashed changes
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -409,13 +328,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Post"
-<<<<<<< Updated upstream
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/ic_input_add" />
-=======
                     android:src="@android:drawable/ic_input_add"
                     android:tint="@color/nox_dark_green" />
->>>>>>> Stashed changes
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -437,13 +351,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Chat"
-<<<<<<< Updated upstream
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/stat_notify_chat" />
-=======
                     android:src="@android:drawable/stat_notify_chat"
                     android:tint="@color/nox_dark_green" />
->>>>>>> Stashed changes
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -465,13 +374,8 @@
                     android:layout_width="22dp"
                     android:layout_height="22dp"
                     android:contentDescription="Profile"
-<<<<<<< Updated upstream
-                    android:tint="@color/nox_dark_green"
-                    android:src="@android:drawable/ic_menu_myplaces" />
-=======
                     android:src="@android:drawable/ic_menu_myplaces"
                     android:tint="@color/nox_dark_green" />
->>>>>>> Stashed changes
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -482,8 +386,6 @@
             </LinearLayout>
         </LinearLayout>
 
-<<<<<<< Updated upstream
-=======
         <Button
             android:id="@+id/backtextBtn"
             android:layout_width="wrap_content"
@@ -499,19 +401,18 @@
 
         <ImageButton
             android:id="@+id/backBtn"
-            android:layout_width="46dp"
+            android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_marginBottom="12dp"
-            android:rotation="90"
-            android:rotationX="0"
-            android:rotationY="0"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/browse_back"
+            android:padding="12dp"
             app:layout_constraintBottom_toTopOf="@+id/btnAddImage"
             app:layout_constraintEnd_toStartOf="@+id/backtextBtn"
             app:layout_constraintStart_toStartOf="parent"
-            app:srcCompat="@android:drawable/arrow_down_float"
-            app:tint="@color/nox_cream_bg" />
+            app:srcCompat="@drawable/ic_arrow_back"
+            app:tint="@color/nox_dark_green" />
 
->>>>>>> Stashed changes
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 

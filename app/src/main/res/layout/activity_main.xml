@@ -15,6 +15,7 @@
         android:paddingBottom="72dp">
 
         <LinearLayout
+            android:id="@+id/homeContent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:clipToPadding="false"

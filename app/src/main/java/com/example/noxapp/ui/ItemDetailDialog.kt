@@ -3,9 +3,13 @@ package com.example.noxapp.ui
 import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
@@ -17,10 +21,18 @@ object ItemDetailDialog {
     fun show(activity: Activity, listing: Listing) {
         val dialog = Dialog(activity)
         dialog.setContentView(R.layout.dialog_item_details)
-        dialog.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        )
+        dialog.window?.apply {
+            // Details rise from the bottom edge as a sheet, so the card the user tapped
+            // stays connected to what opens over it.
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setGravity(Gravity.BOTTOM)
+            setWindowAnimations(R.style.Animation_NOX_Sheet)
+            setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+        dialog.setCanceledOnTouchOutside(true)
         dialog.findViewById<TextView>(R.id.detailTitle).text = listing.title
         dialog.findViewById<TextView>(R.id.detailPrice).text = "$${listing.price.toInt()}"
         dialog.findViewById<TextView>(R.id.detailCondition).text = listing.condition
@@ -31,7 +43,7 @@ object ItemDetailDialog {
             placeholder(R.color.nox_field_bg)
             error(R.color.nox_field_bg)
         }
-        dialog.findViewById<ImageView>(R.id.detailClose).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<ImageButton>(R.id.detailClose).setOnClickListener { dialog.dismiss() }
         dialog.findViewById<Button>(R.id.messageSellerButton).setOnClickListener {
             val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
                 data = Uri.parse("mailto:")

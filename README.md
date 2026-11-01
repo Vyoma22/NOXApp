@@ -14,7 +14,7 @@ Buy, sell, and exchange textbooks, electronics, furniture, and dorm supplies wit
 [![Kotlin](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=white&style=flat-square)](#tech-stack)
 [![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black&style=flat-square)](#tech-stack)
 [![Google Maps](https://img.shields.io/badge/Google%20Maps-4285F4?logo=googlemaps&logoColor=white&style=flat-square)](#tech-stack)
-[![Tests](https://img.shields.io/badge/tests-64%20passing-2F6B4F?style=flat-square)](#testing)
+[![Tests](https://img.shields.io/badge/tests-65%20passing-2F6B4F?style=flat-square)](#testing)
 [![Status](https://img.shields.io/badge/status-in%20development-D9A99C?style=flat-square)](#status)
 
 <br>
@@ -76,6 +76,12 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 - Up to five photos from the gallery or the camera, uploaded to Firebase Storage
 - Validation that reports every problem before anything uploads
 
+**Motion and feedback**
+
+- Screens swap instantly; the cream background is painted from the first frame, so cold start matches the splash instead of flashing white
+- Feeds, result grids, and the profile tabs stagger their cards in; a card dips under the finger and the heart pops on tap
+- Item details slide up as a rounded sheet from the bottom edge, and the Browse category row grows in and out instead of snapping
+
 ## Tech stack
 
 | Layer | Technology |
@@ -86,6 +92,7 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 | Auth | Firebase Authentication, email and password with verification |
 | Database | Cloud Firestore (`users/{uid}`, `listings/{id}`) |
 | Media | Firebase Storage |
+| Images | Coil (listing photos, crossfaded into cards and the detail sheet) |
 | Maps | Google Maps SDK for Android |
 | Location | Google Play Services Location (FusedLocationProvider) |
 | Place search | Android `Geocoder`, async API on 33+ with an executor fallback |
@@ -126,8 +133,8 @@ app/src/main/java/com/example/noxapp/
 ├── data/            Firestore access, distance filtering, campus coordinates
 ├── models/          Listing, UserProfile, BrowseFilters
 ├── adapters/        Listing, category, and filter pill adapters
-├── ui/              Shared item detail dialog and activity helpers
-├── postlisting/     Post flow (owns a second Listing model)
+├── ui/              Shared item detail sheet, motion helpers, activity helpers
+├── postlisting/     Post flow (writes through the shared Listing model)
 ├── MainActivity.kt      Home feed
 ├── BrowseActivity.kt    Filtered search
 ├── MapActivity.kt       Campus map and pickup radius
@@ -198,7 +205,15 @@ Then sign up with a real `@ontariotechu.net` or `@dcmail.ca` mailbox you can ope
 ./gradlew connectedDebugAndroidTest  # needs an emulator with Play services
 ```
 
-Both suites pass: **39 unit tests** and **25 instrumented tests**, 64 in total.
+Both suites pass: **39 unit tests** and **26 instrumented tests**, 65 in total.
+
+**Instrumented runs turn the device's animations off and leave them off.** The connected test harness sets all three animation scales to 0 for deterministic Espresso runs, so afterwards every transition and list animation in the app becomes an instant cut. Restore them:
+
+```bash
+adb shell settings put global window_animation_scale 1
+adb shell settings put global transition_animation_scale 1
+adb shell settings put global animator_duration_scale 1
+```
 
 | Suite | Tests | Covers |
 |---|:--:|---|
@@ -207,7 +222,7 @@ Both suites pass: **39 unit tests** and **25 instrumented tests**, 64 in total.
 | `HaversineTest` | 6 | Known distances, symmetry, identical points |
 | `EmailValidatorTest` | 5 | Domain allowlist, malformed addresses |
 | `CampusLocationsTest` | 5 | Explicit coordinates and pickup-location fallback |
-| `BrowseActivityTest` | 5 | Filter interaction and result rendering |
+| `BrowseActivityTest` | 6 | Filter interaction, chip expansion notifications, and result rendering |
 | `MapLocationSearchTest` | 5 | Place search against a fake geocoder |
 | `GradDateTest` | 2 | Month rollover and year boundary |
 | `LocationSearchTest` | 2 | Result filtering and deduplication |
@@ -218,13 +233,13 @@ Both suites pass: **39 unit tests** and **25 instrumented tests**, 64 in total.
 
 ## Status
 
-NOX is under active development as a course project. What works today: verified sign-up and sign-in, the Home feed, Browse with filters, the campus map with radius and place search, the profile with saved items, and photo upload on the post screen.
+NOX is under active development as a course project. What works today: verified sign-up and sign-in, the Home feed, Browse with filters, the campus map with radius and place search, the profile with saved items, and posting an item whose photos now render in the cards and the detail sheet.
 
 Known gaps:
 
-- **Posting does not reach the feeds yet.** The post flow writes `name`, `location`, and `imageUrls`, while every feed reads `title`, `pickupLocation`, and `imageUrl`. The two `Listing` models need to be reconciled. This is the top priority.
-- **Listing photos do not render.** `ListingAdapter` declares an `ImageView` but never binds it, and no image-loading library is included. Coil or Glide needs adding.
 - **Chat is not built.** The Chat tab shows a placeholder toast, and the item dialog's email hand-off is the current stand-in.
+- **Old listings rely on a compatibility shim.** Documents written before the model merge use `name`, `location`, and `imageUrl`; `ListingRepo` maps them onto the current fields. Re-post them, then delete the shim.
+- **The post screen keeps its own tab bar.** It is the one screen that does not use the shared `nav_bar` include, and its tabs are inert.
 - **Map pins fall back to campus anchors.** Coordinates are not captured at post time, so pins cluster at the two campus centres instead of marking buildings.
 - **Video and voice search are not implemented.** Both appear in the project proposal.
 - **The Sold tab is always empty.**

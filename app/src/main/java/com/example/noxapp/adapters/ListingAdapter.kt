@@ -2,6 +2,7 @@ package com.example.noxapp.adapters
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -12,6 +13,7 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.noxapp.R
 import com.example.noxapp.models.Listing
+import com.example.noxapp.ui.pop
 import androidx.recyclerview.widget.LinearLayoutManager
 
 class ListingAdapter(
@@ -73,6 +75,8 @@ class ListingAdapter(
 
         // Heart click event
         holder.favoriteBtn.setOnClickListener {
+            // Acknowledge the tap now; the icon flips when Firestore answers.
+            holder.favoriteBtn.pop()
             val newSavedState = !savedIds.contains(item.id)
             onFavoriteClick(item, newSavedState)
         }
@@ -80,6 +84,17 @@ class ListingAdapter(
         // Card click event
         holder.itemView.setOnClickListener {
             onItemClick(item)
+        }
+
+        // The card dips under the finger so a tap feels physical before the dialog opens.
+        holder.itemView.setOnTouchListener { view, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN ->
+                    view.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90L).start()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(160L).start()
+            }
+            false
         }
     }
 

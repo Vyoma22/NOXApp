@@ -2,6 +2,7 @@ package com.example.noxapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -22,6 +23,7 @@ import com.example.noxapp.models.CategoryItem
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -39,12 +41,16 @@ class MainActivity : AppCompatActivity() {
     private var currentCategory: String = "All"
     private var currentSearchQuery: String = ""
     private var userSavedIds: MutableSet<String> = mutableSetOf()
+    private var feedsAnimated = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         applyEdgeToEdgeInsets(R.id.main, R.id.bottomNavBar, R.id.mainScroll)
+
+        // The page assembles itself on first frame instead of landing all at once.
+        findViewById<ViewGroup>(R.id.homeContent).animateChildrenIn(staggerMs = 25L, riseDp = 10f)
 
         // 1. User Greeting
         setupUserGreeting()
@@ -190,6 +196,11 @@ class MainActivity : AppCompatActivity() {
             onSuccess = { listings ->
                 allMasterListings = listings
                 applyFilters()
+                if (!feedsAnimated) {
+                    feedsAnimated = true
+                    findViewById<RecyclerView>(R.id.featuredRecyclerView).animateChildrenIn()
+                    findViewById<RecyclerView>(R.id.recentRecyclerView).animateChildrenIn()
+                }
             },
             onError = {
                 Toast.makeText(this, "Failed to connect to listings", Toast.LENGTH_SHORT).show()
