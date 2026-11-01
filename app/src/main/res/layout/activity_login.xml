@@ -1,78 +1,136 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Login screen, matches the Figma "Log In" frame.
+     View IDs are unchanged so LoginActivity works as before. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/nox_cream_bg"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipToPadding="false"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <!-- Small faded NOX icon, top-left -->
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="-12dp"
+            android:layout_marginTop="8dp"
+            android:alpha="0.5"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_nox_mark" />
+
+        <!-- NOX logo (includes "North Oshawa Exchange") -->
+        <ImageView
+            android:layout_width="190dp"
+            android:layout_height="86dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="48dp"
+            android:contentDescription="@string/nox_logo_description"
+            android:src="@drawable/nox_wordmark" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="NOX — North Oshawa Exchange"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="40dp"
+            android:fontFamily="@font/poppins_regular"
+            android:gravity="center"
+            android:lineSpacingExtra="-2sp"
+            android:text="@string/nox_tagline"
+            android:textColor="@color/nox_dark_green"
+            android:textSize="16sp" />
+
+        <TextView
+            style="@style/NOX.Notice"
+            android:layout_marginTop="40dp"
+            android:text="@string/student_access_notice" />
+
+        <!-- Email -->
+        <TextView
+            style="@style/NOX.Label"
+            android:layout_marginTop="36dp"
+            android:labelFor="@id/emailInput"
+            android:text="@string/label_student_email" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/emailLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="School email">
+            style="@style/Widget.NOX.TextInputLayout">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/emailInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/Widget.NOX.TextInputEditText"
+                android:autofillHints="emailAddress"
+                android:hint="@string/hint_student_email"
+                android:imeOptions="actionNext"
                 android:inputType="textEmailAddress" />
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- Password -->
+        <TextView
+            style="@style/NOX.Label"
+            android:labelFor="@id/passwordInput"
+            android:text="@string/label_password" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/passwordLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:hint="Password"
+            style="@style/Widget.NOX.TextInputLayout"
             app:endIconMode="password_toggle">
+
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/passwordInput"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                style="@style/Widget.NOX.TextInputEditText"
+                android:autofillHints="password"
+                android:hint="@string/hint_password"
+                android:imeOptions="actionDone"
                 android:inputType="textPassword" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/loginButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Log in" />
+            android:id="@+id/forgotPasswordButton"
+            style="@style/Widget.NOX.Button.Link"
+            android:layout_gravity="end"
+            android:layout_marginEnd="-4dp"
+            android:text="@string/forgot_password" />
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/forgotPasswordButton"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="Forgot password?" />
+            android:id="@+id/loginButton"
+            style="@style/Widget.NOX.Button"
+            android:layout_marginTop="8dp"
+            android:text="@string/log_in" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/goToSignUpButton"
+            style="@style/Widget.NOX.Button.Outlined"
+            android:layout_marginTop="12dp"
+            android:text="@string/create_an_account" />
 
         <ProgressBar
             android:id="@+id/progress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp"
+            android:indeterminateTint="@color/nox_primary_green"
             android:visibility="gone" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/goToSignUpButton"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="New here? Create an account" />
+        <!-- Pushes the footer to the bottom on tall screens -->
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <TextView
+            style="@style/NOX.Footer"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="20dp"
+            android:text="@string/verified_students_only" />
     </LinearLayout>
 </ScrollView>

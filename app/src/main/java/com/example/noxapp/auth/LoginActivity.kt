@@ -31,6 +31,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_NOXApp_Auth) // cream login look, see auth_styles.xml
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_login)

@@ -34,6 +34,7 @@ class SignUpActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_NOXApp_Auth) // cream login look, see auth_styles.xml
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_sign_up)
@@ -51,11 +52,15 @@ class SignUpActivity : AppCompatActivity() {
 
         // Month names in the phone's language array has 13 entries, the last is blank
         val months = DateFormatSymbols().months.take(12)
-        monthSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, months)
+        monthSpinner.adapter = ArrayAdapter(this, R.layout.item_spinner, months).apply {
+            setDropDownViewResource(R.layout.item_spinner_dropdown)
+        }
 
         // This year through 6 years out covers 4-year degrees plus co-op/extensions.
         val thisYear = Calendar.getInstance().get(Calendar.YEAR)
-        yearSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, (thisYear..thisYear + 6).toList())
+        yearSpinner.adapter = ArrayAdapter(this, R.layout.item_spinner, (thisYear..thisYear + 6).toList()).apply {
+            setDropDownViewResource(R.layout.item_spinner_dropdown)
+        }
 
         signUpButton.setOnClickListener { attemptSignUp() }
         findViewById<Button>(R.id.goToLoginButton).setOnClickListener { finish() }

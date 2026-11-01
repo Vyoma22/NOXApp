@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Extra colours used by the login / sign-up screens.
+     The shared palette (nox_dark_green, nox_primary_green, nox_cream_bg, ...) lives in colors.xml. -->
+<resources>
+    <color name="nox_accent_dark_green">#2F5D46</color> <!-- hex sheet: dark-green accents in nav and logo; pressed button -->
+    <color name="nox_pink_light">#F6DDD4</color>        <!-- hex sheet: light pink condition / secondary accents -->
+    <color name="nox_logo_ink">#263B2F</color>          <!-- hex sheet: dark logo/text variation -->
+    <color name="nox_logo_arrow_light">#8DAF9A</color>  <!-- light arrow in the logo files -->
+    <color name="nox_logo_subtitle">#5C7C68</color>     <!-- "North Oshawa Exchange" in the logo files -->
+    <color name="nox_field_border">#E3DED1</color>      <!-- text-field outline from the Figma login frame -->
+    <color name="nox_error">#B3261E</color>
+</resources>
