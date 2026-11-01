@@ -78,7 +78,7 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 
 **Motion and feedback**
 
-- Screens cross-fade instead of cutting, and the cream background is painted from the first frame, so cold start matches the splash instead of flashing white
+- Screens swap instantly; the cream background is painted from the first frame, so cold start matches the splash instead of flashing white
 - Feeds, result grids, and the profile tabs stagger their cards in; a card dips under the finger and the heart pops on tap
 - Item details slide up as a rounded sheet from the bottom edge, and the Browse category row grows in and out instead of snapping
 

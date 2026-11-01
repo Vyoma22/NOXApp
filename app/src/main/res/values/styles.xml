@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Open: the new screen fades over the old one. Close: the old screen dissolves. -->
+    <!-- Screens swap instantly. Motion lives inside each screen, not between them. -->
     <style name="Animation.NOX.Activity" parent="@android:style/Animation.Activity">
-        <item name="android:activityOpenEnterAnimation">@anim/nox_activity_enter</item>
-        <item name="android:activityOpenExitAnimation">@anim/nox_activity_hold</item>
-        <item name="android:activityCloseEnterAnimation">@anim/nox_activity_hold</item>
-        <item name="android:activityCloseExitAnimation">@anim/nox_activity_exit</item>
+        <item name="android:activityOpenEnterAnimation">@anim/nox_activity_instant</item>
+        <item name="android:activityOpenExitAnimation">@anim/nox_activity_instant</item>
+        <item name="android:activityCloseEnterAnimation">@anim/nox_activity_instant</item>
+        <item name="android:activityCloseExitAnimation">@anim/nox_activity_instant</item>
     </style>
 
     <style name="Animation.NOX.Sheet" parent="@android:style/Animation.Dialog">
