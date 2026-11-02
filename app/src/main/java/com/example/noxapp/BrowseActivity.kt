@@ -139,6 +139,12 @@ class BrowseActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // An edit form may have changed a title, price, or photo while this screen was paused.
+        if (listingsLoaded) loadListings()
+    }
+
     override fun onStop() {
         accessAllowed = false
         accessJob?.cancel()
@@ -167,7 +173,9 @@ class BrowseActivity : AppCompatActivity() {
     private fun setupResults() {
         listingAdapter = ListingAdapter(emptyList(), savedIds,
             onFavoriteClick = { listing, shouldSave -> toggleSave(listing, shouldSave) },
-            onItemClick = { listing -> ItemDetailDialog.show(this, listing) }
+            onItemClick = { listing ->
+                ItemDetailDialog.show(this, listing) { loadListings() }
+            }
         ).apply {
             stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
         }

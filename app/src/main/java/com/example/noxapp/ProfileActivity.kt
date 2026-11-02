@@ -89,7 +89,7 @@ class ProfileActivity : AppCompatActivity() {
             userSavedIds,
             onFavoriteClick = { listing, shouldSave -> toggleSave(listing, shouldSave) },
             onItemClick = { listing ->
-                ItemDetailDialog.show(this, listing)
+                ItemDetailDialog.show(this, listing) { loadUserProfile() }
             }
         )
 

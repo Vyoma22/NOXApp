@@ -53,6 +53,30 @@
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
             android:orientation="vertical" android:padding="12dp">
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/pickLocationCard" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:visibility="gone" app:cardCornerRadius="20dp" app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/nox_field_bg" app:strokeWidth="0dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/pick_location_title" android:textColor="@color/nox_dark_green"
+                        android:textSize="16sp" android:textStyle="bold" />
+                    <TextView android:id="@+id/pickLocationAddress" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" android:text="@string/pick_location_help"
+                        android:textColor="@color/nox_subtext" android:textSize="14sp" />
+                    <TextView android:id="@+id/pickLocationHint" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp" android:text="@string/pick_location_help"
+                        android:textColor="@color/nox_subtext" android:textSize="12sp" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/pickLocationConfirm" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp"
+                        android:text="@string/pick_location_use" android:textAllCaps="false" android:textColor="@color/white"
+                        app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp"
+                        app:icon="@drawable/ic_map_pin" app:iconTint="@color/white" app:iconGravity="textStart" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView
                 android:id="@+id/radiusCard" android:layout_width="match_parent" android:layout_height="wrap_content"
                 app:cardCornerRadius="20dp" app:cardElevation="0dp"
                 app:cardBackgroundColor="@color/nox_field_bg" app:strokeWidth="0dp">

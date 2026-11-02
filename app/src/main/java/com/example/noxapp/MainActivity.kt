@@ -121,10 +121,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         featuredAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
-            ItemDetailDialog.show(this, listing)
+            ItemDetailDialog.show(this, listing) { loadListingData(showSpinner = false) }
         }
         recentAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
-            ItemDetailDialog.show(this, listing)
+            ItemDetailDialog.show(this, listing) { loadListingData(showSpinner = false) }
         }
 
         featuredRecycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -361,6 +361,12 @@ class MainActivity : AppCompatActivity() {
                 findViewById<View>(R.id.homeErrorState).isVisible = true
             }
         )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Returning from the edit form should show the saved title, price, and photos.
+        if (listingsLoaded) loadListingData(showSpinner = false)
     }
 
     override fun onStart() {
