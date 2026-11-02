@@ -18,7 +18,7 @@
         <item name="colorOnBackground">@color/nox_dark_green</item>
         <item name="android:windowBackground">@color/nox_cream_bg</item>
         <item name="android:textColorPrimary">@color/nox_dark_green</item>
-        <item name="android:windowLightStatusBar">true</item>
+        <!-- No fixed status-bar icon colour: edge-to-edge chooses light icons in dark mode. -->
         <!-- Only android:fontFamily: a theme-level app:fontFamily would override the bold styles below. -->
         <item name="android:fontFamily">@font/poppins</item>
     </style>
@@ -92,7 +92,7 @@
         <item name="backgroundTint">@color/nox_field_bg</item>
         <item name="strokeColor">@color/nox_card_green</item>
         <item name="strokeWidth">1dp</item>
-        <item name="android:textColor">@color/nox_primary_green</item>
+        <item name="android:textColor">@color/nox_accent_text</item>
         <item name="android:fontFamily">@font/poppins_bold</item>
         <item name="android:textSize">16sp</item>
         <item name="android:letterSpacing">0</item>
@@ -109,7 +109,7 @@
         <item name="android:insetBottom">0dp</item>
         <item name="android:paddingStart">4dp</item>
         <item name="android:paddingEnd">4dp</item>
-        <item name="android:textColor">@color/nox_primary_green</item>
+        <item name="android:textColor">@color/nox_accent_text</item>
         <item name="android:fontFamily">@font/poppins_regular</item>
         <item name="android:textSize">13sp</item>
         <item name="android:letterSpacing">0</item>
@@ -129,7 +129,7 @@
         <item name="android:fontFamily">@font/poppins_bold</item>
         <item name="android:textSize">14sp</item>
         <item name="android:lineSpacingExtra">-1sp</item>
-        <item name="android:textColor">@color/nox_primary_green</item>
+        <item name="android:textColor">@color/nox_accent_text</item>
     </style>
 
     <style name="NOX.Footer">
