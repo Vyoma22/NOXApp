@@ -19,18 +19,24 @@
             android:fillViewport="true"
             android:paddingBottom="72dp">
 
+            <!--
+              No horizontal padding here: the listing carousels run edge to edge.
+              Each ordinary child carries its own 20dp side margin instead.
+            -->
             <LinearLayout
                 android:id="@+id/homeContent"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:clipToPadding="false"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:paddingTop="20dp"
+                android:paddingBottom="20dp">
 
                 <!-- Greeting, with the brand lockup inline at the top right -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
+                    android:layout_marginEnd="20dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
@@ -57,6 +63,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
                     android:layout_marginTop="4dp"
                     android:text="@string/home_subtitle"
                     android:textColor="@color/nox_subtext"
@@ -66,7 +73,9 @@
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
+                    android:layout_marginStart="20dp"
                     android:layout_marginTop="16dp"
+                    android:layout_marginEnd="20dp"
                     android:background="@drawable/rounded_search_box">
 
                     <EditText
@@ -105,7 +114,9 @@
                     android:id="@+id/categoryRecyclerView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginStart="20dp"
                     android:layout_marginTop="16dp"
+                    android:layout_marginEnd="20dp"
                     android:clipToPadding="false"
                     android:orientation="horizontal" />
 
@@ -113,7 +124,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="144dp"
+                    android:layout_marginStart="20dp"
                     android:layout_marginTop="16dp"
+                    android:layout_marginEnd="20dp"
                     android:orientation="horizontal">
 
                     <androidx.cardview.widget.CardView
@@ -307,7 +320,9 @@
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="22dp">
+                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="22dp"
+                        android:layout_marginEnd="20dp">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -342,13 +357,15 @@
                             android:textStyle="bold" />
                     </RelativeLayout>
 
+                    <!--
+                      clipToPadding=false keeps the bleed: cards scroll off both screen edges,
+                      but the row rests with the first and last card 20dp from either edge.
+                    -->
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/featuredRecyclerView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="-20dp"
                         android:layout_marginTop="12dp"
-                        android:layout_marginEnd="-20dp"
                         android:clipToPadding="false"
                         android:orientation="horizontal"
                         android:paddingStart="20dp"
@@ -366,7 +383,9 @@
                     <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp">
+                        android:layout_marginStart="20dp"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginEnd="20dp">
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -405,9 +424,7 @@
                         android:id="@+id/recentRecyclerView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="-20dp"
                         android:layout_marginTop="12dp"
-                        android:layout_marginEnd="-20dp"
                         android:clipToPadding="false"
                         android:orientation="horizontal"
                         android:paddingStart="20dp"

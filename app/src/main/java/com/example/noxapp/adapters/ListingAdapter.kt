@@ -33,21 +33,26 @@ class ListingAdapter(
         val price: TextView = view.findViewById(R.id.itemPriceTextView)
         val favoriteBtn: View = view.findViewById(R.id.favoriteButton)
         val favoriteIcon: ImageView = view.findViewById(R.id.favoriteIcon)
+
+        /** Non-zero only for cards inside a horizontal carousel; 0 means "not a carousel item". */
+        var carouselGapPx: Int = 0
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_listing_card, parent, false)
+        val holder = ViewHolder(view)
 
         // If parent is a horizontal RecyclerView (Home feed), set a fixed width of 150dp
         if (parent is RecyclerView && (parent.layoutManager as? LinearLayoutManager)?.orientation == LinearLayoutManager.HORIZONTAL) {
             val widthInPx = (150 * parent.context.resources.displayMetrics.density).toInt()
+            holder.carouselGapPx = (12 * parent.context.resources.displayMetrics.density).toInt()
             view.layoutParams = RecyclerView.LayoutParams(widthInPx, RecyclerView.LayoutParams.WRAP_CONTENT).apply {
-                marginEnd = (12 * parent.context.resources.displayMetrics.density).toInt()
+                marginEnd = holder.carouselGapPx
             }
         }
 
-        return ViewHolder(view)
+        return holder
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -55,6 +60,17 @@ class ListingAdapter(
         val context = holder.itemView.context
         holder.title.text = item.title
         holder.price.text = "$${item.price.toInt()}"
+
+        // The gap closes each card off, but on the last card it would widen the row's end inset,
+        // so it is dropped there to mirror the padding before the first card.
+        if (holder.carouselGapPx > 0) {
+            val lp = holder.itemView.layoutParams as RecyclerView.LayoutParams
+            val endGap = if (position == items.lastIndex) 0 else holder.carouselGapPx
+            if (lp.marginEnd != endGap) {
+                lp.marginEnd = endGap
+                holder.itemView.layoutParams = lp
+            }
+        }
 
         holder.image.load(item.imageUrls.firstOrNull()) {
             crossfade(true)
