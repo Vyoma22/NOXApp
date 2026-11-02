@@ -21,10 +21,17 @@ object CategoryCatalog {
         CategoryItem("Tickets", R.drawable.ic_cat_tickets),
         CategoryItem("Household", R.drawable.ic_cat_household),
         CategoryItem("Sporting", R.drawable.ic_cat_sporting),
-        CategoryItem("Tools", R.drawable.ic_cat_tools)
+        CategoryItem("Tools", R.drawable.ic_cat_tools),
+        CategoryItem("Miscellaneous", R.drawable.ic_cat_misc)
     )
 
     val NAMES: List<String> = CATEGORIES.map { it.name }
+
+    /** The icon for a category name, falling back to the All icon for unknown values. */
+    fun iconFor(name: String?): Int =
+        if (name == null) ALL.iconResId
+        else CATEGORIES.firstOrNull { it.name.equals(name, ignoreCase = true) }?.iconResId
+            ?: ALL.iconResId
 
     /** A fresh row for Home, with All selected and every category reachable by scrolling. */
     fun homeRow(): List<CategoryItem> =

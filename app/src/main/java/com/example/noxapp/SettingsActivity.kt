@@ -316,8 +316,10 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun reportProblem() {
+        val email = getString(R.string.settings_report_email)
         val intent = Intent(Intent.ACTION_SENDTO).apply {
-            data = Uri.parse("mailto:")
+            data = Uri.parse("mailto:$email")
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
             putExtra(Intent.EXTRA_SUBJECT, getString(R.string.settings_report_subject))
             putExtra(Intent.EXTRA_TEXT, getString(R.string.settings_report_body))
         }
