@@ -75,7 +75,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var listingsLoaded = false
     private var listingsError = false
     private var center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
+    private var initialCenter = center
     private var radiusKm = 2.0
+    private var initialRadiusKm = 2.0
     private var hasSelection = false
     private var locationPending = false
     private var locationCancellation: CancellationTokenSource? = null
@@ -110,7 +112,21 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             state?.getDouble(EXTRA_CENTER_LAT, center.latitude) ?: center.latitude,
             state?.getDouble(EXTRA_CENTER_LNG, center.longitude) ?: center.longitude
         )
+        initialCenter = if (savedInstanceState != null) {
+            LatLng(
+                savedInstanceState.getDouble("initialCenterLat", center.latitude),
+                savedInstanceState.getDouble("initialCenterLng", center.longitude)
+            )
+        } else {
+            LatLng(
+                intent.getDoubleExtra(EXTRA_CENTER_LAT, center.latitude),
+                intent.getDoubleExtra(EXTRA_CENTER_LNG, center.longitude)
+            )
+        }
         radiusKm = state?.getDouble(EXTRA_RADIUS_KM, 2.0) ?: 2.0
+        initialRadiusKm = savedInstanceState?.getDouble("initialRadiusKm")
+            ?: intent.getDoubleExtra(EXTRA_RADIUS_KM, radiusKm)
+
         baseFilters = BrowseFilters(
             query = intent.getStringExtra(EXTRA_QUERY).orEmpty(),
             category = intent.getStringExtra(EXTRA_CATEGORY),
@@ -147,10 +163,20 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 connect(R.id.campusMap, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START)
                 connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
                 connect(R.id.mapTopBar, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
+
+                // Anchor mapItemsScroll to the right side (guideline to parent end)
                 connect(R.id.mapItemsScroll, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
                 connect(R.id.mapItemsScroll, ConstraintSet.START, R.id.mapGuideline, ConstraintSet.END)
+                connect(R.id.mapItemsScroll, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
+                connect(R.id.mapItemsScroll, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
+                constrainWidth(R.id.mapItemsScroll, ConstraintSet.MATCH_CONSTRAINT)
+                constrainHeight(R.id.mapItemsScroll, ConstraintSet.MATCH_CONSTRAINT)
             } else {
                 clear(R.id.mapItemsScroll, ConstraintSet.TOP)
+                clear(R.id.mapItemsScroll, ConstraintSet.START)
+                connect(R.id.mapItemsScroll, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START)
+                connect(R.id.mapItemsScroll, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
+                constrainWidth(R.id.mapItemsScroll, ConstraintSet.MATCH_CONSTRAINT)
                 constrainHeight(R.id.mapItemsScroll, ConstraintSet.WRAP_CONTENT)
                 connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapItemsScroll, ConstraintSet.TOP)
             }
@@ -181,8 +207,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             })
         }
         findViewById<View>(R.id.searchAreaButton).apply {
-            // The chosen centre and radius are already known, so the action can commit before
-            // the map tiles finish loading. If the camera is ready, take its current target.
             setOnClickListener {
                 map?.stopAnimation()
                 center = map?.cameraPosition?.target ?: center
@@ -263,7 +287,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<View>(R.id.locationSearchStatus).isVisible = false
     }
 
-    /** Hides the radius tools and shows the pin-confirm card when posting a listing. */
     private fun applyPickMode() {
         if (!pickMode) return
         findViewById<View>(R.id.radiusCard).isVisible = false
@@ -272,8 +295,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<TextView>(R.id.pickLocationAddress).setText(R.string.pick_location_help)
         findViewById<View>(R.id.pickLocationConfirm).setOnClickListener { confirmPick() }
 
-        // The tab bar normally owns the navigation-bar inset. It is hidden in pick mode,
-        // so the scroll content has to clear the system navigation bar itself.
         val scroll = findViewById<View>(R.id.mapItemsScroll)
         val basePadding = scroll.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
@@ -306,7 +327,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    /** The fallback campus follows the student's school instead of always choosing Ontario Tech. */
     private fun loadUserCampus() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         ListingRepo.getUserProfile(uid) { profile ->
@@ -320,8 +340,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         if (isDestroyed || isFinishing) return
         map = googleMap
+
+        // Immediately align map camera target to center so it never defaults to (0.0, 0.0)
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, if (pickMode) 17f else 14f))
+
         val nightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
+                Configuration.UI_MODE_NIGHT_YES
         googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(
             this,
             if (nightMode) R.raw.map_style_night else R.raw.map_style
@@ -347,7 +371,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         if (pickMode) {
             googleMap.setOnCameraIdleListener { updatePickAddress() }
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 17f))
             updatePickAddress()
         }
         rebuildMarkers()
@@ -373,8 +396,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                     listingsError = true
                     rebuildMarkers()
                     refreshArea()
-                    // A snackbar here would sit over the radius controls and make the map
-                    // action untappable; the card summary already says the items failed.
                     Toast.makeText(
                         this@MapActivity,
                         R.string.browse_load_error,
@@ -394,7 +415,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         drawable.setBounds(0, 0, bitmap.width, bitmap.height)
         drawable.draw(Canvas(bitmap))
         val icon = BitmapDescriptorFactory.fromBitmap(bitmap)
-        // Pins follow the Browse filters too, so the map does not contradict the grid.
         listings.filter { ListingFilters.matches(it, baseFilters) }.forEach { listing ->
             val (lat, lng) = CampusLocations.resolve(listing)
             readyMap.addMarker(MarkerOptions().position(LatLng(lat, lng)).title(listing.title)
@@ -480,7 +500,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun hasLocationPermission() =
         ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     @SuppressLint("MissingPermission")
     private fun locateDevice() {
@@ -565,7 +585,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onResume() {
         super.onResume()
-        // Reflect an edit saved from the listing form without resetting the camera.
         if (listingsLoaded && !pickMode) loadListings()
     }
 
@@ -584,15 +603,21 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         outState.putBoolean("locationPending", locationPending)
         outState.putBoolean("pickConfirmed", pickConfirmed)
         outState.putString(EXTRA_LOCATION_LABEL, pickLabel)
+        outState.putDouble("initialCenterLat", initialCenter.latitude)
+        outState.putDouble("initialCenterLng", initialCenter.longitude)
+        outState.putDouble("initialRadiusKm", initialRadiusKm)
         super.onSaveInstanceState(outState)
     }
 
     override fun finish() {
+        // Return original launch coordinates if no new area selection was committed
+        val returnCenter = if (!hasSelection && !pickMode) initialCenter else center
+        val returnRadius = if (!hasSelection && !pickMode) initialRadiusKm else radiusKm
         val data = Intent()
             .putExtra(EXTRA_HAS_SELECTION, hasSelection)
-            .putExtra(EXTRA_CENTER_LAT, center.latitude)
-            .putExtra(EXTRA_CENTER_LNG, center.longitude)
-            .putExtra(EXTRA_RADIUS_KM, radiusKm)
+            .putExtra(EXTRA_CENTER_LAT, returnCenter.latitude)
+            .putExtra(EXTRA_CENTER_LNG, returnCenter.longitude)
+            .putExtra(EXTRA_RADIUS_KM, returnRadius)
             .putExtra(EXTRA_NAVIGATION, navigation)
         if (pickMode && pickConfirmed) data.putExtra(EXTRA_LOCATION_LABEL, pickLabel)
         setResult(RESULT_OK, data)

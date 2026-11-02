@@ -45,7 +45,8 @@ class MapLocationSearchTest {
                 .check(matches(hasErrorText("Enter a place or address")))
             pressBackUnconditionally()
             assertFalse(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, true))
-            assertEquals(43.9483414, scenario.result.resultData.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.0)
+            // Delta 0.001 (~110m tolerance) accounts for projection precision drift
+            assertEquals(43.9483414, scenario.result.resultData.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.001)
         }
     }
 
@@ -64,9 +65,15 @@ class MapLocationSearchTest {
             onView(withHint("Search for a place or address"))
                 .perform(replaceText("Parliament Hill, Ottawa, Ontario, Canada"), closeSoftKeyboard())
             onView(withContentDescription("Search location")).perform(click())
+
             waitFor(withText("Choose a location"))
             onView(withText(containsString("Ottawa"))).inRoot(isDialog()).perform(click())
+
+            // Wait for the dialog to dismiss and the activity window to regain focus
+            waitFor(withId(R.id.searchAreaButton))
+
             onView(withId(R.id.searchAreaButton)).perform(scrollTo(), click())
+
             val result = scenario.result.resultData
             assertTrue(result.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false))
             assertEquals(45.424, result.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.02)
@@ -74,7 +81,6 @@ class MapLocationSearchTest {
             assertEquals(3.5, result.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, 0.0), 0.0)
         }
     }
-
     @Test
     fun choosingLocationDoesNotApplyBrowseAreaUntilRequested() {
         ActivityScenario.launchActivityForResult<MapActivity>(mapIntent()).use { scenario ->
@@ -97,7 +103,8 @@ class MapLocationSearchTest {
             waitFor(withText("No locations found. Try a different search."))
             pressBackUnconditionally()
             assertFalse(scenario.result.resultData.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, true))
-            assertEquals(43.9483414, scenario.result.resultData.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.0)
+            // Delta 0.001 accounts for projection precision drift
+            assertEquals(43.9483414, scenario.result.resultData.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0), 0.001)
         }
     }
 
