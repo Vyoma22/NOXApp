@@ -38,6 +38,7 @@
         <item name="android:minHeight">48dp</item>
         <item name="android:background">@drawable/browse_filter_pill</item>
         <item name="android:drawableEnd">@drawable/ic_chevron_down</item>
+        <item name="android:drawableTint">@color/nox_dark_green</item>
         <item name="android:drawablePadding">8dp</item>
         <item name="android:foreground">?attr/selectableItemBackground</item>
         <item name="android:paddingTop">12dp</item>

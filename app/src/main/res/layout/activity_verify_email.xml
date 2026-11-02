@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/nox_cream_bg">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -13,7 +15,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Check your school email"
+            android:text="@string/verify_title"
+            android:textColor="@color/nox_dark_green"
             android:textSize="24sp"
             android:textStyle="bold" />
 
@@ -21,36 +24,54 @@
             android:id="@+id/verifyMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="16dp"
+            android:textColor="@color/nox_dark_green"
+            android:textSize="15sp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/checkButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="I've verified my email" />
+            android:minHeight="48dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/verify_check"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/nox_primary_green"
+            app:cornerRadius="24dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/resendButton"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Resend email" />
+            android:minHeight="48dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/verify_resend"
+            android:textColor="@color/nox_accent_text"
+            app:cornerRadius="24dp"
+            app:strokeColor="@color/nox_search_stroke" />
 
         <ProgressBar
             android:id="@+id/progress"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:indeterminateTint="@color/nox_primary_green"
             android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/changeAccountButton"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
+            style="@style/Widget.Material3.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="Use a different account" />
+            android:layout_marginTop="8dp"
+            android:text="@string/verify_change_account"
+            android:textColor="@color/nox_accent_text" />
     </LinearLayout>
 </ScrollView>
