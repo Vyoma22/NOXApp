@@ -373,10 +373,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                     listingsError = true
                     rebuildMarkers()
                     refreshArea()
-                    Snackbar.make(findViewById(R.id.mapRoot), R.string.browse_load_error, Snackbar.LENGTH_INDEFINITE)
-                        .setAnchorView(R.id.mapBottomNav)
-                        .setAction(R.string.browse_retry) { loadListings() }
-                        .show()
+                    // A snackbar here would sit over the radius controls and make the map
+                    // action untappable; the card summary already says the items failed.
+                    Toast.makeText(
+                        this@MapActivity,
+                        R.string.browse_load_error,
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         )
