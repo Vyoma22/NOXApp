@@ -52,9 +52,20 @@ class PillChipAdapter(
         text.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(
             context, if (selected) R.color.nox_primary_green else R.color.nox_field_bg
         ))
-        text.setTextColor(ContextCompat.getColor(
+        val foreground = ContextCompat.getColor(
             context, if (selected) R.color.white else R.color.nox_dark_green
-        ))
+        )
+        text.setTextColor(foreground)
+        // Every pip carries the same icon it uses on Home and in the post spinner.
+        val icon = when {
+            // The chips expand horizontally, so point along the row rather than up/down.
+            isToggle -> if (expanded) R.drawable.ic_chevron_left else R.drawable.ic_chevron_right
+            category == null -> CategoryCatalog.ALL.iconResId
+            else -> CategoryCatalog.iconFor(category)
+        }
+        text.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0)
+        text.compoundDrawablePadding = (6 * context.resources.displayMetrics.density).toInt()
+        text.compoundDrawableTintList = ColorStateList.valueOf(foreground)
         text.setOnClickListener {
             if (isToggle) {
                 onExpansionToggle()

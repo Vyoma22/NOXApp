@@ -100,7 +100,7 @@ class BrowseActivityTest {
         assertEquals(
             listOf(
                 "All", "Books", "Electronics", "Furniture", "Clothing", "Decor", "Accessories",
-                "Tickets", "Household", "Sporting", "Tools", "Less"
+                "Tickets", "Household", "Sporting", "Tools", "Miscellaneous", "Less"
             ),
             chips.map { it.text.toString() }
         )
@@ -152,8 +152,8 @@ class BrowseActivityTest {
 
             adapter.updateState(null, true)
             layout(root)
-            assertEquals(12, adapter.itemCount)
-            chips.scrollToPosition(11)
+            assertEquals(13, adapter.itemCount)
+            chips.scrollToPosition(12)
             layout(root)
             assertEquals("Less", visibleChips(chips).last())
             assertEquals("Clothing", chipAt(adapter, chips, 4).text.toString())

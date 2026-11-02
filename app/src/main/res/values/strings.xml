@@ -125,6 +125,7 @@
     <string name="settings_help_message">Search by item or use Browse filters; open the map from Browse to apply a pickup radius. Saved items appear on your profile. For account help, use Report a problem.</string>
     <string name="settings_report_subject">NOX app feedback</string>
     <string name="settings_report_body">Describe the problem and what you expected to happen:</string>
+    <string name="settings_report_email">thenorthexchangeapp@gmail.com</string>
     <string name="settings_access_ends_format">%1$s</string>
     <string name="settings_profile_missing">Profile unavailable</string>
 
