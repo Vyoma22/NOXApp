@@ -17,14 +17,19 @@
         <!-- Maps SDK 20 removed this declaration but its renderer still loads the classes. -->
         <uses-library android:name="org.apache.http.legacy" android:required="false" />
         <activity
-            android:name=".auth.LoginActivity"
+            android:name=".SplashActivity"
             android:exported="true"
-            android:windowSoftInputMode="adjustResize">
+            android:noHistory="true"
+            android:theme="@style/Theme.NOXApp.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".auth.LoginActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".auth.SignUpActivity" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".auth.VerifyEmailActivity" android:exported="false" />
