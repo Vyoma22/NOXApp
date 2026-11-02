@@ -13,6 +13,13 @@
         <item name="android:windowExitAnimation">@anim/nox_sheet_out</item>
     </style>
 
+    <!-- Five tabs leave 72dp per item; Material's 64dp pill plus its 8dp margins
+         touches both edges, so the last pill is clipped. A narrower pill stays round. -->
+    <style name="Widget.NOX.NavIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:width">56dp</item>
+        <item name="android:height">32dp</item>
+    </style>
+
     <style name="SettingsSectionLabel">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>

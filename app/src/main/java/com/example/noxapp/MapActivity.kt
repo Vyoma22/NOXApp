@@ -447,18 +447,27 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<BottomNavigationView>(R.id.mapBottomNav).apply {
             selectedItemId = R.id.navBrowse
             setOnItemSelectedListener { item ->
-                when (item.itemId) {
-                    R.id.navBrowse -> finish()
-                    R.id.navHome -> {
-                        navigation = NAV_HOME
-                        finish()
+                post {
+                    when (item.itemId) {
+                        R.id.navBrowse -> finish()
+                        R.id.navHome -> {
+                            navigation = NAV_HOME
+                            finish()
+                        }
+                        R.id.navProfile -> {
+                            navigation = NAV_PROFILE
+                            finish()
+                        }
+                        R.id.navPost -> startActivity(
+                            Intent(
+                                this@MapActivity,
+                                com.example.noxapp.postlisting.PostListing::class.java
+                            )
+                        )
+                        R.id.navChat -> Toast.makeText(
+                            this@MapActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT
+                        ).show()
                     }
-                    R.id.navProfile -> {
-                        navigation = NAV_PROFILE
-                        finish()
-                    }
-                    R.id.navPost -> startActivity(Intent(this@MapActivity, com.example.noxapp.postlisting.PostListing::class.java))
-                    R.id.navChat -> Toast.makeText(this@MapActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
                 }
                 item.itemId == R.id.navBrowse
             }

@@ -128,6 +128,9 @@ class BrowseActivity : AppCompatActivity() {
             // A signed-out result can be synchronous, before ON_START is dispatched.
             // onStop cancels this job, so no lifecycle-state check may skip the gate here.
             if (isFinishing || isDestroyed) return@launch
+            // null means the check itself failed (offline, Firebase hiccup). Keeping the
+            // current screen is safer than clearing the task and bouncing through login.
+            if (state == null) return@launch
             if (state != AccessState.Allowed) {
                 goTo(LoginActivity::class.java)
                 return@launch
@@ -465,18 +468,27 @@ class BrowseActivity : AppCompatActivity() {
             selectedItemId = R.id.navBrowse
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
-                    R.id.navHome -> goHome()
-                    R.id.navPost -> startActivity(Intent(this@BrowseActivity, com.example.noxapp.postlisting.PostListing::class.java))
+                    R.id.navHome -> post { goHome() }
+                    R.id.navPost -> post {
+                        startActivity(
+                            Intent(
+                                this@BrowseActivity,
+                                com.example.noxapp.postlisting.PostListing::class.java
+                            )
+                        )
+                    }
                     R.id.navChat -> android.widget.Toast.makeText(
                         this@BrowseActivity, R.string.browse_chat_toast, android.widget.Toast.LENGTH_SHORT
                     ).show()
-                    R.id.navProfile -> openProfile()
+                    R.id.navProfile -> post { openProfile() }
                 }
                 item.itemId == R.id.navBrowse
             }
             setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navBrowse) {
-                    findViewById<NestedScrollView>(R.id.browseScroll).smoothScrollTo(0, 0)
+                if (item.itemId == R.id.navBrowse && !isFinishing && !isDestroyed) {
+                    // Tapping Browse again restores the unfiltered, unexpanded grid.
+                    clearAllFilters()
+                    findViewById<NestedScrollView>(R.id.browseScroll)?.smoothScrollTo(0, 0)
                 }
             }
         }

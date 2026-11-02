@@ -306,16 +306,23 @@ class MainActivity : AppCompatActivity() {
             selectedItemId = R.id.navHome
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
-                    R.id.navBrowse -> startActivity(Intent(this@MainActivity, BrowseActivity::class.java))
-                    R.id.navPost -> startActivity(Intent(this@MainActivity, PostListing::class.java))
+                    R.id.navBrowse -> post { openBrowse() }
+                    R.id.navPost -> post {
+                        startActivity(Intent(this@MainActivity, PostListing::class.java))
+                    }
                     R.id.navChat -> Toast.makeText(this@MainActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
-                    R.id.navProfile -> startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
+                    R.id.navProfile -> post {
+                        startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
+                    }
                 }
                 item.itemId == R.id.navHome
             }
             setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navHome) {
-                    findViewById<NestedScrollView>(R.id.mainScroll).smoothScrollTo(0, 0)
+                if (item.itemId == R.id.navHome && !isFinishing && !isDestroyed) {
+                    // Tapping Home again restores the unfiltered feed.
+                    clearFilters()
+                    // The content view can already be detached during a task transition.
+                    findViewById<NestedScrollView>(R.id.mainScroll)?.smoothScrollTo(0, 0)
                 }
             }
         }

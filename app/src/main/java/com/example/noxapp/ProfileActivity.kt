@@ -73,7 +73,13 @@ class ProfileActivity : AppCompatActivity() {
                 null
             }
             if (isFinishing || isDestroyed) return@launch
-            if (state != AccessState.Allowed) goTo(LoginActivity::class.java) else loadUserProfile()
+            // A transient network failure is not the same as being signed out: keep the
+            // screen the student opened instead of clearing the task and bouncing to login.
+            when (state) {
+                AccessState.Allowed -> loadUserProfile()
+                null -> Unit
+                else -> goTo(LoginActivity::class.java)
+            }
         }
     }
 
@@ -172,27 +178,21 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupTabs() {
-        val btnMyListings = findViewById<Button>(R.id.tabMyListings)
-        val btnSaved = findViewById<Button>(R.id.tabSaved)
-        val btnSold = findViewById<Button>(R.id.tabSold)
-
-        btnMyListings.setOnClickListener {
-            currentTab = Tab.MY_LISTINGS
-            updateTabStyle(btnMyListings, listOf(btnSaved, btnSold))
-            renderCurrentTab(animate = true)
+        findViewById<Button>(R.id.tabMyListings).setOnClickListener {
+            selectTab(Tab.MY_LISTINGS)
         }
-
-        btnSaved.setOnClickListener {
-            currentTab = Tab.SAVED
-            updateTabStyle(btnSaved, listOf(btnMyListings, btnSold))
-            renderCurrentTab(animate = true)
+        findViewById<Button>(R.id.tabSaved).setOnClickListener {
+            selectTab(Tab.SAVED)
         }
-
-        btnSold.setOnClickListener {
-            currentTab = Tab.SOLD
-            updateTabStyle(btnSold, listOf(btnMyListings, btnSaved))
-            renderCurrentTab(animate = true)
+        findViewById<Button>(R.id.tabSold).setOnClickListener {
+            selectTab(Tab.SOLD)
         }
+    }
+
+    private fun selectTab(tab: Tab) {
+        currentTab = tab
+        styleTabs()
+        renderCurrentTab(animate = true)
     }
 
     private fun updateTabStyle(selected: Button, unselected: List<Button>) {
@@ -242,19 +242,35 @@ class ProfileActivity : AppCompatActivity() {
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
                     R.id.navHome -> {
-                        startActivity(Intent(this@ProfileActivity, MainActivity::class.java)
-                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-                        finish()
+                        // Leave Material's menu dispatch before starting or finishing anything.
+                        post {
+                            startActivity(
+                                Intent(this@ProfileActivity, MainActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            )
+                            finish()
+                        }
                         true
                     }
                     R.id.navBrowse -> {
-                        startActivity(Intent(this@ProfileActivity, BrowseActivity::class.java)
-                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-                        finish()
+                        post {
+                            startActivity(
+                                Intent(this@ProfileActivity, BrowseActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                            )
+                            finish()
+                        }
                         true
                     }
                     R.id.navPost -> {
-                        startActivity(Intent(this@ProfileActivity, com.example.noxapp.postlisting.PostListing::class.java))
+                        post {
+                            startActivity(
+                                Intent(
+                                    this@ProfileActivity,
+                                    com.example.noxapp.postlisting.PostListing::class.java
+                                )
+                            )
+                        }
                         false
                     }
                     R.id.navChat -> {
@@ -265,8 +281,10 @@ class ProfileActivity : AppCompatActivity() {
                 }
             }
             setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navProfile) {
-                    findViewById<androidx.core.widget.NestedScrollView>(R.id.profileScroll).smoothScrollTo(0, 0)
+                if (item.itemId == R.id.navProfile && !isFinishing && !isDestroyed) {
+                    // Tapping Profile again returns to its default tab.
+                    selectTab(Tab.MY_LISTINGS)
+                    findViewById<androidx.core.widget.NestedScrollView>(R.id.profileScroll)?.smoothScrollTo(0, 0)
                 }
             }
         }

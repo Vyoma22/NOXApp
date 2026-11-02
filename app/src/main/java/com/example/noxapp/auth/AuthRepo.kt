@@ -22,9 +22,17 @@ object AuthRepo {
     private val auth get() = FirebaseAuth.getInstance()
     private val users get() = FirebaseFirestore.getInstance().collection("users")
 
+    // Re-checking the account on every screen start is slow and fails on flaky networks.
+    // A short allowance keeps tab switches instant after one successful check.
+    private const val ACCESS_CACHE_MS = 60_000L
+    @Volatile private var allowedAt = 0L
+
     fun isSignedIn(): Boolean = auth.currentUser != null
     fun currentEmail(): String? = auth.currentUser?.email
-    fun signOut() = auth.signOut()
+    fun signOut() {
+        allowedAt = 0L
+        auth.signOut()
+    }
 
     // main fun that does like everything
     // creates the account, saves the profile, emails a verification link
@@ -87,21 +95,29 @@ object AuthRepo {
     suspend fun deleteCurrentUser() {
         val user = auth.currentUser ?: error("Not signed in")
         user.delete().await()
+        allowedAt = 0L
     }
 
     // the most important function, checks: 1. signed in 2: email verified. 3: not expired account
     suspend fun checkAccess(): AccessState {
         val cached = auth.currentUser ?: return AccessState.SignedOut
+        if (allowedAt > 0L && System.currentTimeMillis() - allowedAt < ACCESS_CACHE_MS) {
+            return AccessState.Allowed
+        }
 
         try {
             cached.reload().await() // reload asks for verified flag from firebase, the phone doesn't know on its own
         } catch (e: FirebaseAuthInvalidUserException) {
             // The account was deleted or disabled in the Firebase console
+            allowedAt = 0L
             auth.signOut()
             return AccessState.SignedOut
         }
         val user = auth.currentUser ?: return AccessState.SignedOut
-        if (!user.isEmailVerified) return AccessState.NeedsVerification
+        if (!user.isEmailVerified) {
+            allowedAt = 0L
+            return AccessState.NeedsVerification
+        }
 
         // Get a fresh ID token so Security Rules see email_verified = true
         user.getIdToken(true).await()
@@ -110,13 +126,16 @@ object AuthRepo {
             .getTimestamp("accessExpiresAt")?.toDate()
         if (expiresAt == null) {
             // No profile (e.g. deleted by hand during testing) Treat as signed out
+            allowedAt = 0L
             auth.signOut()
             return AccessState.SignedOut
         }
         if (!expiresAt.after(Date())) {
+            allowedAt = 0L
             auth.signOut()
             return AccessState.Expired(expiresAt)
         }
+        allowedAt = System.currentTimeMillis()
         return AccessState.Allowed
     }
 

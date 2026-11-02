@@ -28,4 +28,10 @@
     </style>
 
     <style name="Theme.NOXApp" parent="Base.Theme.NOXApp" />
+
+    <!-- Launcher frame: keeps the branded background while the first screen is chosen. -->
+    <style name="Theme.NOXApp.Splash" parent="Theme.NOXApp">
+        <item name="android:windowBackground">@color/nox_cream_bg</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
 </resources>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- First frame while the launch destination is chosen. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/nox_cream_bg">
+
+    <ImageView
+        android:layout_width="190dp"
+        android:layout_height="86dp"
+        android:layout_gravity="center"
+        android:contentDescription="@string/nox_logo_description"
+        android:src="@drawable/nox_wordmark" />
+</FrameLayout>
