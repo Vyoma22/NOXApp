@@ -22,9 +22,11 @@ import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
 import androidx.core.widget.doAfterTextChanged
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
@@ -55,6 +57,7 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -80,6 +83,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var navigation: String? = null
     private var searchJob: Job? = null
     private var searchResultsDialog: AlertDialog? = null
+
+    // Pickup-point mode: reuse the map as a pin picker for the post form.
+    private var pickMode = false
+    private var pickLabel: String? = null
+    private var pickConfirmed = false
+    private var pickLabelJob: Job? = null
+    private var userCampus: Pair<Double, Double>? = null
 
     private val locationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -112,13 +122,18 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         hasSelection = savedInstanceState?.getBoolean(EXTRA_HAS_SELECTION) ?: false
         locationPending = savedInstanceState?.getBoolean("locationPending") ?: false
         restoredCamera = savedInstanceState != null
+        pickMode = intent.getBooleanExtra(EXTRA_PICK_LOCATION, false)
+        pickLabel = savedInstanceState?.getString(EXTRA_LOCATION_LABEL)
+        pickConfirmed = savedInstanceState?.getBoolean("pickConfirmed") ?: false
 
         setupControls()
         setupLocationSearch()
         setupNavigation()
+        applyPickMode()
+        loadUserCampus()
         refreshArea()
         (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
-        loadListings()
+        if (!pickMode) loadListings()
     }
 
     private fun arrangeLayout() {
@@ -248,6 +263,60 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<View>(R.id.locationSearchStatus).isVisible = false
     }
 
+    /** Hides the radius tools and shows the pin-confirm card when posting a listing. */
+    private fun applyPickMode() {
+        if (!pickMode) return
+        findViewById<View>(R.id.radiusCard).isVisible = false
+        findViewById<View>(R.id.pickLocationCard).isVisible = true
+        findViewById<View>(R.id.mapBottomNav).isVisible = false
+        findViewById<TextView>(R.id.pickLocationAddress).setText(R.string.pick_location_help)
+        findViewById<View>(R.id.pickLocationConfirm).setOnClickListener { confirmPick() }
+
+        // The tab bar normally owns the navigation-bar inset. It is hidden in pick mode,
+        // so the scroll content has to clear the system navigation bar itself.
+        val scroll = findViewById<View>(R.id.mapItemsScroll)
+        val basePadding = scroll.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(bottom = basePadding + bars.bottom)
+            insets
+        }
+    }
+
+    private fun confirmPick() {
+        hasSelection = true
+        pickConfirmed = true
+        finish()
+    }
+
+    private fun updatePickAddress() {
+        if (!pickMode) return
+        pickLabelJob?.cancel()
+        val address = findViewById<TextView>(R.id.pickLocationAddress)
+        address.setText(R.string.pick_location_address_loading)
+        val latitude = center.latitude
+        val longitude = center.longitude
+        pickLabelJob = lifecycleScope.launch {
+            val label = withTimeoutOrNull(5_000) {
+                runCatching { LocationSearch.reverse(this@MapActivity, latitude, longitude) }.getOrNull()
+            }
+            if (isFinishing || isDestroyed) return@launch
+            pickLabel = label ?: getString(R.string.pick_location_custom)
+            address.text = pickLabel
+        }
+    }
+
+    /** The fallback campus follows the student's school instead of always choosing Ontario Tech. */
+    private fun loadUserCampus() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        ListingRepo.getUserProfile(uid) { profile ->
+            userCampus = CampusLocations.forSchool(profile?.school)
+        }
+    }
+
+    private fun campusCenter(): Pair<Double, Double> =
+        userCampus ?: CampusLocations.ONTARIO_TECH
+
     override fun onMapReady(googleMap: GoogleMap) {
         if (isDestroyed || isFinishing) return
         map = googleMap
@@ -263,8 +332,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         circle = googleMap.addCircle(CircleOptions().center(center).radius(radiusKm * 1000)
             .fillColor(ColorUtils.setAlphaComponent(green, 46)).strokeColor(green)
             .strokeWidth(resources.displayMetrics.density))
+        circle?.isVisible = !pickMode
         googleMap.setOnMarkerClickListener { marker ->
-            (marker.tag as? Listing)?.let { ItemDetailDialog.show(this, it) }
+            (marker.tag as? Listing)?.let { listing ->
+                ItemDetailDialog.show(this, listing) { loadListings() }
+            }
             true
         }
         findViewById<View>(R.id.searchAreaButton).isEnabled = true
@@ -273,9 +345,14 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             center = googleMap.cameraPosition.target
             refreshArea()
         }
+        if (pickMode) {
+            googleMap.setOnCameraIdleListener { updatePickAddress() }
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 17f))
+            updatePickAddress()
+        }
         rebuildMarkers()
         refreshArea()
-        if (!restoredCamera) findViewById<View>(R.id.campusMap).post { fitCircle(false) }
+        if (!restoredCamera && !pickMode) findViewById<View>(R.id.campusMap).post { fitCircle(false) }
     }
 
     private fun loadListings() {
@@ -430,7 +507,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun campusFallback(message: Int) {
         cancelLocation()
         locationPending = false
-        center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
+        val campus = campusCenter()
+        center = LatLng(campus.first, campus.second)
         refreshArea()
         fitCircle()
         Snackbar.make(findViewById(R.id.mapRoot), message, Snackbar.LENGTH_LONG)
@@ -482,9 +560,16 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         if (locationPending && hasLocationPermission()) locateDevice()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Reflect an edit saved from the listing form without resetting the camera.
+        if (listingsLoaded && !pickMode) loadListings()
+    }
+
     override fun onStop() {
         cancelLocation()
         cancelSearch()
+        pickLabelJob?.cancel()
         super.onStop()
     }
 
@@ -494,16 +579,20 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         outState.putDouble(EXTRA_RADIUS_KM, radiusKm)
         outState.putBoolean(EXTRA_HAS_SELECTION, hasSelection)
         outState.putBoolean("locationPending", locationPending)
+        outState.putBoolean("pickConfirmed", pickConfirmed)
+        outState.putString(EXTRA_LOCATION_LABEL, pickLabel)
         super.onSaveInstanceState(outState)
     }
 
     override fun finish() {
-        setResult(RESULT_OK, Intent()
+        val data = Intent()
             .putExtra(EXTRA_HAS_SELECTION, hasSelection)
             .putExtra(EXTRA_CENTER_LAT, center.latitude)
             .putExtra(EXTRA_CENTER_LNG, center.longitude)
             .putExtra(EXTRA_RADIUS_KM, radiusKm)
-            .putExtra(EXTRA_NAVIGATION, navigation))
+            .putExtra(EXTRA_NAVIGATION, navigation)
+        if (pickMode && pickConfirmed) data.putExtra(EXTRA_LOCATION_LABEL, pickLabel)
+        setResult(RESULT_OK, data)
         super.finish()
     }
 
@@ -519,6 +608,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_CATEGORY = "category"
         const val EXTRA_PRICE = "priceRange"
         const val EXTRA_CONDITION = "condition"
+        const val EXTRA_PICK_LOCATION = "pickLocation"
+        const val EXTRA_LOCATION_LABEL = "locationLabel"
         const val NAV_HOME = "home"
         const val NAV_PROFILE = "profile"
     }

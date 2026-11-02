@@ -95,10 +95,47 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:drawableStart="@android:drawable/ic_dialog_map"
+        android:drawableStart="@drawable/ic_map_pin"
         android:drawablePadding="8dp"
+        android:drawableTint="@color/nox_subtext"
         android:textColor="@color/nox_subtext"
         android:textSize="13sp" />
+
+    <!-- Only shown to the student who owns the listing. -->
+    <LinearLayout
+        android:id="@+id/ownerActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/editListingButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/listing_edit"
+            android:textColor="@color/nox_primary_green"
+            app:icon="@drawable/ic_settings"
+            app:iconTint="@color/nox_primary_green" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/deleteListingButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/listing_delete"
+            android:textColor="@color/nox_error"
+            app:icon="@android:drawable/ic_menu_delete"
+            app:iconTint="@color/nox_error" />
+    </LinearLayout>
 
     <Button
         android:id="@+id/messageSellerButton"
@@ -106,7 +143,7 @@
         android:layout_height="48dp"
         android:layout_marginTop="20dp"
         android:backgroundTint="@color/nox_primary_green"
-        android:text="Message Seller"
+        android:text="@string/detail_message_seller"
         android:textColor="@color/white"
         android:textSize="14sp" />
 </LinearLayout>

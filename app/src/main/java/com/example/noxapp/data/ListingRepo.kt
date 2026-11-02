@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.lang.Exception
 
@@ -20,6 +21,33 @@ object ListingRepo {
                 onSuccess(snapshot.documents.mapNotNull { it.toListing() })
             }
             .addOnFailureListener(onError)
+    }
+
+    /** Reads one listing for the edit form. */
+    fun getListing(listingId: String, onResult: (Listing?) -> Unit) {
+        listingsRef.document(listingId).get()
+            .addOnSuccessListener { doc -> onResult(doc.toListing()) }
+            .addOnFailureListener { onResult(null) }
+    }
+
+    suspend fun updateListing(listing: Listing) {
+        listingsRef.document(listing.id).set(listing).await()
+    }
+
+    /**
+     * Deletes a listing and its uploaded photos. The document goes first so the listing
+     * disappears from every feed even if a storage object is already gone.
+     */
+    fun deleteListing(listing: Listing, onComplete: (Boolean) -> Unit) {
+        listingsRef.document(listing.id).delete()
+            .addOnSuccessListener {
+                val storage = FirebaseStorage.getInstance()
+                listing.imageUrls.forEach { url ->
+                    runCatching { storage.getReferenceFromUrl(url).delete() }
+                }
+                onComplete(true)
+            }
+            .addOnFailureListener { onComplete(false) }
     }
 
     // ponytail: documents written before the model merge use name/location/imageUrl.

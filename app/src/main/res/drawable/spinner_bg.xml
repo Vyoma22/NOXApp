@@ -2,8 +2,8 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#FFFFFF" />
-            <stroke android:width="1dp" android:color="#EAE3D2" />
+            <solid android:color="@color/nox_field_bg" />
+            <stroke android:width="1dp" android:color="@color/nox_search_stroke" />
             <corners android:radius="12dp" />
         </shape>
     </item>
@@ -14,7 +14,7 @@
             android:viewportWidth="12"
             android:viewportHeight="8">
             <path
-                android:fillColor="#8C887B"
+                android:fillColor="@color/nox_subtext"
                 android:pathData="M1.41,0L6,4.58L10.59,0L12,1.41L6,7.41L0,1.41Z" />
         </vector>
     </item>

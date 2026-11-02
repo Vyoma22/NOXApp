@@ -125,8 +125,70 @@
     <string name="settings_help_message">Search by item or use Browse filters; open the map from Browse to apply a pickup radius. Saved items appear on your profile. For account help, use Report a problem.</string>
     <string name="settings_report_subject">NOX app feedback</string>
     <string name="settings_report_body">Describe the problem and what you expected to happen:</string>
+    <string name="settings_report_email">thenorthexchangeapp@gmail.com</string>
     <string name="settings_access_ends_format">%1$s</string>
     <string name="settings_profile_missing">Profile unavailable</string>
+
+    <!-- Post / edit listing -->
+    <string name="post_item_title_bar">Post an Item</string>
+    <string name="post_edit_title">Edit Listing</string>
+    <string name="post_back">Back</string>
+    <string name="post_add_media">Add Photos / Videos</string>
+    <string name="post_media_hint">Up to 5 files</string>
+    <string name="post_media_count">%1$d of 5 files selected</string>
+    <string name="post_media_added">Added %1$d file(s). Total: %2$d/5</string>
+    <string name="post_photo_added">Photo added! (%1$d/5)</string>
+    <string name="post_selected_media">Selected media (%1$d of 5)</string>
+    <string name="post_selected_media_item">Selected media preview</string>
+    <string name="post_remove_media">Remove media</string>
+    <string name="post_max_media">Maximum 5 files allowed.</string>
+    <string name="post_take_photo">Take Photo</string>
+    <string name="post_choose_gallery">Choose from Gallery</string>
+    <string name="post_camera_unavailable">No camera app is available on this device.</string>
+    <string name="post_title_label">Title</string>
+    <string name="post_title_hint">e.g. Desk chair, MacBook, Textbook…</string>
+    <string name="post_category_label">Category</string>
+    <string name="post_price_label">Price</string>
+    <string name="post_price_hint">$ 0.00</string>
+    <string name="post_condition_label">Condition</string>
+    <string name="post_condition_new">New</string>
+    <string name="post_condition_like_new">Like New</string>
+    <string name="post_condition_used">Used</string>
+    <string name="post_description_label">Description</string>
+    <string name="post_description_hint">Tell us more about your item…</string>
+    <string name="post_location_label">Pickup Location</string>
+    <string name="post_pick_on_map">Choose pickup location on map</string>
+    <string name="post_location_pinned">Pinned location</string>
+    <string name="post_picked_location">Pinned: %1$s</string>
+    <string name="post_picked_location_coords">Pinned: %1$s (%2$.5f, %3$.5f)</string>
+    <string name="post_submit">Post Listing</string>
+    <string name="post_save_changes">Save Changes</string>
+    <string name="post_uploading">Uploading…</string>
+    <string name="post_need_media">Please attach at least one photo or video.</string>
+    <string name="post_complete_fields">Please complete all required fields.</string>
+    <string name="post_sign_in_required">You must be signed in to post a listing.</string>
+    <string name="post_success">Listing posted successfully!</string>
+    <string name="post_updated">Listing updated.</string>
+    <string name="post_upload_error">Upload error: %1$s</string>
+    <string name="post_edit_missing">That listing is no longer available.</string>
+    <string name="post_chat_toast">Chat inbox coming soon</string>
+
+    <!-- Listing owner actions -->
+    <string name="listing_edit">Edit listing</string>
+    <string name="listing_delete">Delete listing</string>
+    <string name="listing_delete_title">Delete this listing?</string>
+    <string name="listing_delete_message">This removes the listing and its photos for everyone. It cannot be undone.</string>
+    <string name="listing_delete_confirm">Delete</string>
+    <string name="listing_deleted">Listing deleted</string>
+    <string name="listing_delete_failed">Couldn\'t delete the listing</string>
+    <string name="detail_message_seller">Message Seller</string>
+
+    <!-- Pickup point picker on the map -->
+    <string name="pick_location_title">Pickup location</string>
+    <string name="pick_location_help">Move the map to put the pin on your meeting spot.</string>
+    <string name="pick_location_address_loading">Looking up this spot…</string>
+    <string name="pick_location_use">Use this location</string>
+    <string name="pick_location_custom">Pinned map location</string>
 
     <string-array name="locations">
         <item>Ontario Tech (North Campus)</item>
@@ -150,6 +212,5 @@
         <item>Justice Wing</item>
         <item>L Wing</item>
         <item>South Wing</item>
-        <item></item>
     </string-array>
 </resources>
