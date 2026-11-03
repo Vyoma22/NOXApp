@@ -11,5 +11,8 @@ data class UserProfile(
     val gradYear: Long? = null,
     val accessExpiresAt: Timestamp? = null,
     val createdAt: Timestamp? = null,
-    val savedItemIds: List<String> = emptyList()
+    val savedItemIds: List<String> = emptyList(),
+    // Written by the (not yet built) rating flow; a missing count means the seller has no ratings.
+    val rating: Double = 0.0,
+    val ratingCount: Long = 0L
 )

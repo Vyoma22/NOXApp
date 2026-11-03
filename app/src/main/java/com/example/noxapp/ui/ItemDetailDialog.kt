@@ -6,6 +6,9 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.Button
@@ -13,6 +16,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import coil.load
 import com.example.noxapp.R
@@ -98,6 +102,68 @@ object ItemDetailDialog {
             }
             dialog.dismiss()
         }
+        bindSeller(activity, dialog, listing)
         dialog.show()
+    }
+
+    /**
+     * Fills the seller row from the listing, then upgrades it with the seller's profile document
+     * so a renamed student or a rating appears without re-posting the listing.
+     */
+    private fun bindSeller(activity: Activity, dialog: Dialog, listing: Listing) {
+        val nameView = dialog.findViewById<TextView>(R.id.detailSellerName)
+        val initialView = dialog.findViewById<TextView>(R.id.detailSellerInitial)
+        val schoolView = dialog.findViewById<TextView>(R.id.detailSellerSchool)
+        val ratingView = dialog.findViewById<TextView>(R.id.detailSellerRating)
+
+        val listingName = listing.sellerName.ifBlank {
+            activity.getString(R.string.detail_seller_fallback)
+        }
+        showSellerName(activity, nameView, initialView, listingName)
+        schoolView.isVisible = false
+        ratingView.text = activity.getString(R.string.detail_seller_new)
+
+        if (listing.sellerId.isBlank()) return
+        ListingRepo.getUserProfile(listing.sellerId) { profile ->
+            // The sheet may have been dismissed while Firestore answered.
+            if (!dialog.isShowing) return@getUserProfile
+            profile?.displayName?.takeIf { it.isNotBlank() }
+                ?.let { showSellerName(activity, nameView, initialView, it) }
+
+            val school = profile?.school.orEmpty()
+            schoolView.isVisible = school.isNotBlank()
+            schoolView.text = school
+
+            val ratings = profile?.ratingCount ?: 0L
+            ratingView.text = if (ratings > 0) {
+                val stars = "%.1f".format(profile?.rating ?: 0.0)
+                activity.getString(R.string.detail_seller_rating, stars, ratings)
+            } else {
+                activity.getString(R.string.detail_seller_new)
+            }
+        }
+    }
+
+    /** The name carries a green check because every NOX account is a verified student. */
+    private fun showSellerName(
+        activity: Activity,
+        nameView: TextView,
+        initialView: TextView,
+        name: String
+    ) {
+        val label = "$name ✓"
+        nameView.text = SpannableString(label).apply {
+            setSpan(
+                ForegroundColorSpan(
+                    ContextCompat.getColor(activity, R.color.nox_accent_text)
+                ),
+                label.length - 1,
+                label.length,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        nameView.contentDescription =
+            activity.getString(R.string.detail_seller_verified_name, name)
+        initialView.text = name.take(1).uppercase()
     }
 }
