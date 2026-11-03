@@ -52,12 +52,12 @@
 
                     <ImageView
                         android:id="@+id/noxLogo"
-                        android:layout_width="96dp"
+                        android:layout_width="112dp"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="10dp"
                         android:adjustViewBounds="true"
                         android:contentDescription="@string/app_name"
-                        android:src="@drawable/logo_nox" />
+                        android:src="@drawable/nox_wordmark" />
                 </LinearLayout>
 
                 <TextView
