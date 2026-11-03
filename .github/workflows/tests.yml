@@ -52,8 +52,4 @@ jobs:
           # the view-level UI tests run here. Move them back (and supply the key) when there is
           # a secret for it. One gradle call per class because AGP truncates a comma-separated
           # -Pandroid.testInstrumentationRunnerArguments.class to its first entry.
-          script: |
-            for c in BrowseActivityTest ItemDetailDialogTest RemovedPickupPreferenceUiTest; do
-              ./gradlew connectedDebugAndroidTest --console=plain \
-                -Pandroid.testInstrumentationRunnerArguments.class=com.example.noxapp.$c || exit 1
-            done
+          script: for c in BrowseActivityTest ItemDetailDialogTest RemovedPickupPreferenceUiTest; do ./gradlew connectedDebugAndroidTest --console=plain -Pandroid.testInstrumentationRunnerArguments.class=com.example.noxapp.$c || exit 1; done
