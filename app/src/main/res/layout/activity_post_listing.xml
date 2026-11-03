@@ -318,6 +318,14 @@
                 android:paddingEnd="36dp"
                 android:popupBackground="@color/nox_field_bg" />
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/post_location_helper"
+                android:textColor="@color/nox_subtext"
+                android:textSize="12sp" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPickOnMap"
                 style="@style/Widget.Material3.Button.OutlinedButton"
