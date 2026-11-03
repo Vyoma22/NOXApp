@@ -82,6 +82,76 @@
             android:textSize="12sp" />
     </LinearLayout>
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:background="@color/nox_search_stroke" />
+
+    <!-- Seller identity: a buyer should know who they are meeting before they message. -->
+    <LinearLayout
+        android:id="@+id/detailSeller"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardBackgroundColor="@color/nox_card_green"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp">
+
+            <TextView
+                android:id="@+id/detailSellerInitial"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:importantForAccessibility="no"
+                android:textColor="@color/nox_dark_green"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </androidx.cardview.widget.CardView>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/detailSellerName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/nox_dark_green"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/detailSellerSchool"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/nox_subtext"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/detailSellerRating"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/nox_muted"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
     <TextView
         android:id="@+id/detailDescription"
         android:layout_width="match_parent"
