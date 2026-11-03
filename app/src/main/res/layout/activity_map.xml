@@ -124,6 +124,42 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
+    <!-- View-location mode: the pickup point and actions for one listing. -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/locationInfoCard" android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_margin="12dp" android:visibility="gone"
+        app:cardCornerRadius="20dp" app:cardElevation="0dp"
+        app:cardBackgroundColor="@color/nox_field_bg" app:strokeWidth="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:gravity="center_vertical" android:orientation="horizontal">
+                <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                    android:contentDescription="@null" android:importantForAccessibility="no"
+                    android:src="@drawable/ic_map_pin" app:tint="@color/nox_primary_green" />
+                <TextView android:id="@+id/locationInfoLabel" android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp" android:layout_weight="1" android:ellipsize="end"
+                    android:maxLines="2" android:textColor="@color/nox_subtext" android:textSize="13sp" />
+                <ImageButton android:id="@+id/locationInfoClose" android:layout_width="40dp" android:layout_height="40dp"
+                    android:background="?attr/selectableItemBackgroundBorderless" android:padding="10dp"
+                    android:src="@drawable/ic_close" android:contentDescription="@string/map_view_location_close"
+                    app:tint="@color/nox_dark_green" />
+            </LinearLayout>
+            <TextView android:id="@+id/locationInfoTitle" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="4dp" android:ellipsize="end" android:maxLines="2"
+                android:textColor="@color/nox_dark_green" android:textSize="18sp" android:textStyle="bold" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/locationInfoDirections" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:minHeight="48dp" android:insetTop="0dp" android:insetBottom="0dp"
+                android:text="@string/map_get_directions" android:textAllCaps="false" android:textColor="@color/white"
+                app:backgroundTint="@color/nox_primary_green" app:cornerRadius="24dp"
+                app:icon="@drawable/ic_map_pin" app:iconTint="@color/white" app:iconGravity="textStart" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <include
         android:id="@+id/mapBottomNav" layout="@layout/nav_bar"
         android:layout_width="0dp" android:layout_height="wrap_content"

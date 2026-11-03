@@ -79,6 +79,9 @@
     <string name="location_unavailable">Location unavailable, showing campus</string>
     <string name="map_post_toast">Post an Item Tab</string>
     <string name="map_chat_toast">Chat Inbox Tab</string>
+    <string name="map_get_directions">Get directions</string>
+    <string name="map_directions_unavailable">No maps app available</string>
+    <string name="map_view_location_close">Close pickup location</string>
 
     <string name="unit_km">km</string>
     <string name="sort_newest">Newest</string>
@@ -219,6 +222,7 @@
         <item quantity="one">%1$d item</item>
         <item quantity="other">%1$d items</item>
     </plurals>
+    <string name="detail_location_view_map">View pickup location on the map</string>
 
     <!-- Pickup point picker on the map -->
     <string name="pick_location_title">Pickup location</string>

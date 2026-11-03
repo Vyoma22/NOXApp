@@ -175,16 +175,42 @@
         android:textColor="@color/nox_dark_green"
         android:textSize="14sp" />
 
-    <TextView
-        android:id="@+id/detailLocation"
+    <!-- The pickup point opens the map on the listing's pin. -->
+    <LinearLayout
+        android:id="@+id/detailLocationRow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:drawableStart="@drawable/ic_map_pin"
-        android:drawablePadding="8dp"
-        android:drawableTint="@color/nox_subtext"
-        android:textColor="@color/nox_subtext"
-        android:textSize="13sp" />
+        android:layout_marginTop="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:minHeight="48dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp"
+        android:paddingVertical="8dp">
+
+        <TextView
+            android:id="@+id/detailLocation"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:drawableStart="@drawable/ic_map_pin"
+            android:drawablePadding="8dp"
+            android:drawableTint="@color/nox_subtext"
+            android:textColor="@color/nox_subtext"
+            android:textSize="13sp" />
+
+        <ImageView
+            android:id="@+id/detailLocationChevron"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/nox_subtext" />
+    </LinearLayout>
 
     <!-- Only shown to the student who owns the listing. -->
     <LinearLayout
