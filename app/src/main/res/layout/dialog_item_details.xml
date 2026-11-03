@@ -5,8 +5,11 @@
     android:layout_height="wrap_content"
     android:background="@drawable/dialog_sheet_bg"
     android:orientation="vertical"
-    android:padding="20dp">
+    android:paddingStart="20dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="20dp">
 
+    <!-- The header stays pinned so the close button is always in reach on small screens. -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
@@ -35,226 +38,326 @@
             app:tint="@color/nox_dark_green" />
     </RelativeLayout>
 
-    <ImageView
-        android:id="@+id/detailImage"
-        android:layout_width="match_parent"
-        android:layout_height="180dp"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_listing_image"
-        android:clipToOutline="true"
-        android:contentDescription="Listing photo"
-        android:scaleType="centerCrop" />
-
-    <TextView
-        android:id="@+id/detailPrice"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="@color/nox_dark_green"
-        android:textSize="20sp"
-        android:textStyle="bold" />
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal">
-
-        <TextView
-            android:id="@+id/detailCondition"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@color/nox_accent_pink"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
-            android:textColor="@color/nox_dark_green"
-            android:textSize="12sp" />
-
-        <TextView
-            android:id="@+id/detailCategory"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:background="@color/nox_card_green"
-            android:paddingHorizontal="10dp"
-            android:paddingVertical="4dp"
-            android:textColor="@color/nox_dark_green"
-            android:textSize="12sp" />
-    </LinearLayout>
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="16dp"
-        android:background="@color/nox_search_stroke" />
-
-    <!-- Seller identity: a buyer should know who they are meeting before they message. -->
-    <LinearLayout
-        android:id="@+id/detailSeller"
+    <!-- Everything below the header scrolls when the sheet is taller than the screen. -->
+    <ScrollView
+        android:id="@+id/detailScroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="?attr/selectableItemBackground"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:minHeight="48dp"
-        android:orientation="horizontal">
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            app:cardBackgroundColor="@color/nox_card_green"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp">
-
-            <TextView
-                android:id="@+id/detailSellerInitial"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center"
-                android:importantForAccessibility="no"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="18sp"
-                android:textStyle="bold" />
-        </androidx.cardview.widget.CardView>
+        android:fillViewport="true"
+        android:paddingBottom="20dp"
+        android:scrollbars="none">
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_weight="1"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/detailSellerName"
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="1"
+                android:layout_marginTop="12dp">
+
+                <!-- Neutral block for listings that were posted without a photo. -->
+                <LinearLayout
+                    android:id="@+id/detailMediaEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:background="@drawable/bg_listing_image"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:importantForAccessibility="no"
+                        android:src="@android:drawable/ic_menu_gallery"
+                        android:tint="@color/nox_subtext" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/detail_media_empty"
+                        android:textColor="@color/nox_subtext"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <!-- One snapped page per image; arrows and the counter float over the pager. -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/detailMediaPager"
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    android:overScrollMode="never"
+                    android:visibility="gone" />
+
+                <ImageButton
+                    android:id="@+id/detailMediaPrev"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="start|center_vertical"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/white_circle_bg"
+                    android:contentDescription="@string/detail_media_previous"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_chevron_left"
+                    android:visibility="gone"
+                    app:tint="@color/nox_dark_green" />
+
+                <ImageButton
+                    android:id="@+id/detailMediaNext"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/white_circle_bg"
+                    android:contentDescription="@string/detail_media_next"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_chevron_right"
+                    android:visibility="gone"
+                    app:tint="@color/nox_dark_green" />
+
+                <TextView
+                    android:id="@+id/detailMediaCounter"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|end"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_media_counter"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="5dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/detailMediaThumbnails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clipToPadding="false"
+                android:orientation="horizontal"
+                android:overScrollMode="never"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/detailPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
                 android:textColor="@color/nox_dark_green"
-                android:textSize="16sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/detailSellerSchool"
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/detailCondition"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@color/nox_accent_pink"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:textColor="@color/nox_dark_green"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/detailCategory"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@color/nox_card_green"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:textColor="@color/nox_dark_green"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="16dp"
+                android:background="@color/nox_search_stroke" />
+
+            <!-- Seller identity: a buyer should know who they are meeting before they message.
+                 The row opens that seller's read-only profile. -->
+            <LinearLayout
+                android:id="@+id/detailSeller"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:textColor="@color/nox_subtext"
-                android:textSize="13sp" />
+                android:layout_marginTop="12dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal">
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardBackgroundColor="@color/nox_card_green"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp">
+
+                    <TextView
+                        android:id="@+id/detailSellerInitial"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:importantForAccessibility="no"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </androidx.cardview.widget.CardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/detailSellerName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/detailSellerSchool"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textColor="@color/nox_subtext"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/detailSellerRating"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="@color/nox_muted"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <!-- Affordance that the seller row opens their profile. -->
+                <ImageView
+                    android:id="@+id/detailSellerChevron"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/nox_subtext" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/detailSellerRating"
+                android:id="@+id/detailDescription"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/nox_muted"
-                android:textSize="12sp" />
+                android:layout_marginTop="14dp"
+                android:textColor="@color/nox_dark_green"
+                android:textSize="14sp" />
+
+            <!-- The pickup point opens the map on the listing's pin. -->
+            <LinearLayout
+                android:id="@+id/detailLocationRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:minHeight="48dp"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp"
+                android:paddingVertical="8dp">
+
+                <TextView
+                    android:id="@+id/detailLocation"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:drawableStart="@drawable/ic_map_pin"
+                    android:drawablePadding="8dp"
+                    android:drawableTint="@color/nox_subtext"
+                    android:textColor="@color/nox_subtext"
+                    android:textSize="13sp" />
+
+                <ImageView
+                    android:id="@+id/detailLocationChevron"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="@color/nox_subtext" />
+            </LinearLayout>
+
+            <!-- Only shown to the student who owns the listing. -->
+            <LinearLayout
+                android:id="@+id/ownerActions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/editListingButton"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/listing_edit"
+                    android:textColor="@color/nox_primary_green"
+                    app:icon="@drawable/ic_settings"
+                    app:iconTint="@color/nox_primary_green" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/deleteListingButton"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    android:text="@string/listing_delete"
+                    android:textColor="@color/nox_error"
+                    app:icon="@android:drawable/ic_menu_delete"
+                    app:iconTint="@color/nox_error" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/messageSellerButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="20dp"
+                android:backgroundTint="@color/nox_primary_green"
+                android:text="@string/detail_message_seller"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
         </LinearLayout>
-
-        <!-- Affordance that the seller row opens their profile. -->
-        <ImageView
-            android:id="@+id/detailSellerChevron"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="@null"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_chevron_right"
-            app:tint="@color/nox_subtext" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/detailDescription"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        android:textColor="@color/nox_dark_green"
-        android:textSize="14sp" />
-
-    <!-- The pickup point opens the map on the listing's pin. -->
-    <LinearLayout
-        android:id="@+id/detailLocationRow"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:background="?attr/selectableItemBackground"
-        android:clickable="true"
-        android:focusable="true"
-        android:gravity="center_vertical"
-        android:minHeight="48dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="4dp"
-        android:paddingVertical="8dp">
-
-        <TextView
-            android:id="@+id/detailLocation"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:drawableStart="@drawable/ic_map_pin"
-            android:drawablePadding="8dp"
-            android:drawableTint="@color/nox_subtext"
-            android:textColor="@color/nox_subtext"
-            android:textSize="13sp" />
-
-        <ImageView
-            android:id="@+id/detailLocationChevron"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:layout_marginStart="8dp"
-            android:contentDescription="@null"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_chevron_right"
-            app:tint="@color/nox_subtext" />
-    </LinearLayout>
-
-    <!-- Only shown to the student who owns the listing. -->
-    <LinearLayout
-        android:id="@+id/ownerActions"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:orientation="horizontal"
-        android:visibility="gone">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/editListingButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="@string/listing_edit"
-            android:textColor="@color/nox_primary_green"
-            app:icon="@drawable/ic_settings"
-            app:iconTint="@color/nox_primary_green" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/deleteListingButton"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="0dp"
-            android:layout_height="48dp"
-            android:layout_weight="1"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:text="@string/listing_delete"
-            android:textColor="@color/nox_error"
-            app:icon="@android:drawable/ic_menu_delete"
-            app:iconTint="@color/nox_error" />
-    </LinearLayout>
-
-    <Button
-        android:id="@+id/messageSellerButton"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="20dp"
-        android:backgroundTint="@color/nox_primary_green"
-        android:text="@string/detail_message_seller"
-        android:textColor="@color/white"
-        android:textSize="14sp" />
+    </ScrollView>
 </LinearLayout>

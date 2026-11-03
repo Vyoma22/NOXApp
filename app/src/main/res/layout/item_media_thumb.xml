@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One 56dp thumbnail in the strip under the gallery; the selected ring is swapped in code. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="56dp"
+    android:layout_height="56dp"
+    android:layout_marginEnd="8dp"
+    android:background="@drawable/bg_media_thumb_normal"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?attr/selectableItemBackground"
+    android:padding="2dp">
+
+    <ImageView
+        android:id="@+id/mediaThumbImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_listing_image"
+        android:clipToOutline="true"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop" />
+</FrameLayout>
