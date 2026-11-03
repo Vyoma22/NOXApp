@@ -94,7 +94,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
         android:gravity="center_vertical"
+        android:minHeight="48dp"
         android:orientation="horizontal">
 
         <androidx.cardview.widget.CardView
@@ -150,6 +154,17 @@
                 android:textColor="@color/nox_muted"
                 android:textSize="12sp" />
         </LinearLayout>
+
+        <!-- Affordance that the seller row opens their profile. -->
+        <ImageView
+            android:id="@+id/detailSellerChevron"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/nox_subtext" />
     </LinearLayout>
 
     <TextView

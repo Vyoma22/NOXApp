@@ -10,6 +10,7 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
@@ -19,7 +20,9 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import coil.load
+import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
+import com.example.noxapp.SellerProfileActivity
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
@@ -109,8 +112,12 @@ object ItemDetailDialog {
     /**
      * Fills the seller row from the listing, then upgrades it with the seller's profile document
      * so a renamed student or a rating appears without re-posting the listing.
+     *
+     * The row is a shortcut to that seller's read-only profile, except for the student's own
+     * listing, which opens their editable [ProfileActivity] instead.
      */
     private fun bindSeller(activity: Activity, dialog: Dialog, listing: Listing) {
+        val row = dialog.findViewById<View>(R.id.detailSeller)
         val nameView = dialog.findViewById<TextView>(R.id.detailSellerName)
         val initialView = dialog.findViewById<TextView>(R.id.detailSellerInitial)
         val schoolView = dialog.findViewById<TextView>(R.id.detailSellerSchool)
@@ -123,12 +130,25 @@ object ItemDetailDialog {
         schoolView.isVisible = false
         ratingView.text = activity.getString(R.string.detail_seller_new)
 
-        if (listing.sellerId.isBlank()) return
+        if (listing.sellerId.isBlank()) {
+            // Nothing to open, so the row stays informational and is not announced as a button.
+            row.isClickable = false
+            row.isFocusable = false
+            row.contentDescription = null
+            dialog.findViewById<View>(R.id.detailSellerChevron).isVisible = false
+            return
+        }
+        openSellerProfileOnTap(activity, dialog, row, listing, listingName)
+
         ListingRepo.getUserProfile(listing.sellerId) { profile ->
             // The sheet may have been dismissed while Firestore answered.
             if (!dialog.isShowing) return@getUserProfile
             profile?.displayName?.takeIf { it.isNotBlank() }
-                ?.let { showSellerName(activity, nameView, initialView, it) }
+                ?.let {
+                    showSellerName(activity, nameView, initialView, it)
+                    row.contentDescription =
+                        activity.getString(R.string.detail_view_seller_profile, it)
+                }
 
             val school = profile?.school.orEmpty()
             schoolView.isVisible = school.isNotBlank()
@@ -140,6 +160,30 @@ object ItemDetailDialog {
                 activity.getString(R.string.detail_seller_rating, stars, ratings)
             } else {
                 activity.getString(R.string.detail_seller_new)
+            }
+        }
+    }
+
+    /** Tapping the seller row opens their profile; a signed-in student's own listing opens theirs. */
+    private fun openSellerProfileOnTap(
+        activity: Activity,
+        dialog: Dialog,
+        row: View,
+        listing: Listing,
+        sellerName: String
+    ) {
+        row.isClickable = true
+        row.isFocusable = true
+        row.contentDescription = activity.getString(R.string.detail_view_seller_profile, sellerName)
+        row.setOnClickListener {
+            dialog.dismiss()
+            val isSelf = listing.sellerId == FirebaseAuth.getInstance().currentUser?.uid
+            if (isSelf) {
+                activity.startActivity(Intent(activity, ProfileActivity::class.java))
+            } else {
+                activity.startActivity(
+                    SellerProfileActivity.intent(activity, listing.sellerId, sellerName)
+                )
             }
         }
     }
