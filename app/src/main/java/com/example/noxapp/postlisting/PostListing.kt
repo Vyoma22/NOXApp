@@ -219,11 +219,17 @@ class PostListing : AppCompatActivity() {
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
         }
         val scroll = findViewById<ScrollView>(R.id.formScrollView)
+        val tabBar = findViewById<View>(R.id.bottomNavBar)
         val base = scroll.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
-            val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
-            view.updatePadding(bottom = base + ime.bottom)
-            if (ime.bottom > 0) view.post { scroll.scrollFocusedChildIntoView(ime.bottom) }
+            // The form stops at the tab bar, so the keyboard only covers the slice of it that
+            // reaches past the tab bar. Padding the whole keyboard height would lift the form by
+            // the tab bar's height and leave an empty strip between the last field and the keys.
+            val covered =
+                (insets.getInsets(WindowInsetsCompat.Type.ime()).bottom - tabBar.height)
+                    .coerceAtLeast(0)
+            view.updatePadding(bottom = base + covered)
+            if (covered > 0) view.post { scroll.scrollFocusedChildIntoView(covered) }
             insets
         }
     }
@@ -608,14 +614,15 @@ class PostListing : AppCompatActivity() {
     private fun formatPrice(price: Double): String =
         if (price % 1.0 == 0.0) price.toInt().toString() else price.toString()
 
-    private fun ScrollView.scrollFocusedChildIntoView(imeHeight: Int) {
+    /** Scrolls the focused field above the part of the keyboard that covers [coveredHeight] px. */
+    private fun ScrollView.scrollFocusedChildIntoView(coveredHeight: Int) {
         val focused = findFocus() ?: return
         if (focused === this) return
         val rect = Rect()
         focused.getDrawingRect(rect)
         offsetDescendantRectToMyCoords(focused, rect)
         val margin = (120 * resources.displayMetrics.density).toInt()
-        val overflow = rect.bottom - (height - imeHeight - margin)
+        val overflow = rect.bottom - (height - coveredHeight - margin)
         if (overflow > 0) smoothScrollBy(0, overflow)
     }
 
