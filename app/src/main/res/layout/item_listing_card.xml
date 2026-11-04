@@ -87,5 +87,48 @@
             android:text="@string/listing_price_placeholder"
             android:textColor="@color/nox_dark_green"
             android:textSize="13sp" />
+
+        <!-- Social-proof badges. A row under the price keeps both pills clear of the heart
+             button and the title, even on the narrowest carousel or half-width grid card. -->
+        <LinearLayout
+            android:id="@+id/cardBadgeRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/cardPopularBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/listing_badge_pill"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="@string/listing_badge_popular"
+                android:textColor="@color/nox_dark_green"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/cardPriceDropBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:background="@drawable/listing_badge_pill"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:textColor="@color/nox_accent_text"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>
