@@ -494,7 +494,15 @@ class PostListing : AppCompatActivity() {
                                 condition = condition,
                                 imageUrls = allImages,
                                 latitude = latitude,
-                                longitude = longitude
+                                longitude = longitude,
+                                // A price edit carries the price it dropped from, so cards and
+                                // the detail sheet can show the saving. A raised price keeps
+                                // the old number too, which produces no badge.
+                                previousPrice = if (price != original.price) {
+                                    original.price
+                                } else {
+                                    original.previousPrice
+                                }
                             )
                         )
                         Toast.makeText(this@PostListing, R.string.post_updated, Toast.LENGTH_SHORT).show()

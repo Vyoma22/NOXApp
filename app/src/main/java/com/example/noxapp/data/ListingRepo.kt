@@ -67,6 +67,20 @@ object ListingRepo {
     }
 
     /**
+     * Records one open of a listing with a server-side increment, so concurrent viewers add up
+     * instead of overwriting each other. Fire-and-forget: the detail sheet already shows the new
+     * count optimistically, so a rules or network failure is deliberately ignored rather than
+     * surfacing a toast for a number the student did not ask for.
+     */
+    fun incrementViewCount(listingId: String) {
+        // A listing opened before its id loaded (or a placeholder) has nothing to count.
+        if (listingId.isBlank()) return
+        listingsRef.document(listingId)
+            .update("viewCount", FieldValue.increment(1))
+            .addOnFailureListener { }
+    }
+
+    /**
      * Deletes a listing and its uploaded photos. The document goes first so the listing
      * disappears from every feed even if a storage object is already gone.
      */

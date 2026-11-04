@@ -17,5 +17,9 @@ data class Listing(
     val sold: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val latitude: Double = 0.0,
-    val longitude: Double = 0.0
+    val longitude: Double = 0.0,
+    // Listing signals. Listings written before these fields existed have no viewCount or
+    // previousPrice in Firestore, and a missing field reads as the default: 0 views, no drop.
+    val viewCount: Long = 0L,
+    val previousPrice: Double? = null
 )

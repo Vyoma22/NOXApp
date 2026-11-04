@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One page of the item-detail photo pager; the pager pins its height to 220dp. -->
+<!-- One page of the item-detail photo pager; the pager supplies the page height.
+     fitCenter keeps the whole photo visible instead of cropping its edges. -->
 <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/mediaPageImage"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_listing_image"
     android:clipToOutline="true"
-    android:scaleType="centerCrop" />
+    android:scaleType="fitCenter" />
