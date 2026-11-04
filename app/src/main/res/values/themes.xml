@@ -34,4 +34,13 @@
         <item name="android:windowBackground">@color/nox_cream_bg</item>
         <item name="android:windowNoTitle">true</item>
     </style>
+
+    <!-- Fullscreen photo viewer: dark from the first frame, with light system bar icons. -->
+    <style name="Theme.NOXApp.MediaViewer" parent="Theme.NOXApp">
+        <item name="android:windowBackground">@color/black</item>
+        <item name="android:statusBarColor">@color/black</item>
+        <item name="android:navigationBarColor">@color/black</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
 </resources>

@@ -79,6 +79,9 @@
     <string name="location_unavailable">Location unavailable, showing campus</string>
     <string name="map_post_toast">Post an Item Tab</string>
     <string name="map_chat_toast">Chat Inbox Tab</string>
+    <string name="map_get_directions">Get directions</string>
+    <string name="map_directions_unavailable">No maps app available</string>
+    <string name="map_view_location_close">Close pickup location</string>
 
     <string name="unit_km">km</string>
     <string name="sort_newest">Newest</string>
@@ -139,7 +142,9 @@
     <string name="post_edit_title">Edit Listing</string>
     <string name="post_back">Back</string>
     <string name="post_add_media">Add Photos / Videos</string>
+    <string name="post_add_media_required">Add Photos / Videos *</string>
     <string name="post_media_hint">Up to 5 files</string>
+    <string name="post_required_legend">Fields marked * are required.</string>
     <string name="post_media_count">%1$d of 5 files selected</string>
     <string name="post_media_added">Added %1$d file(s). Total: %2$d/5</string>
     <string name="post_photo_added">Photo added! (%1$d/5)</string>
@@ -150,27 +155,32 @@
     <string name="post_take_photo">Take Photo</string>
     <string name="post_choose_gallery">Choose from Gallery</string>
     <string name="post_camera_unavailable">No camera app is available on this device.</string>
-    <string name="post_title_label">Title</string>
+    <string name="post_title_label">Title *</string>
     <string name="post_title_hint">e.g. Desk chair, MacBook, Textbook…</string>
-    <string name="post_category_label">Category</string>
-    <string name="post_price_label">Price</string>
+    <string name="post_category_label">Category *</string>
+    <string name="post_price_label">Price *</string>
     <string name="post_price_hint">$ 0.00</string>
-    <string name="post_condition_label">Condition</string>
+    <string name="post_condition_label">Condition *</string>
     <string name="post_condition_new">New</string>
     <string name="post_condition_like_new">Like New</string>
     <string name="post_condition_used">Used</string>
-    <string name="post_description_label">Description</string>
+    <string name="post_description_label">Description *</string>
     <string name="post_description_hint">Tell us more about your item…</string>
-    <string name="post_location_label">Pickup Location</string>
+    <string name="post_location_label">Pickup Location *</string>
+    <string name="post_location_helper">Choose a campus building, or pin an exact meeting spot on the map.</string>
+    <string name="post_location_custom_option">Custom location (pinned on map)</string>
     <string name="post_pick_on_map">Choose pickup location on map</string>
     <string name="post_location_pinned">Pinned location</string>
     <string name="post_picked_location">Pinned: %1$s</string>
     <string name="post_picked_location_coords">Pinned: %1$s (%2$.5f, %3$.5f)</string>
+    <string name="post_location_pick_required">Pick a spot on the map for the custom location, or choose a campus building.</string>
+    <string name="post_error_media">Add at least one photo</string>
+    <string name="post_error_title">Title is required</string>
+    <string name="post_error_price">Enter a valid price</string>
+    <string name="post_error_description">Description is required</string>
     <string name="post_submit">Post Listing</string>
     <string name="post_save_changes">Save Changes</string>
     <string name="post_uploading">Uploading…</string>
-    <string name="post_need_media">Please attach at least one photo or video.</string>
-    <string name="post_complete_fields">Please complete all required fields.</string>
     <string name="post_sign_in_required">You must be signed in to post a listing.</string>
     <string name="post_success">Listing posted successfully!</string>
     <string name="post_updated">Listing updated.</string>
@@ -191,6 +201,39 @@
     <string name="detail_seller_verified_name">%1$s, verified student</string>
     <string name="detail_seller_rating">★ %1$s (%2$d)</string>
     <string name="detail_seller_new">New seller</string>
+    <string name="detail_view_seller_profile">View %1$s\'s profile</string>
+
+    <!-- Read-only seller profile opened from the item detail sheet -->
+    <string name="seller_profile_title">Seller profile</string>
+    <string name="seller_profile_back">Back</string>
+    <string name="seller_profile_avatar">Seller avatar</string>
+    <string name="seller_profile_avatar_named">%1$s avatar</string>
+    <string name="seller_verified_badge">✓ Verified Student</string>
+    <string name="seller_school_class">%1$s • Class of %2$d</string>
+    <string name="seller_class_of">Class of %1$d</string>
+    <string name="seller_tab_listings">Listings</string>
+    <string name="seller_tab_sold">Sold</string>
+    <string name="seller_search_hint">Search this seller\'s items…</string>
+    <string name="seller_category_filter">Filter listings by category</string>
+    <string name="seller_empty_listings">No listings yet</string>
+    <string name="seller_empty_sold">No sold items yet</string>
+    <string name="seller_empty_search">No items match your search</string>
+    <plurals name="seller_result_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+    <string name="detail_location_view_map">View pickup location on the map</string>
+
+    <!-- Listing photo gallery and fullscreen viewer -->
+    <string name="detail_media_counter">%1$d / %2$d</string>
+    <string name="detail_media_counter_description">Photo %1$d of %2$d</string>
+    <string name="detail_media_photo_description">Listing photo %1$d of %2$d</string>
+    <string name="detail_media_previous">Previous photo</string>
+    <string name="detail_media_next">Next photo</string>
+    <string name="detail_media_show_photo">Show photo %1$d</string>
+    <string name="detail_media_empty">No photos</string>
+    <string name="viewer_close">Close photo viewer</string>
+    <string name="viewer_photo_description">Photo %1$d of %2$d</string>
 
     <!-- Pickup point picker on the map -->
     <string name="pick_location_title">Pickup location</string>

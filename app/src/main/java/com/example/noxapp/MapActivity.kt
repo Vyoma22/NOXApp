@@ -6,8 +6,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Canvas
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.TextView
@@ -26,6 +28,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.data.CampusLocations
@@ -44,6 +47,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.Circle
 import com.google.android.gms.maps.model.CircleOptions
@@ -93,6 +97,12 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var pickLabelJob: Job? = null
     private var userCampus: Pair<Double, Double>? = null
 
+    // View-location mode: a read-only map focused on one listing's pickup point.
+    private var viewMode = false
+    private var viewLabel: String? = null
+    private var viewTitle: String? = null
+    private var viewTarget: LatLng? = null
+
     private val locationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
@@ -141,15 +151,23 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         pickMode = intent.getBooleanExtra(EXTRA_PICK_LOCATION, false)
         pickLabel = savedInstanceState?.getString(EXTRA_LOCATION_LABEL)
         pickConfirmed = savedInstanceState?.getBoolean("pickConfirmed") ?: false
+        viewMode = savedInstanceState?.getBoolean(EXTRA_VIEW_LOCATION)
+            ?: intent.getBooleanExtra(EXTRA_VIEW_LOCATION, false)
+        viewLabel = savedInstanceState?.getString(EXTRA_LOCATION_LABEL)
+            ?: intent.getStringExtra(EXTRA_LOCATION_LABEL)
+        viewTitle = savedInstanceState?.getString(EXTRA_LOCATION_TITLE)
+            ?: intent.getStringExtra(EXTRA_LOCATION_TITLE)
+        if (viewMode) viewTarget = center
 
         setupControls()
         setupLocationSearch()
         setupNavigation()
         applyPickMode()
-        loadUserCampus()
+        applyViewMode()
+        if (!viewMode) loadUserCampus()
         refreshArea()
         (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
-        if (!pickMode) loadListings()
+        if (!pickMode && !viewMode) loadListings()
     }
 
     private fun arrangeLayout() {
@@ -304,6 +322,66 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    /**
+     * View-location mode shows one pickup pin and an info card. The radius, search, filters, and
+     * the browsing bottom bar do not apply to a single fixed point, so they all go away.
+     */
+    private fun applyViewMode() {
+        if (!viewMode) return
+        findViewById<View>(R.id.radiusCard).isVisible = false
+        findViewById<View>(R.id.mapItemsScroll).isVisible = false
+        findViewById<View>(R.id.mapBottomNav).isVisible = false
+        findViewById<View>(R.id.mapCenterPin).isVisible = false
+        findViewById<View>(R.id.locationSearchInput).isVisible = false
+        findViewById<View>(R.id.locationSearchButton).isVisible = false
+        findViewById<View>(R.id.myLocationButton).isVisible = false
+
+        findViewById<TextView>(R.id.locationInfoLabel).text =
+            viewLabel.orEmpty().ifBlank { getString(R.string.pick_location_title) }
+        findViewById<TextView>(R.id.locationInfoTitle).apply {
+            text = viewTitle.orEmpty()
+            isVisible = text.isNotBlank()
+        }
+        findViewById<View>(R.id.locationInfoDirections).setOnClickListener { openDirections() }
+        findViewById<View>(R.id.locationInfoClose).setOnClickListener { finish() }
+
+        // The browsing panel is gone, so the map can run behind the floating pickup card.
+        val root = findViewById<ConstraintLayout>(R.id.mapRoot)
+        ConstraintSet().apply {
+            clone(root)
+            connect(R.id.campusMap, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM)
+            applyTo(root)
+        }
+
+        // The card sits at the very bottom of an edge-to-edge window, so lift it above the
+        // system navigation bar instead of letting the bar cover the actions.
+        val card = findViewById<View>(R.id.locationInfoCard)
+        card.isVisible = true
+        val baseMargin = (card.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+        ViewCompat.setOnApplyWindowInsetsListener(card) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = baseMargin + bars.bottom }
+            insets
+        }
+    }
+
+    private fun openDirections() {
+        val target = viewTarget ?: center
+        val label = viewLabel.orEmpty()
+        val query = if (label.isBlank()) {
+            "${target.latitude},${target.longitude}"
+        } else {
+            "${target.latitude},${target.longitude}(${Uri.encode(label)})"
+        }
+        val intent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("geo:${target.latitude},${target.longitude}?q=$query")
+        )
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(this, R.string.map_directions_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun confirmPick() {
         hasSelection = true
         pickConfirmed = true
@@ -341,8 +419,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         if (isDestroyed || isFinishing) return
         map = googleMap
 
-        // Immediately align map camera target to center so it never defaults to (0.0, 0.0)
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(center, if (pickMode) 17f else 14f))
+        // Immediately align map camera target to center so it never defaults to (0.0, 0.0).
+        // Pick and view modes zoom in on one pin instead of framing a browsing radius.
+        googleMap.moveCamera(
+            CameraUpdateFactory.newLatLngZoom(center, if (pickMode || viewMode) 17f else 14f)
+        )
 
         val nightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
                 Configuration.UI_MODE_NIGHT_YES
@@ -356,26 +437,49 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         circle = googleMap.addCircle(CircleOptions().center(center).radius(radiusKm * 1000)
             .fillColor(ColorUtils.setAlphaComponent(green, 46)).strokeColor(green)
             .strokeWidth(resources.displayMetrics.density))
-        circle?.isVisible = !pickMode
+        circle?.isVisible = !pickMode && !viewMode
         googleMap.setOnMarkerClickListener { marker ->
-            (marker.tag as? Listing)?.let { listing ->
+            val listing = marker.tag as? Listing
+            if (listing != null) {
                 ItemDetailDialog.show(this, listing) { loadListings() }
+                true
+            } else {
+                // The pickup pin has no listing tag, so let the info window open normally.
+                false
             }
-            true
         }
         findViewById<View>(R.id.searchAreaButton).isEnabled = true
         findViewById<View>(R.id.locationSearchButton).isEnabled = true
-        googleMap.setOnCameraMoveListener {
-            center = googleMap.cameraPosition.target
-            refreshArea()
+        if (!viewMode) {
+            googleMap.setOnCameraMoveListener {
+                center = googleMap.cameraPosition.target
+                refreshArea()
+            }
         }
         if (pickMode) {
             googleMap.setOnCameraIdleListener { updatePickAddress() }
             updatePickAddress()
         }
-        rebuildMarkers()
-        refreshArea()
-        if (!restoredCamera && !pickMode) findViewById<View>(R.id.campusMap).post { fitCircle(false) }
+        if (viewMode) {
+            addViewLocationPin(googleMap)
+        } else {
+            rebuildMarkers()
+            refreshArea()
+            if (!restoredCamera && !pickMode) findViewById<View>(R.id.campusMap).post { fitCircle(false) }
+        }
+    }
+
+    /** One labelled pin on the pickup point, with the listing title and pickup name in its window. */
+    private fun addViewLocationPin(googleMap: GoogleMap) {
+        val label = viewLabel.orEmpty().ifBlank { getString(R.string.pick_location_title) }
+        googleMap.addMarker(
+            MarkerOptions()
+                .position(viewTarget ?: center)
+                .title(viewTitle.orEmpty())
+                .snippet(label)
+                .icon(markerIcon())
+                .anchor(0.5f, 0.5f)
+        )?.showInfoWindow()
     }
 
     private fun loadListings() {
@@ -406,15 +510,20 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         )
     }
 
-    private fun rebuildMarkers() {
-        val readyMap = map ?: return
-        markers.forEach { it.remove() }
-        markers.clear()
+    /** The green NOX pin, drawn once and shared by the browse markers and the pickup pin. */
+    private fun markerIcon(): BitmapDescriptor {
         val drawable = requireNotNull(ContextCompat.getDrawable(this, R.drawable.ic_map_marker))
         val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
         drawable.setBounds(0, 0, bitmap.width, bitmap.height)
         drawable.draw(Canvas(bitmap))
-        val icon = BitmapDescriptorFactory.fromBitmap(bitmap)
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    private fun rebuildMarkers() {
+        val readyMap = map ?: return
+        markers.forEach { it.remove() }
+        markers.clear()
+        val icon = markerIcon()
         listings.filter { ListingFilters.matches(it, baseFilters) }.forEach { listing ->
             val (lat, lng) = CampusLocations.resolve(listing)
             readyMap.addMarker(MarkerOptions().position(LatLng(lat, lng)).title(listing.title)
@@ -426,6 +535,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun refreshArea() {
+        if (viewMode) return
         val unit = Prefs.distanceUnit(this)
         val label = getString(R.string.radius_label, formatRadius(radiusKm), unit)
         findViewById<TextView>(R.id.radiusLabel).text = label
@@ -585,7 +695,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onResume() {
         super.onResume()
-        if (listingsLoaded && !pickMode) loadListings()
+        if (listingsLoaded && !pickMode && !viewMode) loadListings()
     }
 
     override fun onStop() {
@@ -602,7 +712,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         outState.putBoolean(EXTRA_HAS_SELECTION, hasSelection)
         outState.putBoolean("locationPending", locationPending)
         outState.putBoolean("pickConfirmed", pickConfirmed)
-        outState.putString(EXTRA_LOCATION_LABEL, pickLabel)
+        outState.putBoolean(EXTRA_VIEW_LOCATION, viewMode)
+        outState.putString(EXTRA_LOCATION_LABEL, if (viewMode) viewLabel else pickLabel)
+        outState.putString(EXTRA_LOCATION_TITLE, viewTitle)
         outState.putDouble("initialCenterLat", initialCenter.latitude)
         outState.putDouble("initialCenterLng", initialCenter.longitude)
         outState.putDouble("initialRadiusKm", initialRadiusKm)
@@ -637,7 +749,9 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_PRICE = "priceRange"
         const val EXTRA_CONDITION = "condition"
         const val EXTRA_PICK_LOCATION = "pickLocation"
+        const val EXTRA_VIEW_LOCATION = "viewLocation"
         const val EXTRA_LOCATION_LABEL = "locationLabel"
+        const val EXTRA_LOCATION_TITLE = "locationTitle"
         const val NAV_HOME = "home"
         const val NAV_PROFILE = "profile"
     }

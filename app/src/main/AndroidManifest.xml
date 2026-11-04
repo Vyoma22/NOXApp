@@ -35,11 +35,18 @@
         <activity android:name=".auth.VerifyEmailActivity" android:exported="false" />
         <activity android:name=".MainActivity" android:exported="false" />
         <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".SellerProfileActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
         <activity android:name=".SettingsActivity" android:exported="false" />
         <activity android:name=".postlisting.PostListing" android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".MapActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".BrowseActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
+        <!-- Fullscreen viewer for listing photos, opened from the item detail sheet. -->
+        <activity
+            android:name=".ui.MediaViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NOXApp.MediaViewer" />
         <!-- Camera capture writes into the app cache; without this provider launchCamera throws. -->
         <provider
             android:name="androidx.core.content.FileProvider"
