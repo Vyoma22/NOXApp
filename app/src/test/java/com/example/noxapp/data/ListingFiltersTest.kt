@@ -68,33 +68,64 @@ class ListingFiltersTest {
     }
 
     @Test
-    fun eachPriceBoundaryMatchesExactlyOneBracket() {
+    fun eachPriceBoundaryMatchesTheExpectedBrackets() {
         val cases = listOf(
-            0.0 to PriceRange.UNDER_25,
-            24.99 to PriceRange.UNDER_25,
-            25.0 to PriceRange.FROM_25_TO_50,
-            49.99 to PriceRange.FROM_25_TO_50,
-            50.0 to PriceRange.FROM_50_TO_100,
-            99.99 to PriceRange.FROM_50_TO_100,
-            100.0 to PriceRange.OVER_100,
-            1000.0 to PriceRange.OVER_100
+            0.0 to listOf(PriceRange.FREE, PriceRange.UNDER_25),
+            24.99 to listOf(PriceRange.UNDER_25),
+            25.0 to listOf(PriceRange.FROM_25_TO_50),
+            49.99 to listOf(PriceRange.FROM_25_TO_50),
+            50.0 to listOf(PriceRange.FROM_50_TO_100),
+            99.99 to listOf(PriceRange.FROM_50_TO_100),
+            100.0 to listOf(PriceRange.OVER_100),
+            1000.0 to listOf(PriceRange.OVER_100)
         )
 
-        for ((price, expectedRange) in cases) {
+        for ((price, expectedRanges) in cases) {
             val matchedRanges = PriceRange.entries.filter { range ->
                 ListingFilters.matches(book.copy(price = price), BrowseFilters(priceRange = range))
             }
-            assertEquals("Price $price", listOf(expectedRange), matchedRanges)
+            assertEquals("Price $price", expectedRanges, matchedRanges)
         }
     }
 
     @Test
     fun priceBracketsExcludeValuesOutsideTheirBounds() {
-        for (price in listOf(-0.01, Double.MAX_VALUE)) {
-            assertTrue(PriceRange.entries.none { range ->
-                ListingFilters.matches(book.copy(price = price), BrowseFilters(priceRange = range))
-            })
-        }
+        // Negative prices count as free; the largest Double falls outside OVER_100's exclusive max.
+        assertEquals(
+            listOf(PriceRange.FREE),
+            PriceRange.entries.filter { range ->
+                ListingFilters.matches(book.copy(price = -0.01), BrowseFilters(priceRange = range))
+            }
+        )
+        assertTrue(PriceRange.entries.none { range ->
+            ListingFilters.matches(book.copy(price = Double.MAX_VALUE), BrowseFilters(priceRange = range))
+        })
+    }
+
+    @Test
+    fun freePriceRangeMatchesOnlyNonPositivePrices() {
+        assertTrue(ListingFilters.matches(book.copy(price = 0.0), BrowseFilters(priceRange = PriceRange.FREE)))
+        assertTrue(ListingFilters.matches(book.copy(price = -1.0), BrowseFilters(priceRange = PriceRange.FREE)))
+        assertFalse(ListingFilters.matches(book.copy(price = 0.01), BrowseFilters(priceRange = PriceRange.FREE)))
+        assertFalse(ListingFilters.matches(book, BrowseFilters(priceRange = PriceRange.FREE)))
+    }
+
+    @Test
+    fun freeFilterCombinesWithQueryAndCategory() {
+        val freeListing = book.copy(id = "free", price = 0.0)
+        val filters = BrowseFilters(query = "  CALCULUS  ", category = "books", priceRange = PriceRange.FREE)
+
+        assertTrue(ListingFilters.matches(freeListing, filters))
+        assertFalse(ListingFilters.matches(freeListing, filters.copy(query = "laptop")))
+        assertFalse(ListingFilters.matches(freeListing, filters.copy(category = "Electronics")))
+        assertFalse(ListingFilters.matches(freeListing.copy(price = 10.0), filters))
+    }
+
+    @Test
+    fun under25StillIncludesFreeAndPaidListingsUnder25() {
+        assertTrue(ListingFilters.matches(book.copy(price = 0.0), BrowseFilters(priceRange = PriceRange.UNDER_25)))
+        assertTrue(ListingFilters.matches(book.copy(price = 10.0), BrowseFilters(priceRange = PriceRange.UNDER_25)))
+        assertFalse(ListingFilters.matches(book.copy(price = 25.0), BrowseFilters(priceRange = PriceRange.UNDER_25)))
     }
 
     @Test
