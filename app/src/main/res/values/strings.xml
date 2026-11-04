@@ -198,6 +198,27 @@
     <string name="detail_seller_verified_name">%1$s, verified student</string>
     <string name="detail_seller_rating">★ %1$s (%2$d)</string>
     <string name="detail_seller_new">New seller</string>
+    <string name="detail_view_seller_profile">View %1$s\'s profile</string>
+
+    <!-- Read-only seller profile opened from the item detail sheet -->
+    <string name="seller_profile_title">Seller profile</string>
+    <string name="seller_profile_back">Back</string>
+    <string name="seller_profile_avatar">Seller avatar</string>
+    <string name="seller_profile_avatar_named">%1$s avatar</string>
+    <string name="seller_verified_badge">✓ Verified Student</string>
+    <string name="seller_school_class">%1$s • Class of %2$d</string>
+    <string name="seller_class_of">Class of %1$d</string>
+    <string name="seller_tab_listings">Listings</string>
+    <string name="seller_tab_sold">Sold</string>
+    <string name="seller_search_hint">Search this seller\'s items…</string>
+    <string name="seller_category_filter">Filter listings by category</string>
+    <string name="seller_empty_listings">No listings yet</string>
+    <string name="seller_empty_sold">No sold items yet</string>
+    <string name="seller_empty_search">No items match your search</string>
+    <plurals name="seller_result_count">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
 
     <!-- Pickup point picker on the map -->
     <string name="pick_location_title">Pickup location</string>
