@@ -84,6 +84,11 @@ class PostListing : AppCompatActivity() {
     private var pickedLabel: String? = null
     private var suppressLocationClear = false
 
+    private val locationOptions = mutableListOf<String>()
+    private var customLocationIndex = 0
+    private var previousBuildingIndex = 0
+    private var pendingCustomPickRevertIndex: Int? = null
+
     private val maxMedia = 5
 
     private val pickMultipleMedia =
@@ -126,14 +131,21 @@ class PostListing : AppCompatActivity() {
 
     private val mapPickerLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val data = result.data ?: return@registerForActivityResult
-            if (result.resultCode != RESULT_OK) return@registerForActivityResult
-            if (!data.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false)) return@registerForActivityResult
+            val data = result.data
+            if (result.resultCode != RESULT_OK || data == null ||
+                !data.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false)
+            ) {
+                // Backing out of the picker must not leave the custom entry half-applied.
+                revertPendingCustomPick()
+                return@registerForActivityResult
+            }
 
             pickedLat = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0)
             pickedLng = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LNG, 0.0)
             pickedLabel = data.getStringExtra(MapActivity.EXTRA_LOCATION_LABEL)
                 ?: getString(R.string.post_location_pinned)
+            pendingCustomPickRevertIndex = null
+            selectCustomLocationEntry()
             renderPickedLocation()
         }
 
@@ -172,17 +184,24 @@ class PostListing : AppCompatActivity() {
         categoryAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
         itmCategory.adapter = categoryAdapter
 
-        val locationAdapter = ArrayAdapter.createFromResource(
-            this,
-            R.array.locations,
-            R.layout.item_spinner
-        )
+        locationOptions.clear()
+        locationOptions.addAll(resources.getStringArray(R.array.locations))
+        customLocationIndex = locationOptions.size
+        locationOptions.add(getString(R.string.post_location_custom_option))
+
+        val locationAdapter = ArrayAdapter(this, R.layout.item_spinner, locationOptions)
         locationAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
         listingLocation.adapter = locationAdapter
         listingLocation.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                // A predefined building replaces a manual map pin.
-                if (!suppressLocationClear) clearPickedLocation()
+                if (suppressLocationClear) return
+                if (PickupLocationSelection.isCustom(position, customLocationIndex)) {
+                    onCustomLocationSelected()
+                } else {
+                    previousBuildingIndex = position
+                    // A predefined building replaces a manual map pin.
+                    clearPickedLocation()
+                }
             }
 
             override fun onNothingSelected(parent: AdapterView<*>?) = Unit
@@ -200,16 +219,19 @@ class PostListing : AppCompatActivity() {
     }
 
     private fun setupMapPicker() {
-        findViewById<MaterialButton>(R.id.btnPickOnMap).setOnClickListener {
-            val lat = pickedLat ?: CampusLocations.ONTARIO_TECH.first
-            val lng = pickedLng ?: CampusLocations.ONTARIO_TECH.second
-            mapPickerLauncher.launch(
-                Intent(this, MapActivity::class.java)
-                    .putExtra(MapActivity.EXTRA_PICK_LOCATION, true)
-                    .putExtra(MapActivity.EXTRA_CENTER_LAT, lat)
-                    .putExtra(MapActivity.EXTRA_CENTER_LNG, lng)
-            )
-        }
+        findViewById<MaterialButton>(R.id.btnPickOnMap).setOnClickListener { launchMapPicker() }
+    }
+
+    /** Opens the map in pick mode, starting from the current pin or the campus centre. */
+    private fun launchMapPicker() {
+        val lat = pickedLat ?: CampusLocations.ONTARIO_TECH.first
+        val lng = pickedLng ?: CampusLocations.ONTARIO_TECH.second
+        mapPickerLauncher.launch(
+            Intent(this, MapActivity::class.java)
+                .putExtra(MapActivity.EXTRA_PICK_LOCATION, true)
+                .putExtra(MapActivity.EXTRA_CENTER_LAT, lat)
+                .putExtra(MapActivity.EXTRA_CENTER_LNG, lng)
+        )
     }
 
     private fun setupInsetScrolling() {
@@ -353,22 +375,22 @@ class PostListing : AppCompatActivity() {
                     .coerceAtLeast(0)
             )
 
-            val locations = resources.getStringArray(R.array.locations)
-            val locationIndex = locations.indexOfFirst {
-                it.equals(listing.pickupLocation, ignoreCase = true)
-            }
-            if (locationIndex >= 0) {
-                suppressLocationClear = true
-                listingLocation.setSelection(locationIndex)
-                suppressLocationClear = false
-            } else {
+            val buildings = resources.getStringArray(R.array.locations).toList()
+            val locationIndex = PickupLocationSelection.selectionFor(listing.pickupLocation, buildings)
+            val isCustomLocation = PickupLocationSelection.isCustom(locationIndex, customLocationIndex)
+            if (isCustomLocation) {
                 // Keep a custom location/map pin from the original post.
                 pickedLabel = listing.pickupLocation.ifBlank { getString(R.string.post_location_pinned) }
                 if (listing.latitude != 0.0 || listing.longitude != 0.0) {
                     pickedLat = listing.latitude
                     pickedLng = listing.longitude
                 }
+            } else {
+                previousBuildingIndex = locationIndex
             }
+            suppressLocationClear = true
+            listingLocation.setSelection(locationIndex)
+            suppressLocationClear = false
 
             itmConditions.check(
                 when (listing.condition.lowercase(Locale.getDefault())) {
@@ -388,10 +410,19 @@ class PostListing : AppCompatActivity() {
         val category = itmCategory.selectedItem?.toString().orEmpty()
         val price = itmPrice.text.toString().trim().replace("$", "").toDoubleOrNull()
         val desc = itmDesc.text.toString().trim()
+        val customLocationSelected = PickupLocationSelection.isCustom(
+            listingLocation.selectedItemPosition,
+            customLocationIndex
+        )
         val predefinedLocation = listingLocation.selectedItem?.toString().orEmpty()
-        val location = pickedLabel?.takeIf { it.isNotBlank() } ?: predefinedLocation
+        val location = pickedLabel?.takeIf { it.isNotBlank() }
+            ?: if (customLocationSelected) getString(R.string.post_location_pinned) else predefinedLocation
         val conditionId = itmConditions.checkedRadioButtonId
 
+        if (customLocationSelected && !hasPickedLocation()) {
+            Toast.makeText(this, R.string.post_location_pick_required, Toast.LENGTH_LONG).show()
+            return
+        }
         if (mediaCount() == 0) {
             Toast.makeText(this, R.string.post_need_media, Toast.LENGTH_SHORT).show()
             return
@@ -601,6 +632,34 @@ class PostListing : AppCompatActivity() {
                 getString(R.string.post_picked_location, text)
             }
         }
+    }
+
+    private fun hasPickedLocation(): Boolean =
+        !pickedLabel.isNullOrBlank() || (pickedLat != null && pickedLng != null)
+
+    /** Custom entry chosen from the dropdown: pin now, or open the picker when nothing is pinned. */
+    private fun onCustomLocationSelected() {
+        if (hasPickedLocation()) {
+            renderPickedLocation()
+            return
+        }
+        pendingCustomPickRevertIndex = previousBuildingIndex
+        launchMapPicker()
+    }
+
+    private fun selectCustomLocationEntry() {
+        suppressLocationClear = true
+        listingLocation.setSelection(customLocationIndex)
+        suppressLocationClear = false
+    }
+
+    /** Restores the last building when a custom pick started from the dropdown is cancelled. */
+    private fun revertPendingCustomPick() {
+        val revertTo = pendingCustomPickRevertIndex ?: return
+        pendingCustomPickRevertIndex = null
+        suppressLocationClear = true
+        listingLocation.setSelection(revertTo)
+        suppressLocationClear = false
     }
 
     private fun clearPickedLocation() {

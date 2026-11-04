@@ -162,10 +162,13 @@
     <string name="post_description_label">Description</string>
     <string name="post_description_hint">Tell us more about your item…</string>
     <string name="post_location_label">Pickup Location</string>
+    <string name="post_location_helper">Choose a campus building, or pin an exact meeting spot on the map.</string>
+    <string name="post_location_custom_option">Custom location (pinned on map)</string>
     <string name="post_pick_on_map">Choose pickup location on map</string>
     <string name="post_location_pinned">Pinned location</string>
     <string name="post_picked_location">Pinned: %1$s</string>
     <string name="post_picked_location_coords">Pinned: %1$s (%2$.5f, %3$.5f)</string>
+    <string name="post_location_pick_required">Pick a spot on the map for the custom location, or choose a campus building.</string>
     <string name="post_submit">Post Listing</string>
     <string name="post_save_changes">Save Changes</string>
     <string name="post_uploading">Uploading…</string>
