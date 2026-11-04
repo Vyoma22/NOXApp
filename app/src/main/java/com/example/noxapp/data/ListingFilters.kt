@@ -38,9 +38,7 @@ object ListingFilters {
         }
 
         val priceRange = filters.priceRange
-        if (priceRange != null &&
-            !(priceRange.minInclusive <= listing.price && listing.price < priceRange.maxExclusive)
-        ) {
+        if (priceRange != null && !priceRange.contains(listing.price)) {
             return false
         }
 
