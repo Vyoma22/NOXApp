@@ -5,6 +5,8 @@ import android.graphics.Rect
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.Gravity
 import android.view.View
@@ -76,6 +78,13 @@ class PostListing : AppCompatActivity() {
     private lateinit var mediaPreviewLabel: TextView
     private lateinit var mediaPreviewScroll: HorizontalScrollView
     private lateinit var mediaPreviewRow: LinearLayout
+    private lateinit var formScrollView: ScrollView
+    private lateinit var postErrorMedia: TextView
+    private lateinit var postErrorTitle: TextView
+    private lateinit var postErrorPrice: TextView
+    private lateinit var postErrorDescription: TextView
+
+    private var validationAttempted = false
 
     private var cameraTempUri: Uri? = null
     private var editingListing: Listing? = null
@@ -165,6 +174,11 @@ class PostListing : AppCompatActivity() {
         mediaPreviewLabel = findViewById(R.id.mediaPreviewLabel)
         mediaPreviewScroll = findViewById(R.id.mediaPreviewScroll)
         mediaPreviewRow = findViewById(R.id.mediaPreviewRow)
+        formScrollView = findViewById(R.id.formScrollView)
+        postErrorMedia = findViewById(R.id.postErrorMedia)
+        postErrorTitle = findViewById(R.id.postErrorTitle)
+        postErrorPrice = findViewById(R.id.postErrorPrice)
+        postErrorDescription = findViewById(R.id.postErrorDescription)
         refreshMediaUi()
 
         setupSpinners()
@@ -175,6 +189,9 @@ class PostListing : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.backBtn).setOnClickListener { finish() }
         postListingButton.setOnClickListener { submitListing() }
+        watchForFixes(itmName)
+        watchForFixes(itmPrice)
+        watchForFixes(itmDesc)
 
         intent.getStringExtra(EXTRA_LISTING_ID)?.takeIf { it.isNotBlank() }?.let(::loadListingForEdit)
     }
@@ -406,31 +423,21 @@ class PostListing : AppCompatActivity() {
     }
 
     private fun submitListing() {
-        val name = itmName.text.toString().trim()
-        val category = itmCategory.selectedItem?.toString().orEmpty()
-        val price = itmPrice.text.toString().trim().replace("$", "").toDoubleOrNull()
-        val desc = itmDesc.text.toString().trim()
+        val input = currentInput()
+        val errors = PostListingValidator.validate(input)
+        if (errors.isNotEmpty()) {
+            validationAttempted = true
+            renderInlineErrors(errors)
+            focusFirstInvalid(errors)
+            return
+        }
+
         val customLocationSelected = PickupLocationSelection.isCustom(
             listingLocation.selectedItemPosition,
             customLocationIndex
         )
-        val predefinedLocation = listingLocation.selectedItem?.toString().orEmpty()
-        val location = pickedLabel?.takeIf { it.isNotBlank() }
-            ?: if (customLocationSelected) getString(R.string.post_location_pinned) else predefinedLocation
-        val conditionId = itmConditions.checkedRadioButtonId
-
         if (customLocationSelected && !hasPickedLocation()) {
             Toast.makeText(this, R.string.post_location_pick_required, Toast.LENGTH_LONG).show()
-            return
-        }
-        if (mediaCount() == 0) {
-            Toast.makeText(this, R.string.post_need_media, Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (name.isBlank() || price == null || price < 0 || category.isBlank() ||
-            desc.isBlank() || location.isBlank() || conditionId == -1
-        ) {
-            Toast.makeText(this, R.string.post_complete_fields, Toast.LENGTH_LONG).show()
             return
         }
 
@@ -440,7 +447,14 @@ class PostListing : AppCompatActivity() {
             return
         }
 
-        val condition = findViewById<RadioButton>(conditionId).text.toString()
+        val name = input.title.trim()
+        val category = input.category
+        val price = PostListingValidator.parsePrice(input.priceText) ?: 0.0
+        val desc = input.description.trim()
+        val predefinedLocation = listingLocation.selectedItem?.toString().orEmpty()
+        val location = pickedLabel?.takeIf { it.isNotBlank() }
+            ?: if (customLocationSelected) getString(R.string.post_location_pinned) else predefinedLocation
+        val condition = input.condition
         val latitude = pickedLat ?: 0.0
         val longitude = pickedLng ?: 0.0
 
@@ -522,6 +536,98 @@ class PostListing : AppCompatActivity() {
         return ref.downloadUrl.await().toString()
     }
 
+    /** Snapshot of the form for the pure validator. */
+    private fun currentInput() = PostListingValidator.Input(
+        hasMedia = mediaCount() > 0,
+        title = itmName.text.toString(),
+        priceText = itmPrice.text.toString(),
+        description = itmDesc.text.toString(),
+        category = itmCategory.selectedItem?.toString().orEmpty(),
+        condition = selectedCondition()
+    )
+
+    private fun selectedCondition(): String {
+        val checkedId = itmConditions.checkedRadioButtonId
+        return if (checkedId == -1) "" else findViewById<RadioButton>(checkedId).text.toString()
+    }
+
+    /** Shows the inline error under every invalid field, or hides it once the field is fixed. */
+    private fun renderInlineErrors(
+        errors: Map<PostListingValidator.Field, PostListingValidator.Error>
+    ) {
+        renderInlineError(
+            postErrorMedia,
+            errors[PostListingValidator.Field.MEDIA],
+            R.string.post_error_media
+        )
+        renderInlineError(
+            postErrorTitle,
+            errors[PostListingValidator.Field.TITLE],
+            R.string.post_error_title
+        )
+        renderInlineError(
+            postErrorPrice,
+            errors[PostListingValidator.Field.PRICE],
+            R.string.post_error_price
+        )
+        renderInlineError(
+            postErrorDescription,
+            errors[PostListingValidator.Field.DESCRIPTION],
+            R.string.post_error_description
+        )
+    }
+
+    private fun renderInlineError(
+        view: TextView,
+        error: PostListingValidator.Error?,
+        messageRes: Int
+    ) {
+        if (error == null) {
+            view.isVisible = false
+        } else {
+            view.setText(messageRes)
+            view.isVisible = true
+        }
+    }
+
+    /** Focuses the topmost invalid field and scrolls it into view. */
+    private fun focusFirstInvalid(
+        errors: Map<PostListingValidator.Field, PostListingValidator.Error>
+    ) {
+        val field = PostListingValidator.Field.entries.firstOrNull { it in errors } ?: return
+        val target: View = when (field) {
+            PostListingValidator.Field.MEDIA -> findViewById<View>(R.id.btnAddImage)
+            PostListingValidator.Field.TITLE -> itmName
+            PostListingValidator.Field.CATEGORY -> itmCategory
+            PostListingValidator.Field.PRICE -> itmPrice
+            PostListingValidator.Field.CONDITION -> itmConditions
+            PostListingValidator.Field.DESCRIPTION -> itmDesc
+        }
+        if (target is EditText) target.requestFocus()
+        scrollIntoView(target)
+    }
+
+    private fun scrollIntoView(view: View) {
+        val rect = Rect()
+        view.getDrawingRect(rect)
+        formScrollView.offsetDescendantRectToMyCoords(view, rect)
+        val top = formScrollView.scrollY + rect.top - dp(16)
+        formScrollView.smoothScrollTo(0, top.coerceAtLeast(0))
+    }
+
+    /** Re-runs validation after a keystroke so a fixed field loses its inline error. */
+    private fun watchForFixes(editText: EditText) {
+        editText.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                if (validationAttempted) {
+                    renderInlineErrors(PostListingValidator.validate(currentInput()))
+                }
+            }
+        })
+    }
+
     private fun mediaCount() = existingImageUrls.size + imagesAndVideos.size
 
     private fun updateMediaSubtitle() {
@@ -532,6 +638,14 @@ class PostListing : AppCompatActivity() {
     private fun refreshMediaUi() {
         updateMediaSubtitle()
         renderMediaPreviews()
+        refreshMediaError()
+    }
+
+    /** Keeps the media error in sync when media is picked or removed after a failed submit. */
+    private fun refreshMediaError() {
+        if (!validationAttempted) return
+        val error = if (mediaCount() == 0) PostListingValidator.Error.MEDIA_REQUIRED else null
+        renderInlineError(postErrorMedia, error, R.string.post_error_media)
     }
 
     /** Thumbnail strip so the seller can review everything that will be uploaded. */
