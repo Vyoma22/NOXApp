@@ -100,7 +100,7 @@ class PostListing : AppCompatActivity() {
 
     private val maxMedia = 5
 
-    private val pickMultipleMedia =
+    private val pickMultipleMedia = //get max of 5 items from gallery
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
             if (uris.isNotEmpty()) {
                 val availableSlots = maxMedia - existingImageUrls.size - imagesAndVideos.size
@@ -110,7 +110,7 @@ class PostListing : AppCompatActivity() {
                 }
 
                 val toAdd = uris.take(availableSlots)
-                imagesAndVideos.addAll(toAdd)
+                imagesAndVideos.addAll(toAdd) //add images and videos to list
 
                 refreshMediaUi()
                 Toast.makeText(
@@ -122,10 +122,10 @@ class PostListing : AppCompatActivity() {
         }
 
     private val takePhotoLauncher =
-        registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        registerForActivityResult(ActivityResultContracts.TakePicture()) { success -> //open camera
             if (success && cameraTempUri != null) {
-                if (mediaCount() < maxMedia) {
-                    imagesAndVideos.add(cameraTempUri!!)
+                if (mediaCount() < maxMedia) { //keep media under max number
+                    imagesAndVideos.add(cameraTempUri!!) //add photo uri to ist
                     refreshMediaUi()
                     Toast.makeText(
                         this,
@@ -149,13 +149,14 @@ class PostListing : AppCompatActivity() {
                 return@registerForActivityResult
             }
 
+			//get selected location coordinates and label
             pickedLat = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, 0.0)
             pickedLng = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LNG, 0.0)
             pickedLabel = data.getStringExtra(MapActivity.EXTRA_LOCATION_LABEL)
                 ?: getString(R.string.post_location_pinned)
             pendingCustomPickRevertIndex = null
             selectCustomLocationEntry()
-            renderPickedLocation()
+            renderPickedLocation() //update ui with location
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -164,6 +165,7 @@ class PostListing : AppCompatActivity() {
         setContentView(R.layout.activity_post_listing)
         setupInsets()
 
+		//get ids of views
         itmName = findViewById(R.id.etItmName)
         itmCategory = findViewById(R.id.spiCategory)
         itmPrice = findViewById(R.id.etPrice)
@@ -181,6 +183,7 @@ class PostListing : AppCompatActivity() {
         postErrorDescription = findViewById(R.id.postErrorDescription)
         refreshMediaUi()
 
+		//set up ui
         setupSpinners()
         setupMediaPicker()
         setupMapPicker()
@@ -197,6 +200,7 @@ class PostListing : AppCompatActivity() {
     }
 
     private fun setupSpinners() {
+		//populate category spinner
         val categoryAdapter = ArrayAdapter(this, R.layout.item_spinner, CategoryCatalog.NAMES)
         categoryAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
         itmCategory.adapter = categoryAdapter
@@ -206,6 +210,7 @@ class PostListing : AppCompatActivity() {
         customLocationIndex = locationOptions.size
         locationOptions.add(getString(R.string.post_location_custom_option))
 
+		//populate location spinner
         val locationAdapter = ArrayAdapter(this, R.layout.item_spinner, locationOptions)
         locationAdapter.setDropDownViewResource(R.layout.item_spinner_dropdown)
         listingLocation.adapter = locationAdapter
@@ -227,7 +232,7 @@ class PostListing : AppCompatActivity() {
 
     private fun setupMediaPicker() {
         findViewById<View>(R.id.btnAddImage).setOnClickListener {
-            if (mediaCount() >= maxMedia) {
+            if (mediaCount() >= maxMedia) { //check if max amount of media is reached
                 Toast.makeText(this, R.string.post_max_media, Toast.LENGTH_SHORT).show()
             } else {
                 showMediaSourceDialog()
@@ -356,14 +361,17 @@ class PostListing : AppCompatActivity() {
 
     private fun launchCamera() {
         val directory = externalCacheDir ?: cacheDir
+		
+		//create a temporary file to store the picture
         val tempFile = File.createTempFile("captured_media_", ".jpg", directory)
         val uri = FileProvider.getUriForFile(
             this,
             "${packageName}.fileprovider",
             tempFile
         )
-        cameraTempUri = uri
-        runCatching { takePhotoLauncher.launch(uri) }
+		
+        cameraTempUri = uri //save image uri so it can be accessed later
+        runCatching { takePhotoLauncher.launch(uri) } //open camera app
             .onFailure {
                 Log.e("PostListing", "No camera app available", it)
                 Toast.makeText(this, R.string.post_camera_unavailable, Toast.LENGTH_LONG).show()
@@ -378,12 +386,17 @@ class PostListing : AppCompatActivity() {
                 finish()
                 return@getListing
             }
+			
+			//store the listing and restore its existing image urls
             editingListing = listing
             existingImageUrls.clear()
             existingImageUrls.addAll(listing.imageUrls)
 
+			//update ui to indicate the user is editing an existing listing
             findViewById<TextView>(R.id.headerTitle).setText(R.string.post_edit_title)
             postListingButton.setText(R.string.post_save_changes)
+			
+			//populate fields with the listing's existing details
             itmName.setText(listing.title)
             itmPrice.setText(formatPrice(listing.price))
             itmDesc.setText(listing.description)
@@ -464,7 +477,7 @@ class PostListing : AppCompatActivity() {
         ListingRepo.getUserProfile(uid) { profile ->
             val displayName = profile?.displayName ?: "Student"
 
-            lifecycleScope.launch {
+            lifecycleScope.launch { //coroutine to handle media and listing upload
                 try {
                     val uploadedUrls = imagesAndVideos.map { uri ->
                         async { uploadMediaFile(uri) }
@@ -504,7 +517,7 @@ class PostListing : AppCompatActivity() {
                             latitude = latitude,
                             longitude = longitude
                         )
-                        newDocRef.set(listing).await()
+                        newDocRef.set(listing).await() //save the new listing to database
                         Log.d("PostListing", "Listing written to Firestore: ${newDocRef.id}")
                         Toast.makeText(this@PostListing, R.string.post_success, Toast.LENGTH_SHORT).show()
                     }
@@ -528,12 +541,12 @@ class PostListing : AppCompatActivity() {
     }
 
     private suspend fun uploadMediaFile(uri: Uri): String {
-        val fileId = UUID.randomUUID().toString()
-        val path = "listings/$fileId.jpg"
+        val fileId = UUID.randomUUID().toString() //generate unique id to avoid filename conflicts
+        val path = "listings/$fileId.jpg" //path where media will be uploaded
         val ref = storage.reference.child(path)
 
-        ref.putFile(uri).await()
-        return ref.downloadUrl.await().toString()
+        ref.putFile(uri).await() //upload file to database
+        return ref.downloadUrl.await().toString() //return download url of file
     }
 
     /** Snapshot of the form for the pure validator. */
@@ -650,12 +663,15 @@ class PostListing : AppCompatActivity() {
 
     /** Thumbnail strip so the seller can review everything that will be uploaded. */
     private fun renderMediaPreviews() {
+		//get number of media files
         val count = mediaCount()
         val hasMedia = count > 0
+		
+		//show label and scroll if there is media to show
         mediaPreviewLabel.isVisible = hasMedia
         mediaPreviewScroll.isVisible = hasMedia
         mediaPreviewRow.removeAllViews()
-        if (!hasMedia) return
+        if (!hasMedia) return //return if no media to show
 
         mediaPreviewLabel.text = getString(R.string.post_selected_media, count)
         existingImageUrls.toList().forEach { url ->
@@ -664,7 +680,7 @@ class PostListing : AppCompatActivity() {
                 refreshMediaUi()
             })
         }
-        imagesAndVideos.toList().forEach { uri ->
+        imagesAndVideos.toList().forEach { uri -> //display newly selected media files that havent been uploaded
             mediaPreviewRow.addView(mediaPreview(uri, isVideoUri(uri)) {
                 imagesAndVideos.remove(uri)
                 refreshMediaUi()
@@ -673,14 +689,14 @@ class PostListing : AppCompatActivity() {
     }
 
     private fun mediaPreview(model: Any, isVideo: Boolean, onRemove: () -> Unit): View {
-        val size = dp(84)
-        val card = CardView(this).apply {
+        val size = dp(84) //size of media cards
+        val card = CardView(this).apply { //create a rounded cardview
             layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = dp(10) }
             radius = dp(12).toFloat()
             cardElevation = 0f
             setCardBackgroundColor(ContextCompat.getColor(this@PostListing, R.color.nox_field_bg))
         }
-        val frame = FrameLayout(this)
+        val frame = FrameLayout(this) //frame for media preview
         val image = ImageView(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -689,7 +705,7 @@ class PostListing : AppCompatActivity() {
             scaleType = ImageView.ScaleType.CENTER_CROP
             contentDescription = getString(R.string.post_selected_media_item)
         }
-        image.load(model) {
+        image.load(model) { //load image into imageview
             crossfade(true)
             placeholder(R.color.nox_field_bg)
             error(R.color.nox_field_bg)
@@ -697,14 +713,14 @@ class PostListing : AppCompatActivity() {
         frame.addView(image)
 
         if (isVideo) {
-            frame.addView(ImageView(this).apply {
+            frame.addView(ImageView(this).apply { //add a play button if a video
                 setImageResource(android.R.drawable.ic_media_play)
                 layoutParams = FrameLayout.LayoutParams(dp(28), dp(28), Gravity.CENTER)
                 setColorFilter(ContextCompat.getColor(this@PostListing, R.color.white))
             })
         }
 
-        frame.addView(ImageButton(this).apply {
+        frame.addView(ImageButton(this).apply { //add a close button
             setImageResource(R.drawable.ic_close)
             background = ContextCompat.getDrawable(this@PostListing, R.drawable.media_remove_bg)
             layoutParams = FrameLayout.LayoutParams(dp(28), dp(28), Gravity.TOP or Gravity.END)
