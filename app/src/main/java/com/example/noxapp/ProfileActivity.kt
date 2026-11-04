@@ -2,6 +2,7 @@ package com.example.noxapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
@@ -9,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
@@ -24,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
@@ -38,6 +41,8 @@ class ProfileActivity : AppCompatActivity() {
     private val pendingSaves = mutableSetOf<String>()
     private var currentTab = Tab.MY_LISTINGS
     private var accessJob: Job? = null
+    private var listingsLoaded = false
+    private var listingsError = false
 
     private enum class Tab { MY_LISTINGS, SAVED, SOLD }
 
@@ -55,6 +60,7 @@ class ProfileActivity : AppCompatActivity() {
         setupTabs()
         styleTabs()
         setupBottomNav()
+        setupRefresh()
 
         findViewById<ImageButton>(R.id.profileSettingsButton).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -136,8 +142,26 @@ class ProfileActivity : AppCompatActivity() {
         if (currentTab == Tab.SAVED) renderCurrentTab()
     }
 
+    /** Pull-to-refresh re-reads the profile document and the listings it chains into. */
+    private fun setupRefresh() {
+        findViewById<SwipeRefreshLayout>(R.id.profileRefresh).setOnRefreshListener {
+            loadUserProfile()
+        }
+        findViewById<Button>(R.id.profileErrorRetry).setOnClickListener { loadUserProfile() }
+    }
+
     private fun loadUserProfile() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            // Nothing to fetch for a signed-out account, so do not leave the spinner running.
+            stopRefresh()
+            return
+        }
+        // A pull or a retry starts clean: no stale error while loading and no empty notice.
+        listingsLoaded = false
+        listingsError = false
+        hideErrorState()
+        findViewById<TextView>(R.id.profileEmptyNotice).fadeVisibility(false)
 
         ListingRepo.getUserProfile(uid) { profile ->
             if (isDestroyed) return@getUserProfile
@@ -166,15 +190,40 @@ class ProfileActivity : AppCompatActivity() {
     private fun loadListings(uid: String) {
         ListingRepo.loadAllListings(
             onSuccess = { listings ->
+                if (isDestroyed || isFinishing) return@loadAllListings
                 allListings = listings
+                listingsLoaded = true
+                listingsError = false
+                stopRefresh()
+                hideErrorState()
                 val myListingsCount = allListings.count { it.sellerId == uid }
                 findViewById<TextView>(R.id.statListingsCount).text = myListingsCount.toString()
                 renderCurrentTab()
             },
             onError = {
-                Toast.makeText(this, "Failed to load listings", Toast.LENGTH_SHORT).show()
+                if (isDestroyed || isFinishing) return@loadAllListings
+                // A retry state instead of a toast; the previous grid cannot be trusted offline.
+                allListings = emptyList()
+                listingsLoaded = false
+                listingsError = true
+                profileAdapter.updateList(emptyList())
+                findViewById<TextView>(R.id.profileEmptyNotice).fadeVisibility(false)
+                showErrorState()
+                stopRefresh()
             }
         )
+    }
+
+    private fun stopRefresh() {
+        findViewById<SwipeRefreshLayout>(R.id.profileRefresh).isRefreshing = false
+    }
+
+    private fun showErrorState() {
+        findViewById<View>(R.id.profileErrorState).isVisible = true
+    }
+
+    private fun hideErrorState() {
+        findViewById<View>(R.id.profileErrorState).isVisible = false
     }
 
     private fun setupTabs() {
@@ -232,7 +281,8 @@ class ProfileActivity : AppCompatActivity() {
         }
 
         profileAdapter.updateList(itemsToDisplay)
-        emptyNotice.fadeVisibility(itemsToDisplay.isEmpty())
+        // The notice only makes sense after a load succeeded, and never over the error state.
+        emptyNotice.fadeVisibility(listingsLoaded && !listingsError && itemsToDisplay.isEmpty())
         if (animate) findViewById<RecyclerView>(R.id.profileRecyclerView).animateChildrenIn(staggerMs = 30L)
     }
 
