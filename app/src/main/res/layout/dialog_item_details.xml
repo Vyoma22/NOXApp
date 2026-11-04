@@ -61,7 +61,7 @@
                 <LinearLayout
                     android:id="@+id/detailMediaEmpty"
                     android:layout_width="match_parent"
-                    android:layout_height="220dp"
+                    android:layout_height="320dp"
                     android:background="@drawable/bg_listing_image"
                     android:gravity="center"
                     android:orientation="vertical"
@@ -83,11 +83,13 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
-                <!-- One snapped page per image; arrows and the counter float over the pager. -->
+                <!-- One snapped page per image; arrows and the counter float over the pager.
+                     The gallery is sized to dominate the sheet so a photo is readable without
+                     opening the fullscreen viewer; the sheet scrolls when the screen is short. -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/detailMediaPager"
                     android:layout_width="match_parent"
-                    android:layout_height="220dp"
+                    android:layout_height="320dp"
                     android:overScrollMode="never"
                     android:visibility="gone" />
 
