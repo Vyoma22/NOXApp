@@ -224,6 +224,17 @@
     </plurals>
     <string name="detail_location_view_map">View pickup location on the map</string>
 
+    <!-- Listing photo gallery and fullscreen viewer -->
+    <string name="detail_media_counter">%1$d / %2$d</string>
+    <string name="detail_media_counter_description">Photo %1$d of %2$d</string>
+    <string name="detail_media_photo_description">Listing photo %1$d of %2$d</string>
+    <string name="detail_media_previous">Previous photo</string>
+    <string name="detail_media_next">Next photo</string>
+    <string name="detail_media_show_photo">Show photo %1$d</string>
+    <string name="detail_media_empty">No photos</string>
+    <string name="viewer_close">Close photo viewer</string>
+    <string name="viewer_photo_description">Photo %1$d of %2$d</string>
+
     <!-- Pickup point picker on the map -->
     <string name="pick_location_title">Pickup location</string>
     <string name="pick_location_help">Move the map to put the pin on your meeting spot.</string>

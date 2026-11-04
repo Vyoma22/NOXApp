@@ -14,12 +14,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import coil.load
 import com.example.noxapp.MapActivity
 import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
@@ -58,10 +56,10 @@ object ItemDetailDialog {
         dialog.findViewById<TextView>(R.id.detailDescription).text = listing.description
         dialog.findViewById<TextView>(R.id.detailLocation).text = "Pickup: ${listing.pickupLocation}"
         bindPickupLocation(activity, dialog, listing)
-        dialog.findViewById<ImageView>(R.id.detailImage).load(listing.imageUrls.firstOrNull()) {
-            placeholder(R.color.nox_field_bg)
-            error(R.color.nox_field_bg)
-        }
+
+        // Listings can carry up to five photos; the gallery handles swiping, arrows and the viewer.
+        MediaGallery(activity, dialog, listing.imageUrls).bind()
+
         dialog.findViewById<ImageButton>(R.id.detailClose).setOnClickListener { dialog.dismiss() }
 
         val isOwner = listing.sellerId.isNotBlank() &&
@@ -208,7 +206,7 @@ object ItemDetailDialog {
                 activity.startActivity(Intent(activity, ProfileActivity::class.java))
             } else {
                 activity.startActivity(
-                    SellerProfileActivity.intent(activity, listing.sellerId, sellerName)
+                    SellerProfileActivity.intent(activity, sellerId = listing.sellerId, sellerName = sellerName)
                 )
             }
         }

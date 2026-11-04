@@ -51,6 +51,9 @@
     <!-- Action text on a dark snackbar -->
     <color name="nox_snackbar_action">#A9DCBF</color>
 
+    <!-- Photo counter pill, translucent enough to read the image underneath -->
+    <color name="nox_media_scrim">#A623392F</color>
+
     <!-- Launcher icon background, sampled from the NOX brand mark -->
     <color name="ic_launcher_background">#FF305C45</color>
 </resources>
