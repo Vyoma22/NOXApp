@@ -51,7 +51,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -66,7 +65,6 @@ class PostListing : AppCompatActivity() {
     private val imagesAndVideos: MutableList<Uri> = mutableListOf()
     private val existingImageUrls: MutableList<String> = mutableListOf()
     private val storage = FirebaseStorage.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
 
     private lateinit var itmName: EditText
     private lateinit var itmCategory: Spinner
@@ -501,24 +499,22 @@ class PostListing : AppCompatActivity() {
                         )
                         Toast.makeText(this@PostListing, R.string.post_updated, Toast.LENGTH_SHORT).show()
                     } else {
-                        val listingsCollection = firestore.collection("listings")
-                        val newDocRef = listingsCollection.document()
-                        val listing = Listing(
-                            id = newDocRef.id,
-                            sellerId = uid,
-                            sellerName = displayName,
-                            title = name,
-                            category = category,
-                            price = price,
-                            description = desc,
-                            pickupLocation = location,
-                            condition = condition,
-                            imageUrls = allImages,
-                            latitude = latitude,
-                            longitude = longitude
+                        val newListingId = ListingRepo.createListing(
+                            Listing(
+                                sellerId = uid,
+                                sellerName = displayName,
+                                title = name,
+                                category = category,
+                                price = price,
+                                description = desc,
+                                pickupLocation = location,
+                                condition = condition,
+                                imageUrls = allImages,
+                                latitude = latitude,
+                                longitude = longitude
+                            )
                         )
-                        newDocRef.set(listing).await() //save the new listing to database
-                        Log.d("PostListing", "Listing written to Firestore: ${newDocRef.id}")
+                        Log.d("PostListing", "Listing written to Firestore: $newListingId")
                         Toast.makeText(this@PostListing, R.string.post_success, Toast.LENGTH_SHORT).show()
                     }
 

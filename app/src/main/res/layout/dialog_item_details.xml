@@ -358,6 +358,20 @@
                 android:text="@string/detail_message_seller"
                 android:textColor="@color/white"
                 android:textSize="14sp" />
+
+            <!-- Buyers can flag a listing; owners get edit/delete above instead. -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/reportListingButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="4dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="@string/listing_report_action"
+                android:textColor="@color/nox_subtext"
+                android:visibility="gone" />
         </LinearLayout>
     </ScrollView>
 </LinearLayout>

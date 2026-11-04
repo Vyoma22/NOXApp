@@ -203,6 +203,13 @@
     <string name="detail_seller_new">New seller</string>
     <string name="detail_view_seller_profile">View %1$s\'s profile</string>
 
+    <!-- Report a listing by email, available to buyers but not the listing's owner -->
+    <string name="listing_report_action">Report listing</string>
+    <string name="listing_report_chooser">Report listing</string>
+    <string name="listing_report_subject_format">Report listing: %1$s (%2$s)</string>
+    <string name="listing_report_body_format">Listing ID: %1$s\nTitle: %2$s\nPrice: $%3$s\nCategory: %4$s\nCondition: %5$s\nSeller ID: %6$s\nSeller name: %7$s\nPickup location: %8$s\n\nReason for report:\n</string>
+    <string name="listing_report_unavailable">No email app is available to send the report</string>
+
     <!-- Read-only seller profile opened from the item detail sheet -->
     <string name="seller_profile_title">Seller profile</string>
     <string name="seller_profile_back">Back</string>
