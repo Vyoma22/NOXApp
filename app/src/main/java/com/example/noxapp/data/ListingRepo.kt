@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.util.CustomClassMapper
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.lang.Exception
@@ -35,6 +36,37 @@ object ListingRepo {
     }
 
     /**
+     * Creates a listing with a server-generated creation time and returns its document id.
+     *
+     * [Listing.createdAt] is a Long (epoch millis), and a Long cannot hold the
+     * [FieldValue.serverTimestamp] sentinel, so the document is written as an explicit field map
+     * instead of serialising the data class. Edits keep using [updateListing].
+     */
+    suspend fun createListing(listing: Listing): String {
+        val docRef = listingsRef.document()
+        docRef.set(
+            mapOf(
+                "id" to docRef.id,
+                "title" to listing.title,
+                "price" to listing.price,
+                "category" to listing.category,
+                "condition" to listing.condition,
+                "description" to listing.description,
+                "pickupLocation" to listing.pickupLocation,
+                "imageUrls" to listing.imageUrls,
+                "sellerId" to listing.sellerId,
+                "sellerName" to listing.sellerName,
+                "featured" to listing.featured,
+                "sold" to listing.sold,
+                "createdAt" to FieldValue.serverTimestamp(),
+                "latitude" to listing.latitude,
+                "longitude" to listing.longitude
+            )
+        ).await()
+        return docRef.id
+    }
+
+    /**
      * Deletes a listing and its uploaded photos. The document goes first so the listing
      * disappears from every feed even if a storage object is already gone.
      */
@@ -53,13 +85,30 @@ object ListingRepo {
     // ponytail: documents written before the model merge use name/location/imageUrl.
     // Delete these fallbacks once the old listings have been re-posted.
     private fun DocumentSnapshot.toListing(): Listing? {
-        val listing = toObject(Listing::class.java) ?: return null
+        val raw = data ?: return null
+        val listing = deserializeListing(raw) ?: return null
         return listing.copy(
             id = id,
             title = listing.title.ifBlank { getString("name").orEmpty() },
             pickupLocation = getString("location") ?: listing.pickupLocation,
             imageUrls = listing.imageUrls.ifEmpty { listOfNotNull(getString("imageUrl")) }
         )
+    }
+
+    /**
+     * Deserializes a listing document after normalising `createdAt` to epoch millis.
+     *
+     * `toObject()` on its own throws because new documents store a Firestore Timestamp where
+     * [Listing.createdAt] expects a Long. Feeding the SDK's own class mapper a copy of the document
+     * data with `createdAt` already converted (or removed when it is missing/garbage, so the model
+     * default applies) keeps every other field deserializing normally, including fields added to
+     * the model later.
+     */
+    private fun DocumentSnapshot.deserializeListing(raw: Map<String, Any>): Listing? {
+        val normalised = HashMap(raw)
+        val createdAt = ListingTimestamps.toMillis(normalised["createdAt"])
+        if (createdAt != null) normalised["createdAt"] = createdAt else normalised.remove("createdAt")
+        return CustomClassMapper.convertToCustomClass(normalised, Listing::class.java, reference)
     }
 
     // Fetch complete user profile from Firestore
