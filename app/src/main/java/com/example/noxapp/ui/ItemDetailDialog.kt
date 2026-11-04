@@ -20,9 +20,11 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import coil.load
+import com.example.noxapp.MapActivity
 import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
 import com.example.noxapp.SellerProfileActivity
+import com.example.noxapp.data.ListingLocation
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
@@ -55,6 +57,7 @@ object ItemDetailDialog {
         dialog.findViewById<TextView>(R.id.detailCategory).text = listing.category
         dialog.findViewById<TextView>(R.id.detailDescription).text = listing.description
         dialog.findViewById<TextView>(R.id.detailLocation).text = "Pickup: ${listing.pickupLocation}"
+        bindPickupLocation(activity, dialog, listing)
         dialog.findViewById<ImageView>(R.id.detailImage).load(listing.imageUrls.firstOrNull()) {
             placeholder(R.color.nox_field_bg)
             error(R.color.nox_field_bg)
@@ -107,6 +110,29 @@ object ItemDetailDialog {
         }
         bindSeller(activity, dialog, listing)
         dialog.show()
+    }
+
+    /**
+     * The pickup line opens the map on this listing's pin, so a buyer can see where to meet.
+     * Coordinates come from the same resolver the map uses, so listings saved before map pins
+     * existed still land on the right campus.
+     */
+    private fun bindPickupLocation(activity: Activity, dialog: Dialog, listing: Listing) {
+        val location = ListingLocation.resolve(listing)
+        dialog.findViewById<View>(R.id.detailLocationRow).apply {
+            contentDescription = activity.getString(R.string.detail_location_view_map)
+            setOnClickListener {
+                dialog.dismiss()
+                activity.startActivity(
+                    Intent(activity, MapActivity::class.java)
+                        .putExtra(MapActivity.EXTRA_VIEW_LOCATION, true)
+                        .putExtra(MapActivity.EXTRA_CENTER_LAT, location.latitude)
+                        .putExtra(MapActivity.EXTRA_CENTER_LNG, location.longitude)
+                        .putExtra(MapActivity.EXTRA_LOCATION_LABEL, location.label)
+                        .putExtra(MapActivity.EXTRA_LOCATION_TITLE, location.title)
+                )
+            }
+        }
     }
 
     /**
