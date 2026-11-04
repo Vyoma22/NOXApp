@@ -191,7 +191,9 @@ class ProfileActivity : AppCompatActivity() {
         ListingRepo.loadAllListings(
             onSuccess = { listings ->
                 if (isDestroyed || isFinishing) return@loadAllListings
-                allListings = listings
+                // Firestore orders Numbers before Timestamps, so legacy and new createdAt values
+                // arrive interleaved by type; sort the tabs client-side instead.
+                allListings = listings.sortedByDescending { it.createdAt }
                 listingsLoaded = true
                 listingsError = false
                 stopRefresh()
