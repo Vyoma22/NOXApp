@@ -61,7 +61,7 @@
                 <LinearLayout
                     android:id="@+id/detailMediaEmpty"
                     android:layout_width="match_parent"
-                    android:layout_height="220dp"
+                    android:layout_height="320dp"
                     android:background="@drawable/bg_listing_image"
                     android:gravity="center"
                     android:orientation="vertical"
@@ -83,11 +83,13 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
-                <!-- One snapped page per image; arrows and the counter float over the pager. -->
+                <!-- One snapped page per image; arrows and the counter float over the pager.
+                     The gallery is sized to dominate the sheet so a photo is readable without
+                     opening the fullscreen viewer; the sheet scrolls when the screen is short. -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/detailMediaPager"
                     android:layout_width="match_parent"
-                    android:layout_height="220dp"
+                    android:layout_height="320dp"
                     android:overScrollMode="never"
                     android:visibility="gone" />
 
@@ -145,14 +147,32 @@
                 android:overScrollMode="never"
                 android:visibility="gone" />
 
-            <TextView
-                android:id="@+id/detailPrice"
+            <!-- A price cut shows the old price struck through next to the new one. The row keeps
+                 both prices on one line and only appears when there is a drop to show. -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/detailPreviousPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:textColor="@color/nox_muted"
+                    android:textSize="15sp"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/detailPrice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/nox_dark_green"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -181,6 +201,15 @@
                     android:textColor="@color/nox_dark_green"
                     android:textSize="12sp" />
             </LinearLayout>
+
+            <!-- Cheap social proof: how many students have opened this listing. -->
+            <TextView
+                android:id="@+id/detailViewCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="@color/nox_subtext"
+                android:textSize="12sp" />
 
             <View
                 android:layout_width="match_parent"

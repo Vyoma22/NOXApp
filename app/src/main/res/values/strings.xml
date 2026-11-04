@@ -210,6 +210,18 @@
     <string name="listing_report_body_format">Listing ID: %1$s\nTitle: %2$s\nPrice: $%3$s\nCategory: %4$s\nCondition: %5$s\nSeller ID: %6$s\nSeller name: %7$s\nPickup location: %8$s\n\nReason for report:\n</string>
     <string name="listing_report_unavailable">No email app is available to send the report</string>
 
+    <!-- Listing signals: view counts on the sheet and social-proof badges on cards -->
+    <plurals name="detail_views">
+        <item quantity="one">%1$d view</item>
+        <item quantity="other">%1$d views</item>
+    </plurals>
+    <string name="detail_views_none">No views yet</string>
+    <string name="detail_previous_price">Was %1$s, now %2$s</string>
+    <string name="listing_badge_popular">Popular</string>
+    <string name="listing_badge_popular_description">Popular listing</string>
+    <string name="listing_badge_price_drop">-$%1$d</string>
+    <string name="listing_badge_price_drop_description">Price dropped by $%1$d</string>
+
     <!-- Read-only seller profile opened from the item detail sheet -->
     <string name="seller_profile_title">Seller profile</string>
     <string name="seller_profile_back">Back</string>

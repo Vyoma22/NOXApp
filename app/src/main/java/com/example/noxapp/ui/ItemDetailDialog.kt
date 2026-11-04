@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.text.SpannableString
@@ -26,6 +27,7 @@ import com.example.noxapp.data.ListingLocation
 import com.example.noxapp.data.ListingReport
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
+import com.example.noxapp.models.ListingSignals
 import com.example.noxapp.postlisting.PostListing
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
@@ -51,7 +53,7 @@ object ItemDetailDialog {
         }
         dialog.setCanceledOnTouchOutside(true)
         dialog.findViewById<TextView>(R.id.detailTitle).text = listing.title
-        dialog.findViewById<TextView>(R.id.detailPrice).text = "$${listing.price.toInt()}"
+        bindPrice(activity, dialog, listing)
         dialog.findViewById<TextView>(R.id.detailCondition).text = listing.condition
         dialog.findViewById<TextView>(R.id.detailCategory).text = listing.category
         dialog.findViewById<TextView>(R.id.detailDescription).text = listing.description
@@ -66,6 +68,7 @@ object ItemDetailDialog {
         val isOwner = listing.sellerId.isNotBlank() &&
             listing.sellerId == FirebaseAuth.getInstance().currentUser?.uid
         dialog.findViewById<ViewGroup>(R.id.ownerActions).isVisible = isOwner
+        bindViewCount(activity, dialog, listing, isOwner)
 
         // Reporting is for buyers; the owner edits or deletes the listing above instead.
         val reportButton = dialog.findViewById<Button>(R.id.reportListingButton)
@@ -141,6 +144,50 @@ object ItemDetailDialog {
             )
         }.onFailure {
             Toast.makeText(activity, R.string.listing_report_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    /**
+     * Shows the current price, and when the seller has cut it, the old price struck through just
+     * before the new one. The old price stays hidden for listings that never dropped.
+     */
+    private fun bindPrice(activity: Activity, dialog: Dialog, listing: Listing) {
+        val newPrice = "$${listing.price.toInt()}"
+        dialog.findViewById<TextView>(R.id.detailPrice).text = newPrice
+
+        val previousPriceView = dialog.findViewById<TextView>(R.id.detailPreviousPrice)
+        val previousPrice = listing.previousPrice
+        if (previousPrice == null || previousPrice <= listing.price) {
+            previousPriceView.isVisible = false
+            return
+        }
+        val oldPrice = "$${previousPrice.toInt()}"
+        previousPriceView.text = oldPrice
+        previousPriceView.paintFlags =
+            previousPriceView.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG
+        previousPriceView.contentDescription =
+            activity.getString(R.string.detail_previous_price, oldPrice, newPrice)
+        previousPriceView.isVisible = true
+    }
+
+    /**
+     * Shows how many students have opened this listing. A buyer's open counts as a view right
+     * away, so the number moves with the tap before the increment lands; the write itself is
+     * fire-and-forget and never blocks the sheet. The owner sees only the stored count.
+     */
+    private fun bindViewCount(activity: Activity, dialog: Dialog, listing: Listing, isOwner: Boolean) {
+        val views = ListingSignals.displayedViewCount(listing, isOwner)
+        dialog.findViewById<TextView>(R.id.detailViewCount).text = if (views == 0L) {
+            activity.getString(R.string.detail_views_none)
+        } else {
+            activity.resources.getQuantityString(
+                R.plurals.detail_views,
+                views.toInt(),
+                views.toInt()
+            )
+        }
+        if (!isOwner) {
+            ListingRepo.incrementViewCount(listing.id)
         }
     }
 
