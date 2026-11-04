@@ -7,258 +7,305 @@
     android:layout_height="match_parent"
     android:background="@color/nox_cream_bg">
 
-    <androidx.core.widget.NestedScrollView
-        android:id="@+id/profileScroll"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/profileRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:paddingBottom="72dp">
+        android:layout_height="match_parent">
 
-        <LinearLayout
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/profileScroll"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_horizontal"
-            android:orientation="vertical"
-            android:padding="20dp">
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:paddingBottom="72dp">
 
-            <!-- Avatar -->
-            <FrameLayout
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:padding="20dp">
 
-                <!-- Circular Avatar -->
-                <androidx.cardview.widget.CardView
-                    android:layout_width="90dp"
-                    android:layout_height="90dp"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="16dp"
-                    app:cardBackgroundColor="@color/nox_card_green"
-                    app:cardCornerRadius="45dp"
-                    app:cardElevation="0dp">
+                <!-- Avatar -->
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
 
-                    <TextView
-                        android:id="@+id/profileAvatarInitial"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                    <!-- Circular Avatar -->
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="90dp"
+                        android:layout_height="90dp"
+                        android:layout_gravity="center_horizontal"
+                        android:layout_marginTop="16dp"
+                        app:cardBackgroundColor="@color/nox_card_green"
+                        app:cardCornerRadius="45dp"
+                        app:cardElevation="0dp">
+
+                        <TextView
+                            android:id="@+id/profileAvatarInitial"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:gravity="center"
+                            android:textColor="@color/nox_dark_green"
+                            android:textSize="36sp"
+                            android:textStyle="bold" />
+                    </androidx.cardview.widget.CardView>
+                </FrameLayout>
+
+                <!-- Name & School -->
+                <TextView
+                    android:id="@+id/profileNameText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:textColor="@color/nox_dark_green"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/profileSchoolText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/nox_subtext"
+                    android:textSize="14sp" />
+
+                <!-- Verified Student Badge -->
+                <TextView
+                    android:id="@+id/verifiedBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@color/nox_chip_bg"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="6dp"
+                    android:text="✓ Verified Student"
+                    android:textColor="@color/nox_accent_text"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <!-- Stats Bar (Listings | Saved | Rating) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal"
+                    android:weightSum="3">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
                         android:gravity="center"
-                        android:textColor="@color/nox_dark_green"
-                        android:textSize="36sp"
-                        android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
-            </FrameLayout>
+                        android:orientation="vertical">
 
-            <!-- Name & School -->
-            <TextView
-                android:id="@+id/profileNameText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:textColor="@color/nox_dark_green"
-                android:textSize="22sp"
-                android:textStyle="bold" />
+                        <TextView
+                            android:id="@+id/statListingsCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/nox_dark_green"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
 
-            <TextView
-                android:id="@+id/profileSchoolText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textColor="@color/nox_subtext"
-                android:textSize="14sp" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Listings"
+                            android:textColor="@color/nox_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
 
-            <!-- Verified Student Badge -->
-            <TextView
-                android:id="@+id/verifiedBadge"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:background="@color/nox_chip_bg"
-                android:paddingHorizontal="14dp"
-                android:paddingVertical="6dp"
-                android:text="✓ Verified Student"
-                android:textColor="@color/nox_accent_text"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <!-- Stats Bar (Listings | Saved | Rating) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:baselineAligned="false"
-                android:orientation="horizontal"
-                android:weightSum="3">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:id="@+id/statListingsCount"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/nox_dark_green"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                        <TextView
+                            android:id="@+id/statSavedCount"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textColor="@color/nox_dark_green"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Saved"
+                            android:textColor="@color/nox_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:text="Listings"
-                        android:textColor="@color/nox_subtext"
-                        android:textSize="12sp" />
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="5.0"
+                            android:textColor="@color/nox_dark_green"
+                            android:textSize="20sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Rating"
+                            android:textColor="@color/nox_subtext"
+                            android:textSize="12sp" />
+                    </LinearLayout>
                 </LinearLayout>
 
+                <!-- Pill Navigation Tabs (My Listings | Saved | Sold) -->
                 <LinearLayout
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:gravity="center"
-                    android:orientation="vertical">
+                    android:layout_marginTop="20dp"
+                    android:minHeight="48dp"
+                    android:orientation="horizontal"
+                    android:weightSum="3">
 
-                    <TextView
-                        android:id="@+id/statSavedCount"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textColor="@color/nox_dark_green"
-                        android:textSize="20sp"
-                        android:textStyle="bold" />
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/tabMyListings"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginEnd="4dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="My Listings"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:textSize="12sp"
+                        app:autoSizeMaxTextSize="12sp"
+                        app:autoSizeMinTextSize="10sp"
+                        app:autoSizeStepGranularity="1sp"
+                        app:autoSizeTextType="uniform"
+                        app:backgroundTint="@color/nox_primary_green"
+                        app:cornerRadius="24dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/tabSaved"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginHorizontal="2dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
                         android:text="Saved"
-                        android:textColor="@color/nox_subtext"
-                        android:textSize="12sp" />
+                        android:textAllCaps="false"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="12sp"
+                        app:autoSizeMaxTextSize="12sp"
+                        app:autoSizeMinTextSize="10sp"
+                        app:autoSizeStepGranularity="1sp"
+                        app:autoSizeTextType="uniform"
+                        app:backgroundTint="@color/nox_chip_bg"
+                        app:cornerRadius="24dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/tabSold"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="4dp"
+                        android:layout_weight="1"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
+                        android:maxLines="1"
+                        android:minWidth="0dp"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text="Sold"
+                        android:textAllCaps="false"
+                        android:textColor="@color/nox_dark_green"
+                        android:textSize="12sp"
+                        app:autoSizeMaxTextSize="12sp"
+                        app:autoSizeMinTextSize="10sp"
+                        app:autoSizeStepGranularity="1sp"
+                        app:autoSizeTextType="uniform"
+                        app:backgroundTint="@color/nox_chip_bg"
+                        app:cornerRadius="24dp" />
                 </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="0dp"
+                <!-- Grid of Items -->
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/profileRecyclerView"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
+                    android:layout_marginTop="16dp"
+                    android:nestedScrollingEnabled="false" />
+
+                <!-- Empty State Notice -->
+                <TextView
+                    android:id="@+id/profileEmptyNotice"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="32dp"
+                    android:text="No items here yet."
+                    android:textColor="@color/nox_subtext"
+                    android:visibility="gone" />
+
+                <!-- Error State with retry (replaces the old listings failure toast) -->
+                <LinearLayout
+                    android:id="@+id/profileErrorState"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="28dp"
                     android:gravity="center"
-                    android:orientation="vertical">
+                    android:orientation="vertical"
+                    android:visibility="gone">
 
                     <TextView
+                        android:id="@+id/profileErrorTitle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="5.0"
+                        android:gravity="center"
+                        android:text="@string/home_error_title"
                         android:textColor="@color/nox_dark_green"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/profileErrorHint"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Rating"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:text="@string/home_error_hint"
                         android:textColor="@color/nox_subtext"
-                        android:textSize="12sp" />
+                        android:textSize="14sp" />
+
+                    <Button
+                        android:id="@+id/profileErrorRetry"
+                        android:layout_width="wrap_content"
+                        android:layout_height="48dp"
+                        android:layout_marginTop="12dp"
+                        android:backgroundTint="@color/nox_primary_green"
+                        android:text="@string/retry"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white" />
                 </LinearLayout>
+
             </LinearLayout>
-
-            <!-- Pill Navigation Tabs (My Listings | Saved | Sold) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
-                android:minHeight="48dp"
-                android:orientation="horizontal"
-                android:weightSum="3">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/tabMyListings"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginEnd="4dp"
-                    android:layout_weight="1"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:maxLines="1"
-                    android:minWidth="0dp"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:text="My Listings"
-                    android:textAllCaps="false"
-                    android:textColor="@color/white"
-                    android:textSize="12sp"
-                    app:autoSizeMaxTextSize="12sp"
-                    app:autoSizeMinTextSize="10sp"
-                    app:autoSizeStepGranularity="1sp"
-                    app:autoSizeTextType="uniform"
-                    app:backgroundTint="@color/nox_primary_green"
-                    app:cornerRadius="24dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/tabSaved"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginHorizontal="2dp"
-                    android:layout_weight="1"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:maxLines="1"
-                    android:minWidth="0dp"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:text="Saved"
-                    android:textAllCaps="false"
-                    android:textColor="@color/nox_dark_green"
-                    android:textSize="12sp"
-                    app:autoSizeMaxTextSize="12sp"
-                    app:autoSizeMinTextSize="10sp"
-                    app:autoSizeStepGranularity="1sp"
-                    app:autoSizeTextType="uniform"
-                    app:backgroundTint="@color/nox_chip_bg"
-                    app:cornerRadius="24dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/tabSold"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="4dp"
-                    android:layout_weight="1"
-                    android:insetTop="0dp"
-                    android:insetBottom="0dp"
-                    android:maxLines="1"
-                    android:minWidth="0dp"
-                    android:paddingStart="4dp"
-                    android:paddingEnd="4dp"
-                    android:text="Sold"
-                    android:textAllCaps="false"
-                    android:textColor="@color/nox_dark_green"
-                    android:textSize="12sp"
-                    app:autoSizeMaxTextSize="12sp"
-                    app:autoSizeMinTextSize="10sp"
-                    app:autoSizeStepGranularity="1sp"
-                    app:autoSizeTextType="uniform"
-                    app:backgroundTint="@color/nox_chip_bg"
-                    app:cornerRadius="24dp" />
-            </LinearLayout>
-
-            <!-- Grid of Items -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/profileRecyclerView"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:nestedScrollingEnabled="false" />
-
-            <!-- Empty State Notice -->
-            <TextView
-                android:id="@+id/profileEmptyNotice"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:text="No items here yet."
-                android:textColor="@color/nox_subtext"
-                android:visibility="gone" />
-
-        </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+        </androidx.core.widget.NestedScrollView>
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ImageButton
         android:id="@+id/profileSettingsButton"
