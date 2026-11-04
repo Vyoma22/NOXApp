@@ -23,6 +23,7 @@ import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
 import com.example.noxapp.SellerProfileActivity
 import com.example.noxapp.data.ListingLocation
+import com.example.noxapp.data.ListingReport
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
@@ -66,6 +67,14 @@ object ItemDetailDialog {
             listing.sellerId == FirebaseAuth.getInstance().currentUser?.uid
         dialog.findViewById<ViewGroup>(R.id.ownerActions).isVisible = isOwner
 
+        // Reporting is for buyers; the owner edits or deletes the listing above instead.
+        val reportButton = dialog.findViewById<Button>(R.id.reportListingButton)
+        reportButton.isVisible = !isOwner
+        reportButton.setOnClickListener {
+            dialog.dismiss()
+            sendListingReport(activity, listing)
+        }
+
         dialog.findViewById<Button>(R.id.editListingButton).setOnClickListener {
             dialog.dismiss()
             activity.startActivity(
@@ -108,6 +117,31 @@ object ItemDetailDialog {
         }
         bindSeller(activity, dialog, listing)
         dialog.show()
+    }
+
+    /**
+     * Reports go to the app inbox as a pre-filled email, mirroring Settings' report flow.
+     * [ListingReport] fills the subject and body so the copy stays in strings.xml.
+     */
+    private fun sendListingReport(activity: Activity, listing: Listing) {
+        val report = ListingReport(
+            subjectFormat = activity.getString(R.string.listing_report_subject_format),
+            bodyFormat = activity.getString(R.string.listing_report_body_format)
+        )
+        val inbox = activity.getString(R.string.settings_report_email)
+        val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+            data = Uri.parse("mailto:$inbox")
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(inbox))
+            putExtra(Intent.EXTRA_SUBJECT, report.subject(listing))
+            putExtra(Intent.EXTRA_TEXT, report.body(listing))
+        }
+        runCatching {
+            activity.startActivity(
+                Intent.createChooser(emailIntent, activity.getString(R.string.listing_report_chooser))
+            )
+        }.onFailure {
+            Toast.makeText(activity, R.string.listing_report_unavailable, Toast.LENGTH_LONG).show()
+        }
     }
 
     /**
