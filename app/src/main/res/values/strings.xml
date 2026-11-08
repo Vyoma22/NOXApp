@@ -4,6 +4,7 @@
     <string name="home_greeting">Welcome, %1$s!</string>
     <string name="home_subtitle">Find what you need from your campus community.</string>
     <string name="search_hint">Search for items…</string>
+	<string name="voice_search">Voice search</string>
     <string name="clear_search">Clear search</string>
     <string name="browse_items_title">Browse\nItems</string>
     <string name="browse_items_sub">Discover great deals from students</string>

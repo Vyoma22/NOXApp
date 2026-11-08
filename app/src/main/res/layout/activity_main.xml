@@ -95,6 +95,17 @@
                         android:textColor="@color/nox_dark_green"
                         android:textColorHint="@color/nox_subtext"
                         android:textSize="14sp" />
+						
+						<ImageButton
+                        android:id="@+id/searchVoice"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="end|center_vertical"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/voice_search"
+                        android:padding="14dp"
+                        android:src="@drawable/ic_mic"
+                        app:tint="@color/nox_subtext" />
 
                     <ImageButton
                         android:id="@+id/searchClear"

@@ -151,12 +151,30 @@ class MainActivity : AppCompatActivity() {
     private fun setupLiveSearch() {
         val search = findViewById<EditText>(R.id.searchBar)
         val clear = findViewById<ImageButton>(R.id.searchClear)
+		val voice = findViewById<ImageButton>(R.id.searchVoice)
 
         search.addTextChangedListener { text ->
             currentSearchQuery = text?.toString()?.trim().orEmpty()
             clear.isVisible = !text.isNullOrEmpty()
             applyFilters()
         }
+		
+		voice.setOnClickListener {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
+            if (intent.resolveActivity(packageManager) != null) {
+                activityResultLauncher.launch(intent)
+            } else {
+                Toast.makeText(
+                    this,
+                    "Speech recognition is not available.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+		
         clear.setOnClickListener { search.setText("") }
         search.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_SEARCH) {
@@ -395,6 +413,27 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+	
+	private val activityResultLauncher: ActivityResultLauncher<Intent> =
+        registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val speechResults = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                val recognizedText = speechResults?.firstOrNull() //get first recognized phrase
+                if (!recognizedText.isNullOrBlank()) {
+                    val search = findViewById<EditText>(R.id.searchBar)
+                    search.setText(recognizedText.trim()) //insert speech into the search bar
+                    search.setSelection(search.text.length) //position cursor to end of text
+                } else {
+                    Toast.makeText(
+                        this,
+                        "No speech recognized.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
 
     companion object {
         private const val STATE_CATEGORY = "home.category"
