@@ -3,7 +3,6 @@ package com.example.noxapp
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
-import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
@@ -126,10 +125,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         featuredAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
-            ItemDetailDialog.show(this, listing)
+            ItemDetailDialog.show(this, listing) { loadListingData(showSpinner = false) }
         }
         recentAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
-            ItemDetailDialog.show(this, listing)
+            ItemDetailDialog.show(this, listing) { loadListingData(showSpinner = false) }
         }
 
         featuredRecycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -156,16 +155,15 @@ class MainActivity : AppCompatActivity() {
     private fun setupLiveSearch() {
         val search = findViewById<EditText>(R.id.searchBar)
         val clear = findViewById<ImageButton>(R.id.searchClear)
-        val voice = findViewById<ImageButton>(R.id.searchVoice)
+		val voice = findViewById<ImageButton>(R.id.searchVoice)
 
         search.addTextChangedListener { text ->
             currentSearchQuery = text?.toString()?.trim().orEmpty()
             clear.isVisible = !text.isNullOrEmpty()
-            voice.isVisible = text.isNullOrEmpty()
             applyFilters()
         }
-
-        voice.setOnClickListener {
+		
+		voice.setOnClickListener {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
@@ -180,7 +178,7 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
         }
-
+		
         clear.setOnClickListener { search.setText("") }
         search.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_SEARCH) {
@@ -330,16 +328,23 @@ class MainActivity : AppCompatActivity() {
             selectedItemId = R.id.navHome
             setOnItemSelectedListener { item ->
                 when (item.itemId) {
-                    R.id.navBrowse -> startActivity(Intent(this@MainActivity, BrowseActivity::class.java))
-                    R.id.navPost -> startActivity(Intent(this@MainActivity, PostListing::class.java))
+                    R.id.navBrowse -> post { openBrowse() }
+                    R.id.navPost -> post {
+                        startActivity(Intent(this@MainActivity, PostListing::class.java))
+                    }
                     R.id.navChat -> Toast.makeText(this@MainActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
-                    R.id.navProfile -> startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
+                    R.id.navProfile -> post {
+                        startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
+                    }
                 }
                 item.itemId == R.id.navHome
             }
             setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navHome) {
-                    findViewById<NestedScrollView>(R.id.mainScroll).smoothScrollTo(0, 0)
+                if (item.itemId == R.id.navHome && !isFinishing && !isDestroyed) {
+                    // Tapping Home again restores the unfiltered feed.
+                    clearFilters()
+                    // The content view can already be detached during a task transition.
+                    findViewById<NestedScrollView>(R.id.mainScroll)?.smoothScrollTo(0, 0)
                 }
             }
         }
@@ -387,6 +392,12 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Returning from the edit form should show the saved title, price, and photos.
+        if (listingsLoaded) loadListingData(showSpinner = false)
+    }
+
     override fun onStart() {
         super.onStart()
         lifecycleScope.launch {
@@ -406,8 +417,8 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
-    private val activityResultLauncher: ActivityResultLauncher<Intent> =
+	
+	private val activityResultLauncher: ActivityResultLauncher<Intent> =
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
