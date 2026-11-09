@@ -155,15 +155,16 @@ class MainActivity : AppCompatActivity() {
     private fun setupLiveSearch() {
         val search = findViewById<EditText>(R.id.searchBar)
         val clear = findViewById<ImageButton>(R.id.searchClear)
-		val voice = findViewById<ImageButton>(R.id.searchVoice)
+        val voice = findViewById<ImageButton>(R.id.searchVoice)
 
         search.addTextChangedListener { text ->
             currentSearchQuery = text?.toString()?.trim().orEmpty()
             clear.isVisible = !text.isNullOrEmpty()
+            voice.isVisible = text.isNullOrEmpty()
             applyFilters()
         }
-		
-		voice.setOnClickListener {
+
+        voice.setOnClickListener {
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
@@ -178,7 +179,7 @@ class MainActivity : AppCompatActivity() {
                 ).show()
             }
         }
-		
+
         clear.setOnClickListener { search.setText("") }
         search.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_SEARCH) {
