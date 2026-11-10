@@ -333,7 +333,9 @@ class MainActivity : AppCompatActivity() {
                     R.id.navPost -> post {
                         startActivity(Intent(this@MainActivity, PostListing::class.java))
                     }
-                    R.id.navChat -> Toast.makeText(this@MainActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navChat -> post {
+                        startActivity(Intent(this@MainActivity, ChatInboxActivity::class.java))
+                    }
                     R.id.navProfile -> post {
                         startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
                     }

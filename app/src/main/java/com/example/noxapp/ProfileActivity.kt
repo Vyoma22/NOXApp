@@ -325,10 +325,16 @@ class ProfileActivity : AppCompatActivity() {
                         }
                         false
                     }
+
                     R.id.navChat -> {
-                        Toast.makeText(this@ProfileActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                        post {
+                            startActivity(
+                                Intent(this@ProfileActivity, ChatInboxActivity::class.java)
+                            )
+                        }
                         false
                     }
+
                     else -> false
                 }
             }
