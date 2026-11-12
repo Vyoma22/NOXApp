@@ -1,0 +1,203 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Must belong to verified Ontario Tech or Durham College domains
+    function hasStudentEmail() {
+      return signedIn()
+        && request.auth.token.email.matches('.*@(ontariotechu[.]net|dcmail[.]ca)');
+    }
+
+    function isVerifiedStudent() {
+      return hasStudentEmail() && request.auth.token.email_verified == true;
+    }
+
+    // Graduation lockout check against server time
+    function notGraduated() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accessExpiresAt > request.time;
+    }
+
+    function isActiveStudent() {
+      return isVerifiedStudent() && notGraduated();
+    }
+
+    // ----------------------------------------------------
+    // USERS COLLECTION
+    // ----------------------------------------------------
+    match /users/{userId} {
+      // Created right after signup, BEFORE email is verified
+      allow create: if isSelf(userId)
+        && hasStudentEmail()
+        && !request.resource.data.keys().hasAny(['rating', 'ratingCount'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.accessExpiresAt is timestamp
+        && request.resource.data.accessExpiresAt > request.time
+        && request.resource.data.accessExpiresAt < request.time + duration.value(2600, 'd'); // ~7 yrs
+
+      // You can always read your own profile; active students can view seller profiles
+      allow read: if isSelf(userId) || isActiveStudent();
+
+      // Profile edits allowed for mutable fields only
+      allow update: if isSelf(userId) && isActiveStudent()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny([
+  'email', 'school', 'gradMonth', 'gradYear',
+  'accessExpiresAt', 'createdAt',
+  'rating', 'ratingCount'
+]);
+
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------
+    // LISTINGS COLLECTION (Required for Home, Browse & Post)
+    // ----------------------------------------------------
+    match /listings/{listingId} {
+      // Any verified, active student can read listings
+      allow read: if isActiveStudent();
+
+      // Active students can create items where they are the listed seller
+      allow create: if isActiveStudent()
+        && (request.resource.data.sellerId == request.auth.uid || request.resource.data.sellerId == "");
+
+      // Only the seller can update or delete their listing
+      allow update, delete: if isActiveStudent()
+        && resource.data.sellerId == request.auth.uid;
+    }
+
+    // ----------------------------------------------------
+    // CHAT CONVERSATIONS
+    // ----------------------------------------------------
+    match /conversations/{conversationId} {
+
+      // Only active students participating in this
+      // conversation can read it.
+      allow read: if isActiveStudent()
+        && request.auth.uid in resource.data.participantIds;
+
+      // We will enable conversation creation only after
+      // validating buyer, seller, and listing IDs.
+
+      // A verified buyer can start a conversation
+      // about a real, available listing.
+      allow create: if isActiveStudent()
+
+        // Only our approved conversation fields are allowed.
+        && request.resource.data.keys().hasAll([
+          'listingId', 'buyerId', 'sellerId',
+          'participantIds', 'lastMessage',
+          'lastMessageAt', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'listingId', 'buyerId', 'sellerId',
+          'participantIds', 'lastMessage',
+          'lastMessageAt', 'createdAt'
+        ])
+
+        // The buyer must be the signed-in student.
+        && request.resource.data.buyerId == request.auth.uid
+
+        // A student cannot start a sale chat with themselves.
+        && request.resource.data.buyerId !=
+           request.resource.data.sellerId
+        // The listing must have an identified seller.
+           && request.resource.data.sellerId is string
+           && request.resource.data.sellerId != ""
+
+        // Exactly these two students are participants.
+        && request.resource.data.participantIds == [
+          request.resource.data.buyerId,
+          request.resource.data.sellerId
+        ]
+
+        // One conversation per buyer per listing.
+        && conversationId ==
+           request.resource.data.listingId + "_" +
+           request.auth.uid
+
+        // New conversations begin with no messages.
+        && request.resource.data.lastMessage == ""
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.lastMessageAt == request.time
+
+        // The product must exist.
+        && exists(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        )
+
+        // The selected seller must own that product.
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.sellerId == request.resource.data.sellerId
+
+        // Don't start new chats for sold products.
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.get('sold', false) == false;
+
+      // Participants cannot change or delete a
+      // conversation after it has been created.
+      allow update, delete: if false;
+
+
+      // Messages belonging to this conversation
+      match /messages/{messageId} {
+
+        // Only conversation participants can read messages.
+        allow read: if isActiveStudent()
+          && request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId))
+             .data.participantIds;
+
+        // Message sending comes in a later step.
+
+      // Only an authorized conversation participant
+      // can create a new message.
+      allow create: if isActiveStudent()
+
+        // The conversation must already exist.
+        && exists(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        )
+
+        // The sender must belong to this conversation.
+        && request.auth.uid in get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.participantIds
+
+        // Every message must contain exactly these fields.
+        && request.resource.data.keys().hasAll([
+          'senderId', 'text', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'senderId', 'text', 'createdAt'
+        ])
+
+        // Nobody can send a message as another student.
+        && request.resource.data.senderId == request.auth.uid
+
+        // Only nonempty text messages, up to 2000 characters.
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 2000
+
+        // The message timestamp must come from the server.
+&& request.resource.data.createdAt is timestamp
+&& request.resource.data.createdAt == request.time;
+      // Messages cannot be edited or deleted.
+      allow update, delete: if false;
+
+      }
+    }
+
+  }
+}
