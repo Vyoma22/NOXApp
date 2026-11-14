@@ -52,7 +52,7 @@ class ProfileActivity : AppCompatActivity() {
         applyEdgeToEdgeInsets(R.id.profileRoot, R.id.profileBottomNav, R.id.profileScroll)
 
         savedInstanceState?.getString(STATE_TAB)?.let { saved ->
-            currentTab = runCatching { Tab.valueOf(saved) }.getOrDefault(Tab.MY_LISTINGS)
+            currentTab = Tab.entries.firstOrNull { it.name == saved } ?: Tab.MY_LISTINGS
         }
         setupRecyclerView()
         setupTabs()

@@ -50,14 +50,16 @@
             </LinearLayout>
 
             <!-- Circular avatar -->
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="90dp"
                 android:layout_height="90dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="16dp"
+                android:stateListAnimator="@null"
                 app:cardBackgroundColor="@color/nox_card_green"
                 app:cardCornerRadius="45dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
                 <TextView
                     android:id="@+id/sellerAvatarInitial"
@@ -68,7 +70,7 @@
                     android:textColor="@color/nox_dark_green"
                     android:textSize="36sp"
                     android:textStyle="bold" />
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Name, school, and verified badge -->
             <TextView

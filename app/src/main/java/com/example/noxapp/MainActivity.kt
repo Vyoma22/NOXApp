@@ -15,7 +15,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
@@ -39,6 +38,7 @@ import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -307,9 +307,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionCards() {
-        findViewById<CardView>(R.id.browseCard).setOnClickListener { openBrowse() }
+        findViewById<MaterialCardView>(R.id.browseCard).setOnClickListener { openBrowse() }
 
-        findViewById<CardView>(R.id.postCard).setOnClickListener {
+        findViewById<MaterialCardView>(R.id.postCard).setOnClickListener {
             startActivity(Intent(this, PostListing::class.java))
         }
     }

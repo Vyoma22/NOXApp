@@ -25,6 +25,7 @@ import com.example.noxapp.data.ListingReport
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.ListingSignals
+import com.example.noxapp.models.formatPrice
 import com.example.noxapp.postlisting.PostListing
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -93,17 +94,23 @@ object ItemDetailDialog {
         }
 
         dialog.findViewById<Button>(R.id.messageSellerButton).setOnClickListener {
-            val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("mailto:")
-                putExtra(Intent.EXTRA_SUBJECT, "Inquiry about: ${listing.title} on NOX")
-                putExtra(Intent.EXTRA_TEXT, "Hi, I'm interested in buying your ${listing.title} for $${listing.price.toInt()}!")
-            }
-            runCatching {
+            // The listing stores the seller's id but not their address, so look it up before
+            // composing. Without this the chooser opened with an empty To: field.
+            ListingRepo.getUserProfile(listing.sellerId) { profile ->
+                if (!dialog.isShowing) return@getUserProfile
+                val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
+                    data = Uri.parse("mailto:${profile?.email.orEmpty()}")
+                    putExtra(Intent.EXTRA_SUBJECT, "Inquiry about: ${listing.title} on NOX")
+                    putExtra(
+                        Intent.EXTRA_TEXT,
+                        "Hi, I'm interested in buying your ${listing.title} for $${formatPrice(listing.price)}!"
+                    )
+                }
+                // createChooser targets the framework's own chooser, which exists on every device,
+                // so this cannot throw ActivityNotFoundException and needs no guard.
                 activity.startActivity(Intent.createChooser(emailIntent, "Contact Seller"))
-            }.onFailure {
-                Toast.makeText(activity, "Message sent to seller!", Toast.LENGTH_SHORT).show()
+                dialog.dismiss()
             }
-            dialog.dismiss()
         }
         bindSeller(activity, dialog, listing)
         dialog.show()
@@ -121,7 +128,6 @@ object ItemDetailDialog {
         val inbox = activity.getString(R.string.settings_report_email)
         val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:$inbox")
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(inbox))
             putExtra(Intent.EXTRA_SUBJECT, report.subject(listing))
             putExtra(Intent.EXTRA_TEXT, report.body(listing))
         }
@@ -139,7 +145,7 @@ object ItemDetailDialog {
      * before the new one. The old price stays hidden for listings that never dropped.
      */
     private fun bindPrice(activity: Activity, dialog: Dialog, listing: Listing) {
-        val newPrice = "$${listing.price.toInt()}"
+        val newPrice = "$${formatPrice(listing.price)}"
         dialog.findViewById<TextView>(R.id.detailPrice).text = newPrice
 
         val previousPriceView = dialog.findViewById<TextView>(R.id.detailPreviousPrice)
@@ -148,7 +154,7 @@ object ItemDetailDialog {
             previousPriceView.isVisible = false
             return
         }
-        val oldPrice = "$${previousPrice.toInt()}"
+        val oldPrice = "$${formatPrice(previousPrice)}"
         previousPriceView.text = oldPrice
         previousPriceView.paintFlags =
             previousPriceView.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG

@@ -23,3 +23,13 @@ data class Listing(
     val viewCount: Long = 0L,
     val previousPrice: Double? = null
 )
+
+/**
+ * Price label shared by the listing cards, the detail sheet, the report email and the post form.
+ *
+ * Whole dollars print without a decimal part. Cents are kept when the seller entered them, so a
+ * listing priced at 12.50 is not advertised as 12 on the card while the edit form still shows 12.5.
+ * Returns the number only; callers add their own currency sign.
+ */
+fun formatPrice(price: Double): String =
+    if (price % 1.0 == 0.0) price.toInt().toString() else price.toString()

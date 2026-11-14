@@ -1,6 +1,7 @@
 package com.example.noxapp.data
 
 import com.example.noxapp.models.Listing
+import com.example.noxapp.models.formatPrice
 
 /**
  * Builds the pre-filled email a buyer sends when reporting a listing.
@@ -23,7 +24,7 @@ class ListingReport(
     fun body(listing: Listing): String = bodyFormat.format(
         listing.id,
         listing.title,
-        listing.price.toInt(),
+        formatPrice(listing.price),
         listing.category,
         listing.condition,
         listing.sellerId,

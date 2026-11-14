@@ -88,7 +88,7 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 |---|---|
 | Language | Kotlin |
 | UI | Android Views, XML layouts, Material Components |
-| Lists | RecyclerView, CardView, GridLayoutManager |
+| Lists | RecyclerView, MaterialCardView, GridLayoutManager |
 | Auth | Firebase Authentication, email and password with verification |
 | Database | Cloud Firestore (`users/{uid}`, `listings/{id}`) |
 | Media | Firebase Storage |
@@ -209,7 +209,7 @@ Both suites pass: **100 unit tests** and **27 instrumented tests**, 127 in total
 
 `ListingDistanceTest`, `ListingFiltersTest`, and `PrefsBrowseSessionTest` run on Robolectric, pinned to SDK 28 because 4.14.1 ships no system image for this project's targetSdk. Nothing shadows `Location.distanceBetween`, so the real platform distance maths runs on the JVM.
 
-**Instrumented runs turn the device's animations off and leave them off.** The connected test harness sets all three animation scales to 0 for deterministic Espresso runs, so afterwards every transition and list animation in the app becomes an instant cut. Restore them:
+**Instrumented runs turn the device's animations off, then put them back.** The test engine's `DeviceSettingsController` reads all three animation scales, sets them to 0 before installing the APKs so Espresso runs deterministically, and restores the saved values during post-test cleanup. A run that is killed partway through can skip that cleanup and leave the scales at 0, which makes every transition and list animation in the app an instant cut. If that happens, restore them by hand:
 
 ```bash
 adb shell settings put global window_animation_scale 1

@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
@@ -14,6 +13,8 @@ import coil.load
 import com.example.noxapp.R
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.ListingSignals
+import com.example.noxapp.models.formatPrice
+import com.google.android.material.card.MaterialCardView
 import androidx.recyclerview.widget.LinearLayoutManager
 
 class ListingAdapter(
@@ -27,7 +28,7 @@ class ListingAdapter(
     private var savedIds: Set<String> = savedIds.toSet()
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val card: CardView = view.findViewById(R.id.listingCardContainer)
+        val card: MaterialCardView = view.findViewById(R.id.listingCardContainer)
         val image: ImageView = view.findViewById(R.id.itemImageView)
         val title: TextView = view.findViewById(R.id.itemTitleTextView)
         val price: TextView = view.findViewById(R.id.itemPriceTextView)
@@ -62,7 +63,7 @@ class ListingAdapter(
         val item = items[position]
         val context = holder.itemView.context
         holder.title.text = item.title
-        holder.price.text = "$${item.price.toInt()}"
+        holder.price.text = "$${formatPrice(item.price)}"
         bindBadges(holder, item)
 
         // The gap closes each card off, but on the last card it would widen the row's end inset,

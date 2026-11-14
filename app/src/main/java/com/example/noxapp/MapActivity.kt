@@ -140,9 +140,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         baseFilters = BrowseFilters(
             query = intent.getStringExtra(EXTRA_QUERY).orEmpty(),
             category = intent.getStringExtra(EXTRA_CATEGORY),
-            priceRange = intent.getStringExtra(EXTRA_PRICE)?.let { name ->
-                runCatching { PriceRange.valueOf(name) }.getOrNull()
-            },
+            priceRange = PriceRange.entries.firstOrNull { it.name == intent.getStringExtra(EXTRA_PRICE) },
             condition = intent.getStringExtra(EXTRA_CONDITION)
         )
         hasSelection = savedInstanceState?.getBoolean(EXTRA_HAS_SELECTION) ?: false

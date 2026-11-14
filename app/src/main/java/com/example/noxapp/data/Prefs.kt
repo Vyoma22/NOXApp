@@ -34,11 +34,8 @@ object Prefs {
     private fun prefs(context: Context) =
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    fun theme(context: Context): Theme = try {
-        Theme.valueOf(prefs(context).getString(KEY_THEME, Theme.SYSTEM.name)!!)
-    } catch (error: IllegalArgumentException) {
-        Theme.SYSTEM
-    }
+    fun theme(context: Context): Theme =
+        Theme.entries.firstOrNull { it.name == prefs(context).getString(KEY_THEME, null) } ?: Theme.SYSTEM
 
     fun setTheme(context: Context, theme: Theme) {
         prefs(context).edit().putString(KEY_THEME, theme.name).apply()
@@ -55,11 +52,8 @@ object Prefs {
         )
     }
 
-    fun defaultSort(context: Context): SortOption = try {
-        SortOption.valueOf(prefs(context).getString(KEY_SORT, SortOption.NEWEST.name)!!)
-    } catch (error: IllegalArgumentException) {
-        SortOption.NEWEST
-    }
+    fun defaultSort(context: Context): SortOption =
+        SortOption.entries.firstOrNull { it.name == prefs(context).getString(KEY_SORT, null) } ?: SortOption.NEWEST
 
     fun setDefaultSort(context: Context, sort: SortOption) {
         prefs(context).edit().putString(KEY_SORT, sort.name).apply()

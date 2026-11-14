@@ -1,6 +1,7 @@
 package com.example.noxapp.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.view.View
@@ -78,3 +79,6 @@ fun Activity.applyEdgeToEdgeInsets(
         insets
     }
 }
+
+/** Converts a dp measurement to pixels for views built in code rather than inflated from XML. */
+fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

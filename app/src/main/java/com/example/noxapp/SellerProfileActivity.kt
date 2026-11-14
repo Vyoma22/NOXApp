@@ -104,7 +104,7 @@ class SellerProfileActivity : AppCompatActivity() {
     private fun restoreState(state: Bundle?) {
         state ?: return
         state.getString(STATE_TAB)?.let { saved ->
-            currentTab = runCatching { Tab.valueOf(saved) }.getOrDefault(Tab.LISTINGS)
+            currentTab = Tab.entries.firstOrNull { it.name == saved } ?: Tab.LISTINGS
         }
         query = state.getString(STATE_QUERY).orEmpty()
         category = state.getString(STATE_CATEGORY)

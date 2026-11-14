@@ -54,13 +54,15 @@
                 style="@style/SettingsSectionLabel"
                 android:text="@string/settings_account" />
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:stateListAnimator="@null"
                 app:cardBackgroundColor="@color/nox_field_bg"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -74,12 +76,14 @@
                         android:orientation="horizontal"
                         android:padding="16dp">
 
-                        <androidx.cardview.widget.CardView
+                        <com.google.android.material.card.MaterialCardView
                             android:layout_width="56dp"
                             android:layout_height="56dp"
+                            android:stateListAnimator="@null"
                             app:cardBackgroundColor="@color/nox_card_green"
                             app:cardCornerRadius="28dp"
-                            app:cardElevation="0dp">
+                            app:cardElevation="0dp"
+                            app:strokeWidth="0dp">
 
                             <TextView
                                 android:id="@+id/settingsAvatarInitial"
@@ -89,7 +93,7 @@
                                 android:textColor="@color/nox_dark_green"
                                 android:textSize="24sp"
                                 android:textStyle="bold" />
-                        </androidx.cardview.widget.CardView>
+                        </com.google.android.material.card.MaterialCardView>
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -140,20 +144,22 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Preferences -->
             <TextView
                 style="@style/SettingsSectionLabel"
                 android:text="@string/settings_preferences" />
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:stateListAnimator="@null"
                 app:cardBackgroundColor="@color/nox_field_bg"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -172,20 +178,22 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Privacy & safety -->
             <TextView
                 style="@style/SettingsSectionLabel"
                 android:text="@string/settings_privacy" />
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:stateListAnimator="@null"
                 app:cardBackgroundColor="@color/nox_field_bg"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -210,20 +218,22 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <!-- Support & about -->
             <TextView
                 style="@style/SettingsSectionLabel"
                 android:text="@string/settings_support" />
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                android:stateListAnimator="@null"
                 app:cardBackgroundColor="@color/nox_field_bg"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -248,7 +258,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/signOutButton"
