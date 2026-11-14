@@ -16,9 +16,7 @@ import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.ui.ItemDetailDialog
-import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.example.noxapp.ui.fadeVisibility
 import com.example.noxapp.ui.goTo
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.CancellationException
@@ -161,7 +159,7 @@ class ProfileActivity : AppCompatActivity() {
         listingsLoaded = false
         listingsError = false
         hideErrorState()
-        findViewById<TextView>(R.id.profileEmptyNotice).fadeVisibility(false)
+        findViewById<TextView>(R.id.profileEmptyNotice).isVisible = false
 
         ListingRepo.getUserProfile(uid) { profile ->
             if (isDestroyed) return@getUserProfile
@@ -209,7 +207,7 @@ class ProfileActivity : AppCompatActivity() {
                 listingsLoaded = false
                 listingsError = true
                 profileAdapter.updateList(emptyList())
-                findViewById<TextView>(R.id.profileEmptyNotice).fadeVisibility(false)
+                findViewById<TextView>(R.id.profileEmptyNotice).isVisible = false
                 showErrorState()
                 stopRefresh()
             }
@@ -243,7 +241,7 @@ class ProfileActivity : AppCompatActivity() {
     private fun selectTab(tab: Tab) {
         currentTab = tab
         styleTabs()
-        renderCurrentTab(animate = true)
+        renderCurrentTab()
     }
 
     private fun updateTabStyle(selected: Button, unselected: List<Button>) {
@@ -272,7 +270,7 @@ class ProfileActivity : AppCompatActivity() {
         super.onSaveInstanceState(outState)
     }
 
-    private fun renderCurrentTab(animate: Boolean = false) {
+    private fun renderCurrentTab() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         val emptyNotice = findViewById<TextView>(R.id.profileEmptyNotice)
 
@@ -284,8 +282,7 @@ class ProfileActivity : AppCompatActivity() {
 
         profileAdapter.updateList(itemsToDisplay)
         // The notice only makes sense after a load succeeded, and never over the error state.
-        emptyNotice.fadeVisibility(listingsLoaded && !listingsError && itemsToDisplay.isEmpty())
-        if (animate) findViewById<RecyclerView>(R.id.profileRecyclerView).animateChildrenIn(staggerMs = 30L)
+        emptyNotice.isVisible = listingsLoaded && !listingsError && itemsToDisplay.isEmpty()
     }
 
     private fun setupBottomNav() {

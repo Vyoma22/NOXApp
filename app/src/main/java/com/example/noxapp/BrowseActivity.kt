@@ -13,7 +13,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
-import androidx.core.os.BundleCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
@@ -30,7 +29,6 @@ import com.example.noxapp.adapters.PillChipAdapter
 import com.example.noxapp.auth.AccessState
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
-import com.example.noxapp.data.BrowseSession
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
 import com.example.noxapp.data.ListingRepo
@@ -40,9 +38,7 @@ import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
 import com.example.noxapp.models.SortOption
 import com.example.noxapp.ui.ItemDetailDialog
-import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.example.noxapp.ui.fadeVisibility
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
@@ -65,7 +61,6 @@ class BrowseActivity : AppCompatActivity() {
     private var listingsLoading = false
     private var listingsLoaded = false
     private var listingsError = false
-    private var resultsAnimated = false
     private var pendingScrollY: Int? = null
     private var loadErrorSnackbar: Snackbar? = null
     private var userCampus: Pair<Double, Double>? = null
@@ -325,8 +320,8 @@ class BrowseActivity : AppCompatActivity() {
         findViewById<View>(R.id.browseLoading).isVisible = listingsLoading
         findViewById<View>(R.id.browseErrorState).isVisible = listingsError
         findViewById<View>(R.id.browseResults).isVisible = results.isNotEmpty() && !listingsError
-        findViewById<View>(R.id.browseEmptyState)
-            .fadeVisibility(listingsLoaded && !listingsLoading && !listingsError && results.isEmpty())
+        findViewById<View>(R.id.browseEmptyState).isVisible =
+            listingsLoaded && !listingsLoading && !listingsError && results.isEmpty()
 
         val noListings = allListings.isEmpty()
         findViewById<TextView>(R.id.browseEmptyTitle)
@@ -369,10 +364,6 @@ class BrowseActivity : AppCompatActivity() {
                     listingsLoaded = true
                     findViewById<SwipeRefreshLayout>(R.id.browseRefresh).isRefreshing = false
                     renderResults()
-                    if (!resultsAnimated) {
-                        resultsAnimated = true
-                        findViewById<RecyclerView>(R.id.browseResults).animateChildrenIn(staggerMs = 30L)
-                    }
                     pendingScrollY?.let { scrollY ->
                         // The first restored layout can precede Firestore data and otherwise clamp to zero.
                         val scroll = findViewById<NestedScrollView>(R.id.browseScroll)
@@ -513,33 +504,27 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun restoreState(state: Bundle?) {
-        if (state != null) {
-            restoreFilters(state)
-            return
-        }
-        val restored = BrowseSession.restore(FirebaseAuth.getInstance().currentUser?.uid)
+        val restored = Prefs.browseSession(this, FirebaseAuth.getInstance().currentUser?.uid)
         if (restored != null) {
             filters = restored.first
             categoriesExpanded = restored.second
         } else {
             filters = BrowseFilters(sort = Prefs.defaultSort(this))
         }
-    }
-
-    private fun restoreFilters(state: Bundle) {
-        filters = BundleCompat.getParcelable(state, "browse.filters", BrowseFilters::class.java) ?: BrowseFilters()
-        categoriesExpanded = state.getBoolean("browse.expanded")
-        mapVisitInProgress = state.getBoolean("browse.mapVisit")
-        pendingScrollY = state.getInt("browse.scrollY")
+        mapVisitInProgress = state?.getBoolean("browse.mapVisit") ?: false
+        pendingScrollY = state?.getInt("browse.scrollY")
     }
 
     private fun saveSession() {
-        BrowseSession.save(FirebaseAuth.getInstance().currentUser?.uid, filters, categoriesExpanded)
+        Prefs.saveBrowseSession(
+            this,
+            FirebaseAuth.getInstance().currentUser?.uid,
+            filters,
+            categoriesExpanded
+        )
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putParcelable("browse.filters", filters)
-        outState.putBoolean("browse.expanded", categoriesExpanded)
         outState.putBoolean("browse.mapVisit", mapVisitInProgress)
         outState.putInt("browse.scrollY", pendingScrollY ?: findViewById<NestedScrollView>(R.id.browseScroll).scrollY)
         super.onSaveInstanceState(outState)

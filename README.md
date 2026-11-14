@@ -76,11 +76,11 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 - Up to five photos from the gallery or the camera, uploaded to Firebase Storage
 - Validation that reports every problem before anything uploads
 
-**Motion and feedback**
+**Feedback**
 
-- Screens swap instantly; the cream background is painted from the first frame, so cold start matches the splash instead of flashing white
-- Feeds, result grids, and the profile tabs stagger their cards in; a card dips under the finger and the heart pops on tap
-- Item details slide up as a rounded sheet from the bottom edge, and the Browse category row grows in and out instead of snapping
+- The cream background is painted from the first frame, so cold start matches the splash instead of flashing white
+- Cards and filter pills answer a tap with the framework ripple
+- Item details slide up as a Material bottom sheet, and the Browse category row animates its chip inserts and removes through RecyclerView
 
 ## Tech stack
 
@@ -95,10 +95,10 @@ Students at Ontario Tech and Durham College are constantly buying, selling, and 
 | Images | Coil (listing photos, crossfaded into cards and the detail sheet) |
 | Maps | Google Maps SDK for Android |
 | Location | Google Play Services Location (FusedLocationProvider) |
-| Place search | Android `Geocoder`, async API on 33+ with an executor fallback |
+| Place search | Android `Geocoder`, blocking call on `Dispatchers.IO` |
 | Async | Kotlin coroutines, `kotlinx-coroutines-play-services` |
 | Build | Gradle 9.6, Android Gradle Plugin 9.4.1 |
-| Tests | JUnit 4, AndroidX Test, Espresso |
+| Tests | JUnit 4, Robolectric, AndroidX Test, Espresso |
 
 **SDK levels:** min 24 (Android 7.0), target 37, compile 37.
 
@@ -109,7 +109,7 @@ No Compose, Hilt, Retrofit, or MVVM framework. The app stays on the activity-and
 ```mermaid
 flowchart LR
     UI["Activities<br/>Home · Browse · Map · Profile · Post"] --> Repo["Repositories<br/>ListingRepo · AuthRepo"]
-    UI --> Pure["Pure logic<br/>ListingFilters · CampusLocations"]
+    UI --> Pure["Filter logic<br/>ListingFilters · CampusLocations"]
     Repo --> FB[("Firebase<br/>Auth · Firestore · Storage")]
     UI --> Maps["Google Maps SDK<br/>FusedLocationProvider"]
     Pure -.->|filter predicate| UI
@@ -119,11 +119,11 @@ Four ideas hold the codebase together:
 
 **Repositories wrap Firebase.** `ListingRepo` and `AuthRepo` are the only classes that touch Firestore or Firebase Auth, so no screen talks to the backend directly.
 
-**Filter logic has no Android imports.** `ListingFilters` implements a haversine distance function and a single match predicate over query, category, price, condition, and radius. `CampusLocations` resolves a listing to coordinates. Both are plain Kotlin, which is why they have direct unit tests.
+**Filter logic is one predicate.** `ListingFilters` matches query, category, price, condition, and radius, and takes distance from `Location.distanceBetween` so the filter agrees with the circle the map draws. `CampusLocations` resolves a listing to coordinates. Both have direct unit tests; Robolectric supplies the platform distance call.
 
-**Filter state is one immutable object.** `BrowseFilters` carries the query, category, price band, condition, and optional centre and radius. It is `Parcelable`, so it survives rotation and travels between Browse and the map through an Activity Result contract.
+**Filter state is one immutable object.** `BrowseFilters` carries the query, category, price band, condition, and optional centre and radius. `Prefs` stores it in SharedPreferences per account, so it survives rotation, a trip to another tab, and process death. The map receives the same fields as individual Intent extras.
 
-**Distance filtering happens on the client.** Firestore has no native geographic query, so the app fetches the listing set and applies the haversine filter locally. That is fine at campus scale.
+**Distance filtering happens on the client.** Firestore has no native geographic query, so the app fetches the listing set and applies the radius filter locally. That is fine at campus scale.
 
 ### Project structure
 
@@ -133,7 +133,7 @@ app/src/main/java/com/example/noxapp/
 ├── data/            Firestore access, distance filtering, campus coordinates
 ├── models/          Listing, UserProfile, BrowseFilters
 ├── adapters/        Listing, category, and filter pill adapters
-├── ui/              Shared item detail sheet, motion helpers, activity helpers
+├── ui/              Shared item detail sheet, media gallery, activity helpers
 ├── postlisting/     Post flow (writes through the shared Listing model)
 ├── MainActivity.kt      Home feed
 ├── BrowseActivity.kt    Filtered search
@@ -205,7 +205,9 @@ Then sign up with a real `@ontariotechu.net` or `@dcmail.ca` mailbox you can ope
 ./gradlew connectedDebugAndroidTest  # needs an emulator with Play services
 ```
 
-Both suites pass: **39 unit tests** and **26 instrumented tests**, 65 in total.
+Both suites pass: **100 unit tests** and **27 instrumented tests**, 127 in total.
+
+`ListingDistanceTest`, `ListingFiltersTest`, and `PrefsBrowseSessionTest` run on Robolectric, pinned to SDK 28 because 4.14.1 ships no system image for this project's targetSdk. Nothing shadows `Location.distanceBetween`, so the real platform distance maths runs on the JVM.
 
 **Instrumented runs turn the device's animations off and leave them off.** The connected test harness sets all three animation scales to 0 for deterministic Espresso runs, so afterwards every transition and list animation in the app becomes an instant cut. Restore them:
 
@@ -215,21 +217,37 @@ adb shell settings put global transition_animation_scale 1
 adb shell settings put global animator_duration_scale 1
 ```
 
+**Unit tests** (`testDebugUnitTest`)
+
 | Suite | Tests | Covers |
 |---|:--:|---|
-| `ListingFiltersTest` | 16 | Query, category, condition, exact price boundaries, radius boundary, combined filters |
-| `MapActivityTest` | 11 | Radius state, result contract, marker behaviour |
-| `HaversineTest` | 6 | Known distances, symmetry, identical points |
+| `ListingFiltersTest` | 21 | Query, category, condition, price brackets, radius boundary, sorting, combined filters |
+| `SellerListingFiltersTest` | 12 | Seller scoping, sold/unsold split, query and category matching |
+| `PostListingValidatorTest` | 10 | Required fields, price parsing, every error reported in form order |
+| `ListingSignalsTest` | 9 | Popular threshold, price-drop badges, view counts |
+| `PrefsBrowseSessionTest` | 6 | Browse filter round-trip, coordinate precision, per-account isolation |
+| `PriceRangeTest` | 6 | Band edges, the free band, overlap with Under $25 |
+| `CampusLocationsTest` | 5 | Zero-coordinate campus fallback and explicit coordinates |
 | `EmailValidatorTest` | 5 | Domain allowlist, malformed addresses |
-| `CampusLocationsTest` | 5 | Explicit coordinates and pickup-location fallback |
-| `BrowseActivityTest` | 6 | Filter interaction, chip expansion notifications, and result rendering |
-| `MapLocationSearchTest` | 5 | Place search against a fake geocoder |
+| `ListingReportTest` | 5 | Report subject and body, missing seller fields |
+| `ListingTimestampsTest` | 5 | Firestore timestamps, legacy numbers, garbage input |
+| `ListingDistanceTest` | 4 | Known WGS84 distances, symmetry, identical points |
+| `ListingLocationTest` | 4 | Map pin coordinates, campus fallback, pin labels |
+| `PickupLocationSelectionTest` | 3 | Building-name matching and the custom entry |
 | `GradDateTest` | 2 | Month rollover and year boundary |
-| `LocationSearchTest` | 2 | Result filtering and deduplication |
 | `PickupPreferenceRemovalTest` | 2 | Guards a deliberately removed feature |
-| `RemovedPickupPreferenceUiTest` | 2 | Guards a deliberately removed feature |
-| `ItemDetailDialogTest` | 1 | Dialog content and contact action |
-| Template placeholders | 2 | `ExampleUnitTest`, `ExampleInstrumentedTest` |
+| `ExampleUnitTest` | 1 | Template placeholder |
+
+**Instrumented tests** (`connectedDebugAndroidTest`)
+
+| Suite | Tests | Covers |
+|---|:--:|---|
+| `MapActivityTest` | 11 | Radius state, area result contract, recreation, landscape, centre pin |
+| `BrowseActivityTest` | 6 | Narrow layout, touch targets, chip expansion and adapter positions |
+| `MapLocationSearchTest` | 5 | Place search against a fake geocoder |
+| `ItemDetailDialogTest` | 3 | Sheet content, close action, media gallery paging |
+| `RemovedPickupPreferenceUiTest` | 1 | Guards a deliberately removed feature |
+| `ExampleInstrumentedTest` | 1 | Template placeholder |
 
 ## Status
 
@@ -243,6 +261,6 @@ Known gaps:
 - **Map pins fall back to campus anchors.** Coordinates are not captured at post time, so pins cluster at the two campus centres instead of marking buildings.
 - **Video and voice search are not implemented.** Both appear in the project proposal.
 - **The Sold tab is always empty.**
-- **The pickup radius is session-only.** Persisting it to the profile was built and then deliberately removed.
+- **The map's pickup radius is session-only.** Persisting it to the profile was built and then deliberately removed. Browse keeps its own radius locally, per account.
 
 <sub>Academic project. Not licensed for redistribution.</sub>

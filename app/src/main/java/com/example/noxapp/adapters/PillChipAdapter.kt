@@ -9,7 +9,6 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.models.CategoryCatalog
-import com.example.noxapp.ui.pop
 
 class PillChipAdapter(
     private val onCategorySelected: (String?) -> Unit,
@@ -70,7 +69,6 @@ class PillChipAdapter(
             if (isToggle) {
                 onExpansionToggle()
             } else {
-                text.pop()
                 onCategorySelected(category)
             }
         }

@@ -19,7 +19,6 @@ import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.auth.AuthErrors
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
-import com.example.noxapp.data.BrowseSession
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.data.Prefs
 import com.example.noxapp.models.SortOption
@@ -281,7 +280,7 @@ class SettingsActivity : AppCompatActivity() {
                         AuthRepo.reauthenticate(password)
                         ListingRepo.deleteAccountData(uid)
                         AuthRepo.deleteCurrentUser()
-                        BrowseSession.clear()
+                        Prefs.clearBrowseSession(this@SettingsActivity)
                         dialog.dismiss()
                         goTo(LoginActivity::class.java)
                     } catch (e: Exception) {
@@ -300,7 +299,7 @@ class SettingsActivity : AppCompatActivity() {
             .setMessage(R.string.settings_sign_out_message)
             .setPositiveButton(R.string.sign_out) { _, _ ->
                 AuthRepo.signOut()
-                BrowseSession.clear()
+                Prefs.clearBrowseSession(this@SettingsActivity)
                 goTo(LoginActivity::class.java)
             }
             .setNegativeButton(android.R.string.cancel, null)

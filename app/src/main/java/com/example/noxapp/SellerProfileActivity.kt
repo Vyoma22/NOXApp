@@ -31,9 +31,7 @@ import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.UserProfile
 import com.example.noxapp.ui.ItemDetailDialog
-import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.example.noxapp.ui.fadeVisibility
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 
@@ -57,7 +55,6 @@ class SellerProfileActivity : AppCompatActivity() {
     private var listingsLoading = false
     private var listingsLoaded = false
     private var listingsError = false
-    private var resultsAnimated = false
 
     private enum class Tab { LISTINGS, SOLD }
 
@@ -137,7 +134,7 @@ class SellerProfileActivity : AppCompatActivity() {
         if (currentTab == tab) return
         currentTab = tab
         styleTabs()
-        renderResults(animate = true)
+        renderResults()
     }
 
     /** Re-applies the selected pill styling after rotation, when the tab was restored from state. */
@@ -260,11 +257,6 @@ class SellerProfileActivity : AppCompatActivity() {
                 listingsLoading = false
                 listingsLoaded = true
                 renderResults()
-                if (!resultsAnimated && listingsAdapter.itemCount > 0) {
-                    resultsAnimated = true
-                    findViewById<RecyclerView>(R.id.sellerRecyclerView)
-                        .animateChildrenIn(staggerMs = 30L)
-                }
             },
             onError = {
                 if (isDestroyed || isFinishing) return@loadAllListings
@@ -316,7 +308,7 @@ class SellerProfileActivity : AppCompatActivity() {
         listingsAdapter.updateSavedIds(userSavedIds)
     }
 
-    private fun renderResults(animate: Boolean = false) {
+    private fun renderResults() {
         val sellerListings = SellerListingFilters.splitBySold(
             SellerListingFilters.forSeller(allListings, sellerId)
         )
@@ -341,13 +333,8 @@ class SellerProfileActivity : AppCompatActivity() {
         emptyNotice.setText(
             if (tabListings.isEmpty()) emptyTabMessage() else R.string.seller_empty_search
         )
-        emptyNotice.fadeVisibility(
+        emptyNotice.isVisible =
             listingsLoaded && !listingsLoading && !listingsError && results.isEmpty()
-        )
-
-        if (animate && results.isNotEmpty()) {
-            findViewById<RecyclerView>(R.id.sellerRecyclerView).animateChildrenIn(staggerMs = 30L)
-        }
     }
 
     private fun emptyTabMessage(): Int = when (currentTab) {

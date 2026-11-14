@@ -1,8 +1,5 @@
 package com.example.noxapp.models
 
-import android.os.Parcelable
-import kotlinx.parcelize.Parcelize
-
 /**
  * Price brackets offered by the Browse filter.
  *
@@ -27,7 +24,6 @@ enum class PriceRange(val label: String, val minInclusive: Double, val maxExclus
 
 enum class SortOption { NEWEST, PRICE_LOW, PRICE_HIGH, NEAREST }
 
-@Parcelize
 data class BrowseFilters(
     val query: String = "",
     val category: String? = null,
@@ -37,4 +33,4 @@ data class BrowseFilters(
     val centerLng: Double? = null,
     val radiusKm: Double? = null,
     val sort: SortOption = SortOption.NEWEST
-) : Parcelable
+)

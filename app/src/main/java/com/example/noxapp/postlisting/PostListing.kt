@@ -271,7 +271,6 @@ class PostListing : AppCompatActivity() {
                 (insets.getInsets(WindowInsetsCompat.Type.ime()).bottom - tabBar.height)
                     .coerceAtLeast(0)
             view.updatePadding(bottom = base + covered)
-            if (covered > 0) view.post { scroll.scrollFocusedChildIntoView(covered) }
             insets
         }
     }
@@ -806,18 +805,6 @@ class PostListing : AppCompatActivity() {
 
     private fun formatPrice(price: Double): String =
         if (price % 1.0 == 0.0) price.toInt().toString() else price.toString()
-
-    /** Scrolls the focused field above the part of the keyboard that covers [coveredHeight] px. */
-    private fun ScrollView.scrollFocusedChildIntoView(coveredHeight: Int) {
-        val focused = findFocus() ?: return
-        if (focused === this) return
-        val rect = Rect()
-        focused.getDrawingRect(rect)
-        offsetDescendantRectToMyCoords(focused, rect)
-        val margin = (120 * resources.displayMetrics.density).toInt()
-        val overflow = rect.bottom - (height - coveredHeight - margin)
-        if (overflow > 0) smoothScrollBy(0, overflow)
-    }
 
     companion object {
         const val EXTRA_LISTING_ID = "listingId"
