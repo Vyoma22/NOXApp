@@ -361,9 +361,9 @@ class MainActivity : AppCompatActivity() {
             findViewById<View>(R.id.featuredSection).isVisible = false
             findViewById<View>(R.id.recentSection).isVisible = false
         }
-        ListingRepo.loadAllListings(
+        ListingRepo.loadPublicListings(
             onSuccess = { listings ->
-                if (isDestroyed || isFinishing) return@loadAllListings
+                if (isDestroyed || isFinishing) return@loadPublicListings
                 allMasterListings = listings
                 listingsLoaded = true
                 findViewById<View>(R.id.homeLoading).isVisible = false
@@ -383,7 +383,7 @@ class MainActivity : AppCompatActivity() {
                 }
             },
             onError = {
-                if (isDestroyed || isFinishing) return@loadAllListings
+                if (isDestroyed || isFinishing) return@loadPublicListings
                 listingsLoaded = false
                 findViewById<View>(R.id.homeLoading).isVisible = false
                 findViewById<SwipeRefreshLayout>(R.id.homeRefresh).isRefreshing = false

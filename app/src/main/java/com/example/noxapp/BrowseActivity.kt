@@ -361,7 +361,7 @@ class BrowseActivity : AppCompatActivity() {
         listingsError = false
         loadErrorSnackbar?.dismiss()
         renderResults()
-        ListingRepo.loadAllListings(
+        ListingRepo.loadPublicListings(
             onSuccess = { listings ->
                 if (!isDestroyed && !isFinishing) {
                     allListings = listings
