@@ -333,7 +333,9 @@ class MainActivity : AppCompatActivity() {
                     R.id.navPost -> post {
                         startActivity(Intent(this@MainActivity, PostListing::class.java))
                     }
-                    R.id.navChat -> Toast.makeText(this@MainActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                    R.id.navChat -> post {
+                        startActivity(Intent(this@MainActivity, ChatInboxActivity::class.java))
+                    }
                     R.id.navProfile -> post {
                         startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
                     }
@@ -359,9 +361,9 @@ class MainActivity : AppCompatActivity() {
             findViewById<View>(R.id.featuredSection).isVisible = false
             findViewById<View>(R.id.recentSection).isVisible = false
         }
-        ListingRepo.loadAllListings(
+        ListingRepo.loadPublicListings(
             onSuccess = { listings ->
-                if (isDestroyed || isFinishing) return@loadAllListings
+                if (isDestroyed || isFinishing) return@loadPublicListings
                 allMasterListings = listings
                 listingsLoaded = true
                 findViewById<View>(R.id.homeLoading).isVisible = false
@@ -381,7 +383,7 @@ class MainActivity : AppCompatActivity() {
                 }
             },
             onError = {
-                if (isDestroyed || isFinishing) return@loadAllListings
+                if (isDestroyed || isFinishing) return@loadPublicListings
                 listingsLoaded = false
                 findViewById<View>(R.id.homeLoading).isVisible = false
                 findViewById<SwipeRefreshLayout>(R.id.homeRefresh).isRefreshing = false

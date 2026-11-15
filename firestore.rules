@@ -1,0 +1,642 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // Must belong to verified Ontario Tech or Durham College domains
+    function hasStudentEmail() {
+      return signedIn()
+        && request.auth.token.email.matches('.*@(ontariotechu[.]net|dcmail[.]ca)');
+    }
+
+    function isVerifiedStudent() {
+      return hasStudentEmail() && request.auth.token.email_verified == true;
+    }
+
+    // Graduation lockout check against server time
+    function notGraduated() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.accessExpiresAt > request.time;
+    }
+
+    function isActiveStudent() {
+      return isVerifiedStudent() && notGraduated();
+    }
+
+    // ----------------------------------------------------
+    // USERS COLLECTION
+    // ----------------------------------------------------
+    match /users/{userId} {
+      // Created right after signup, BEFORE email is verified
+      allow create: if isSelf(userId)
+        && hasStudentEmail()
+        && !request.resource.data.keys().hasAny(['rating', 'ratingCount'])
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.accessExpiresAt is timestamp
+        && request.resource.data.accessExpiresAt > request.time
+        && request.resource.data.accessExpiresAt < request.time + duration.value(2600, 'd'); // ~7 yrs
+
+      // You can always read your own profile; active students can view seller profiles
+      allow read: if isSelf(userId) || isActiveStudent();
+
+      // Profile edits allowed for mutable fields only
+      allow update: if isSelf(userId) && isActiveStudent()
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny([
+          'email', 'school', 'gradMonth', 'gradYear',
+          'accessExpiresAt', 'createdAt',
+          'rating', 'ratingCount'
+        ]);
+
+      allow delete: if false;
+    }
+
+    // ----------------------------------------------------
+    // LISTINGS COLLECTION (Home, Browse, Post, Chat and Sales)
+    // ----------------------------------------------------
+    match /listings/{listingId} {
+      // Active, verified students can view listings.
+      allow read: if isActiveStudent();
+
+      // Preserve ordinary listing creation. New items cannot start sold or pending.
+      allow create: if isActiveStudent()
+        && (request.resource.data.sellerId == request.auth.uid
+            || request.resource.data.sellerId == "")
+        && request.resource.data.get('sold', false) == false
+        && request.resource.data.get('salePending', false) == false;
+
+      // Seller can edit their own listing, but cannot bypass sale confirmation.
+      allow update: if isActiveStudent()
+        && resource.data.sellerId == request.auth.uid
+        && request.resource.data.sellerId == resource.data.sellerId
+        && (
+          // Normal edits must preserve both sale states. Treat absent legacy fields
+          // as false, so editing older listings still works.
+          (
+            request.resource.data.get('sold', false)
+              == resource.data.get('sold', false)
+            && request.resource.data.get('salePending', false)
+              == resource.data.get('salePending', false)
+          )
+          ||
+          // Seller's Confirm Sale is allowed only with a simultaneous sale lock.
+          (
+            request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['salePending'])
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasAll(['salePending'])
+            && resource.data.get('sold', false) == false
+            && resource.data.get('salePending', false) == false
+            && request.resource.data.get('sold', false) == false
+            && request.resource.data.salePending == true
+            && !exists(
+              /databases/$(database)/documents/saleLocks/$(listingId)
+            )
+            && getAfter(
+              /databases/$(database)/documents/saleLocks/$(listingId)
+            ).data.listingId == listingId
+            && getAfter(
+              /databases/$(database)/documents/saleLocks/$(listingId)
+            ).data.sellerId == request.auth.uid
+            && getAfter(
+              /databases/$(database)/documents/saleLocks/$(listingId)
+            ).data.createdAt == request.time
+          )
+        );
+
+      // Deletion remains seller-only, except while a sale is pending.
+      allow delete: if isActiveStudent()
+        && resource.data.sellerId == request.auth.uid
+        && resource.data.get('salePending', false) == false;
+
+      // The buyer may finalize a listing only after confirming the purchase
+      // and submitting a rating within the same atomic operation.
+      function buyerCanFinalizeListing() {
+        let lock = get(
+          /databases/$(database)/documents/saleLocks/$(listingId)
+        ).data;
+
+        let saleBefore = get(
+          /databases/$(database)/documents/saleTransactions/$(lock.conversationId)
+        ).data;
+
+        let saleAfter = getAfter(
+          /databases/$(database)/documents/saleTransactions/$(lock.conversationId)
+        ).data;
+
+        return resource.data.get('sold', false) == false
+          && resource.data.get('salePending', false) == true
+          && request.resource.data.sold == true
+          && request.resource.data.salePending == false
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['sold', 'salePending'])
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasAll(['sold', 'salePending'])
+          && lock.listingId == listingId
+          && lock.buyerId == request.auth.uid
+          && lock.sellerId == resource.data.sellerId
+          && lock.conversationId == listingId + '_' + lock.buyerId
+          && saleBefore.conversationId == lock.conversationId
+          && saleBefore.listingId == listingId
+          && saleBefore.buyerId == request.auth.uid
+          && saleBefore.sellerId == lock.sellerId
+          && saleBefore.status == 'awaiting_rating'
+          && saleAfter.status == 'completed'
+          && saleAfter.completedAt == request.time;
+      }
+
+      allow update: if isActiveStudent()
+        && buyerCanFinalizeListing();
+
+      // Preserve the existing view-count increment used by ItemDetailDialog.
+      // A student can only add 1 to viewCount, not edit other listing fields.
+      allow update: if isActiveStudent()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['viewCount'])
+        && request.resource.data.get('viewCount', 0) is int
+        && request.resource.data.get('viewCount', 0)
+          == resource.data.get('viewCount', 0) + 1;
+    }
+
+    // ----------------------------------------------------
+    // CHAT CONVERSATIONS
+    // ----------------------------------------------------
+    match /conversations/{conversationId} {
+
+      // Check an existing conversation's participants,
+      // or check a missing conversation whose ID belongs
+      // to the requesting buyer.
+      allow get: if isActiveStudent()
+        && (
+          (resource == null
+            && conversationId.matches('.*_' + request.auth.uid))
+          ||
+          (resource != null
+            && request.auth.uid in resource.data.participantIds)
+        );
+
+      // Inbox queries must be restricted to participants.
+      allow list: if isActiveStudent()
+        && request.auth.uid in resource.data.participantIds;
+
+      // A buyer can create a chat for an available listing.
+      allow create: if isActiveStudent()
+        && request.resource.data.keys().hasAll([
+          'listingId', 'buyerId', 'sellerId',
+          'participantIds', 'lastMessage',
+          'lastMessageAt', 'lastMessageId', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'listingId', 'buyerId', 'sellerId',
+          'participantIds', 'lastMessage',
+          'lastMessageAt', 'lastMessageId', 'createdAt'
+        ])
+
+        && request.resource.data.listingId is string
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.sellerId is string
+        && request.resource.data.sellerId != ""
+        && request.resource.data.sellerId != request.auth.uid
+
+        && request.resource.data.participantIds == [
+          request.auth.uid,
+          request.resource.data.sellerId
+        ]
+
+        && conversationId ==
+          request.resource.data.listingId + "_" + request.auth.uid
+
+        && request.resource.data.lastMessage == ""
+        && request.resource.data.lastMessageId == ""
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.lastMessageAt == request.time
+
+        && exists(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        )
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.sellerId == request.resource.data.sellerId
+
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.get('sold', false) == false
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.get('salePending', false) == false;
+
+      // A participant may update ONLY the message preview.
+      // The referenced message must be newly created
+      // in the same atomic batch.
+      allow update: if isActiveStudent()
+        && request.auth.uid in resource.data.participantIds
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly([
+            'lastMessage', 'lastMessageAt', 'lastMessageId'
+          ])
+
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasAll([
+            'lastMessageAt', 'lastMessageId'
+          ])
+
+        && request.resource.data.lastMessage is string
+        && request.resource.data.lastMessage.size() > 0
+        && request.resource.data.lastMessage.size() <= 2000
+        && request.resource.data.lastMessageId is string
+        && request.resource.data.lastMessageId.size() > 0
+        && request.resource.data.lastMessageAt == request.time
+
+        && !exists(
+          /databases/$(database)/documents/conversations/$(conversationId)/messages/$(request.resource.data.lastMessageId)
+        )
+
+        && getAfter(
+          /databases/$(database)/documents/conversations/$(conversationId)/messages/$(request.resource.data.lastMessageId)
+        ).data.senderId == request.auth.uid
+
+        && getAfter(
+          /databases/$(database)/documents/conversations/$(conversationId)/messages/$(request.resource.data.lastMessageId)
+        ).data.text == request.resource.data.lastMessage
+
+        && getAfter(
+          /databases/$(database)/documents/conversations/$(conversationId)/messages/$(request.resource.data.lastMessageId)
+        ).data.createdAt == request.time;
+
+      allow delete: if false;
+
+      // ------------------------------------------------
+      // MESSAGES
+      // ------------------------------------------------
+      match /messages/{messageId} {
+
+        allow read: if isActiveStudent()
+          && request.auth.uid in get(
+            /databases/$(database)/documents/conversations/$(conversationId)
+          ).data.participantIds;
+
+        allow create: if isActiveStudent()
+
+          && exists(
+            /databases/$(database)/documents/conversations/$(conversationId)
+          )
+
+          && request.auth.uid in get(
+            /databases/$(database)/documents/conversations/$(conversationId)
+          ).data.participantIds
+
+          && request.resource.data.keys().hasAll([
+            'senderId', 'text', 'createdAt'
+          ])
+          && request.resource.data.keys().hasOnly([
+            'senderId', 'text', 'createdAt'
+          ])
+
+          && request.resource.data.senderId == request.auth.uid
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt == request.time
+
+          // Require the conversation preview to be
+          // updated in the same atomic batch.
+          && getAfter(
+            /databases/$(database)/documents/conversations/$(conversationId)
+          ).data.lastMessageId == messageId
+
+          && getAfter(
+            /databases/$(database)/documents/conversations/$(conversationId)
+          ).data.lastMessage == request.resource.data.text
+
+          && getAfter(
+            /databases/$(database)/documents/conversations/$(conversationId)
+          ).data.lastMessageAt == request.time;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // ---------------------------------------------
+    // SALE LOCKS - ONE CONFIRMED BUYER PER LISTING
+    // ---------------------------------------------
+    match /saleLocks/{listingId} {
+
+      // Only the listing owner may check its lock.
+      allow get: if isActiveStudent()
+        && exists(
+          /databases/$(database)/documents/listings/$(listingId)
+        )
+        && get(
+          /databases/$(database)/documents/listings/$(listingId)
+        ).data.sellerId == request.auth.uid;
+
+      allow list: if false;
+
+      // A lock must be created with a matching sale
+      // transaction in the same atomic operation.
+      allow create: if isActiveStudent()
+        && request.resource.data.keys().hasOnly([
+          'listingId', 'conversationId', 'buyerId',
+          'sellerId', 'status', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'listingId', 'conversationId', 'buyerId',
+          'sellerId', 'status', 'createdAt'
+        ])
+
+        && request.resource.data.listingId == listingId
+        && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.buyerId is string
+        && request.resource.data.buyerId != request.auth.uid
+        && request.resource.data.status == 'pending_buyer'
+        && request.resource.data.createdAt == request.time
+
+        && request.resource.data.conversationId ==
+          listingId + '_' + request.resource.data.buyerId
+
+        && exists(
+          /databases/$(database)/documents/listings/$(listingId)
+        )
+        && get(
+          /databases/$(database)/documents/listings/$(listingId)
+        ).data.sellerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/listings/$(listingId)
+        ).data.get('sold', false) == false
+
+        // Listing must not already be pending.
+        && get(
+          /databases/$(database)/documents/listings/$(listingId)
+        ).data.get('salePending', false) == false
+
+        // The same transaction must hide the listing.
+        && getAfter(
+          /databases/$(database)/documents/listings/$(listingId)
+        ).data.salePending == true
+
+        && exists(
+          /databases/$(database)/documents/conversations/$(request.resource.data.conversationId)
+        )
+        && get(
+          /databases/$(database)/documents/conversations/$(request.resource.data.conversationId)
+        ).data.sellerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/conversations/$(request.resource.data.conversationId)
+        ).data.buyerId == request.resource.data.buyerId
+        && get(
+          /databases/$(database)/documents/conversations/$(request.resource.data.conversationId)
+        ).data.listingId == listingId
+
+        && !exists(
+          /databases/$(database)/documents/saleTransactions/$(request.resource.data.conversationId)
+        )
+        && getAfter(
+          /databases/$(database)/documents/saleTransactions/$(request.resource.data.conversationId)
+        ).data.listingId == listingId
+        && getAfter(
+          /databases/$(database)/documents/saleTransactions/$(request.resource.data.conversationId)
+        ).data.sellerConfirmedAt == request.time;
+
+      allow update, delete: if false;
+    }
+
+    // ---------------------------------------------
+    // SALE TRANSACTIONS
+    // ---------------------------------------------
+    match /saleTransactions/{conversationId} {
+
+      // Buyer and seller can read their transaction,
+      // including before the transaction exists.
+      allow get: if isActiveStudent()
+        && exists(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        )
+        && request.auth.uid in get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.participantIds;
+
+      allow list: if false;
+
+      // SELLER: create a pending transaction.
+      allow create: if isActiveStudent()
+        && request.resource.data.keys().hasOnly([
+          'conversationId', 'listingId', 'buyerId',
+          'sellerId', 'status', 'sellerConfirmedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'conversationId', 'listingId', 'buyerId',
+          'sellerId', 'status', 'sellerConfirmedAt'
+        ])
+
+        && request.resource.data.conversationId == conversationId
+        && request.resource.data.sellerId == request.auth.uid
+        && request.resource.data.buyerId is string
+        && request.resource.data.buyerId != request.auth.uid
+        && request.resource.data.listingId is string
+        && request.resource.data.listingId != ''
+        && request.resource.data.status == 'pending_buyer'
+        && request.resource.data.sellerConfirmedAt == request.time
+
+        && exists(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        )
+        && get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.sellerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.buyerId == request.resource.data.buyerId
+        && get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.listingId == request.resource.data.listingId
+
+        && exists(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        )
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.sellerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/listings/$(request.resource.data.listingId)
+        ).data.get('sold', false) == false
+
+        && !exists(
+          /databases/$(database)/documents/saleLocks/$(request.resource.data.listingId)
+        )
+        && getAfter(
+          /databases/$(database)/documents/saleLocks/$(request.resource.data.listingId)
+        ).data.conversationId == conversationId
+        && getAfter(
+          /databases/$(database)/documents/saleLocks/$(request.resource.data.listingId)
+        ).data.createdAt == request.time;
+
+      // BUYER: confirm purchase or complete rating.
+      allow update: if isActiveStudent()
+        && request.auth.uid == resource.data.buyerId
+
+        // Identity and ownership fields are immutable.
+        && request.resource.data.diff(resource.data)
+          .affectedKeys().hasOnly([
+            'status', 'buyerConfirmedAt', 'completedAt'
+          ])
+
+        && (
+          (
+            // Buyer confirms receiving the item.
+            resource.data.status == 'pending_buyer'
+            && request.resource.data.status == 'awaiting_rating'
+            && request.resource.data.diff(resource.data)
+              .affectedKeys().hasOnly([
+                'status', 'buyerConfirmedAt'
+              ])
+            && request.resource.data.buyerConfirmedAt == request.time
+          )
+          ||
+          (
+            // Buyer completes the transaction by rating.
+            resource.data.status == 'awaiting_rating'
+            && request.resource.data.status == 'completed'
+            && request.resource.data.diff(resource.data)
+              .affectedKeys().hasOnly([
+                'status', 'completedAt'
+              ])
+            && request.resource.data.completedAt == request.time
+
+            // Completing a rating must also finalize
+            // the associated listing in the same transaction.
+            && getAfter(
+              /databases/$(database)/documents/listings/$(resource.data.listingId)
+            ).data.sold == true
+
+            && getAfter(
+              /databases/$(database)/documents/listings/$(resource.data.listingId)
+            ).data.salePending == false
+
+            // A new rating must be created in the
+            // same atomic transaction.
+            && !exists(
+              /databases/$(database)/documents/sellerRatings/$(conversationId)
+            )
+            && getAfter(
+              /databases/$(database)/documents/sellerRatings/$(conversationId)
+            ).data.buyerId == request.auth.uid
+            && getAfter(
+              /databases/$(database)/documents/sellerRatings/$(conversationId)
+            ).data.createdAt == request.time
+          )
+        );
+
+      allow delete: if false;
+    }
+
+    // ---------------------------------------------
+    // SELLER RATINGS
+    // ---------------------------------------------
+    match /sellerRatings/{conversationId} {
+
+      // Only the buyer and seller involved in the
+      // conversation can read its individual rating.
+      allow get: if isActiveStudent()
+        && exists(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        )
+        && request.auth.uid in get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.participantIds;
+
+      // Public review display will be handled separately.
+      allow list: if false;
+
+      // Only the confirmed buyer can create one rating.
+      allow create: if isActiveStudent()
+
+        // Require exactly the expected rating fields.
+        && request.resource.data.keys().hasAll([
+          'conversationId', 'listingId',
+          'buyerId', 'sellerId',
+          'stars', 'review', 'createdAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'conversationId', 'listingId',
+          'buyerId', 'sellerId',
+          'stars', 'review', 'createdAt'
+        ])
+
+        // The document belongs to this conversation.
+        && request.resource.data.conversationId == conversationId
+
+        // Only the real buyer may submit.
+        && request.resource.data.buyerId == request.auth.uid
+        && request.resource.data.sellerId is string
+        && request.resource.data.sellerId != request.auth.uid
+        && request.resource.data.listingId is string
+
+        // Stars must be a whole number from 1 to 5.
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+
+        // Written review is optional, up to 500 characters.
+        && request.resource.data.review is string
+        && request.resource.data.review.size() <= 500
+
+        // Use the server timestamp.
+        && request.resource.data.createdAt == request.time
+
+        // Verify the real conversation.
+        && exists(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        )
+        && get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.buyerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.sellerId == request.resource.data.sellerId
+        && get(
+          /databases/$(database)/documents/conversations/$(conversationId)
+        ).data.listingId == request.resource.data.listingId
+
+        // Verify the purchase transaction.
+        && exists(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        )
+        && get(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        ).data.buyerId == request.auth.uid
+        && get(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        ).data.sellerId == request.resource.data.sellerId
+        && get(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        ).data.listingId == request.resource.data.listingId
+
+        // Purchase must be awaiting a rating.
+        && get(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        ).data.status == 'awaiting_rating'
+
+        // Rating and purchase completion must
+        // happen together in one atomic transaction.
+        && getAfter(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        ).data.status == 'completed'
+        && getAfter(
+          /databases/$(database)/documents/saleTransactions/$(conversationId)
+        ).data.completedAt == request.time;
+
+      // Ratings cannot be changed or deleted.
+      allow update, delete: if false;
+    }
+
+  }
+}

@@ -483,7 +483,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun loadListings() {
-        ListingRepo.loadAllListings(
+        ListingRepo.loadPublicListings(
             onSuccess = {
                 if (!isDestroyed) {
                     listings = it

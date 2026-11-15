@@ -276,11 +276,22 @@ class ProfileActivity : AppCompatActivity() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: ""
         val emptyNotice = findViewById<TextView>(R.id.profileEmptyNotice)
 
+
         val itemsToDisplay = when (currentTab) {
-            Tab.MY_LISTINGS -> allListings.filter { it.sellerId == uid }
-            Tab.SAVED -> allListings.filter { userSavedIds.contains(it.id) }
-            Tab.SOLD -> emptyList()
+
+            Tab.MY_LISTINGS -> allListings.filter {
+                it.sellerId == uid && !it.sold
+            }
+
+            Tab.SAVED -> allListings.filter {
+                userSavedIds.contains(it.id)
+            }
+
+            Tab.SOLD -> allListings.filter {
+                it.sellerId == uid && it.sold
+            }
         }
+
 
         profileAdapter.updateList(itemsToDisplay)
         // The notice only makes sense after a load succeeded, and never over the error state.
@@ -325,10 +336,16 @@ class ProfileActivity : AppCompatActivity() {
                         }
                         false
                     }
+
                     R.id.navChat -> {
-                        Toast.makeText(this@ProfileActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT).show()
+                        post {
+                            startActivity(
+                                Intent(this@ProfileActivity, ChatInboxActivity::class.java)
+                            )
+                        }
                         false
                     }
+
                     else -> false
                 }
             }
