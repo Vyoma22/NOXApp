@@ -313,7 +313,7 @@ class SellerProfileActivity : AppCompatActivity() {
             SellerListingFilters.forSeller(allListings, sellerId)
         )
         val tabListings = when (currentTab) {
-            Tab.LISTINGS -> sellerListings.available
+            Tab.LISTINGS -> sellerListings.available.filter { !it.salePending }
             Tab.SOLD -> sellerListings.sold
         }
         val results = SellerListingFilters.apply(tabListings, query, category)

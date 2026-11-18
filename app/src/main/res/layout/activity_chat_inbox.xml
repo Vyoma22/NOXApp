@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/nox_cream_bg"
+    android:orientation="vertical">
+
+    <!-- Chats header -->
+    <TextView
+        android:id="@+id/chatInboxTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="20dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="20dp"
+        android:text="Chats"
+        android:textColor="@color/nox_dark_green"
+        android:textSize="32sp"
+        android:textStyle="bold" />
+
+    <!-- Conversation list -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/chatInboxRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:padding="12dp" />
+
+        <!-- Shown when there are no conversations -->
+        <LinearLayout
+            android:id="@+id/chatInboxEmptyState"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No conversations yet"
+                android:textColor="@color/nox_dark_green"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="Find something you like and message the seller to start chatting!"
+                android:textColor="@color/nox_subtext"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <!-- Existing NOX bottom navigation -->
+    <include
+        android:id="@+id/chatBottomNav"
+        layout="@layout/nav_bar" />
+
+</LinearLayout>

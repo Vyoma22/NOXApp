@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Selected navigation tab -->
+    <item android:state_checked="true">
+        <layer-list>
+            <item
+                android:width="32dp"
+                android:height="4dp"
+                android:gravity="bottom|center_horizontal"
+                android:bottom="2dp">
+
+                <shape android:shape="rectangle">
+                    <solid android:color="@color/nox_dark_green" />
+                    <corners android:radius="2dp" />
+                </shape>
+
+            </item>
+        </layer-list>
+    </item>
+
+    <!-- Unselected navigation tabs -->
+    <item android:drawable="@android:color/transparent" />
+
+</selector>

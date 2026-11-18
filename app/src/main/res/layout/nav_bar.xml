@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.bottomnavigation.BottomNavigationView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.bottomnavigation.BottomNavigationView
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/bottomNavBar"
     android:layout_width="match_parent"
@@ -8,6 +9,8 @@
     app:paddingBottomSystemWindowInsets="false"
     app:itemIconTint="@color/bottom_nav_item"
     app:itemTextColor="@color/bottom_nav_item"
+    app:itemIconSize="30dp"
     app:itemActiveIndicatorStyle="@style/Widget.NOX.NavIndicator"
-    app:labelVisibilityMode="labeled"
+    app:itemBackground="@drawable/nox_nav_selected_dash"
+    app:labelVisibilityMode="selected"
     app:menu="@menu/bottom_navigation" />

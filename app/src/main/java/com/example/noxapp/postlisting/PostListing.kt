@@ -301,10 +301,18 @@ class PostListing : AppCompatActivity() {
                         true
                     }
                     R.id.navPost -> true
+
                     R.id.navChat -> {
-                        Toast.makeText(this@PostListing, R.string.post_chat_toast, Toast.LENGTH_SHORT).show()
-                        false
+                        startActivity(
+                            Intent(
+                                this@PostListing,
+                                com.example.noxapp.ChatInboxActivity::class.java
+                            )
+                        )
+                        finish()
+                        true
                     }
+
                     R.id.navProfile -> {
                         startActivity(Intent(this@PostListing, ProfileActivity::class.java))
                         finish()

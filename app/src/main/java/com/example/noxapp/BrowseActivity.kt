@@ -356,7 +356,7 @@ class BrowseActivity : AppCompatActivity() {
         listingsError = false
         loadErrorSnackbar?.dismiss()
         renderResults()
-        ListingRepo.loadAllListings(
+        ListingRepo.loadPublicListings(
             onSuccess = { listings ->
                 if (!isDestroyed && !isFinishing) {
                     allListings = listings
@@ -476,9 +476,13 @@ class BrowseActivity : AppCompatActivity() {
                             )
                         )
                     }
-                    R.id.navChat -> android.widget.Toast.makeText(
-                        this@BrowseActivity, R.string.browse_chat_toast, android.widget.Toast.LENGTH_SHORT
-                    ).show()
+
+                    R.id.navChat -> post {
+                        startActivity(
+                            Intent(this@BrowseActivity, ChatInboxActivity::class.java)
+                        )
+                    }
+
                     R.id.navProfile -> post { openProfile() }
                 }
                 item.itemId == R.id.navBrowse
