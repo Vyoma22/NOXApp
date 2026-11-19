@@ -34,8 +34,6 @@ import com.example.noxapp.ChatConversationActivity
 import com.example.noxapp.data.ChatRepository
 
 object ItemDetailDialog {
-    // Keep false until real Chat security rules are verified.
-    private const val ENABLE_REAL_CHAT = true
     fun show(
         activity: Activity,
         listing: Listing,
@@ -97,9 +95,6 @@ object ItemDetailDialog {
                 .show()
         }
 
-
-
-
         val messageSellerButton =
             dialog.findViewById<Button>(R.id.messageSellerButton)
 
@@ -114,27 +109,6 @@ object ItemDetailDialog {
                 return@setOnClickListener
             }
 
-            // SAFE PREVIEW:
-            // Keep showing the product's chat screen
-            // without writing anything to Firebase.
-            if (!ENABLE_REAL_CHAT) {
-
-                val intent = Intent(
-                    activity,
-                    ChatConversationActivity::class.java
-                )
-
-                intent.putExtra("listingId", listing.id)
-
-                activity.startActivity(intent)
-                dialog.dismiss()
-
-                return@setOnClickListener
-            }
-
-            // REAL CHAT:
-            // This section stays disabled until
-            // the Firebase rules are deployed.
             messageSellerButton.isEnabled = false
 
             ChatRepository.createOrOpenConversation(
@@ -175,8 +149,6 @@ object ItemDetailDialog {
                 }
             )
         }
-
-
 
         bindSeller(activity, dialog, listing)
         dialog.show()

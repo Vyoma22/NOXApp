@@ -2,7 +2,6 @@
 <!-- Auth-screen accents for dark mode. The shared palette is in values-night/colors.xml. -->
 <resources>
     <color name="nox_accent_dark_green">#8FD3AD</color>
-    <color name="nox_pink_light">#4A342E</color>
     <color name="nox_logo_ink">#E6EFE9</color>
     <color name="nox_logo_arrow_light">#A7C8B1</color>
     <color name="nox_logo_subtitle">#A9B7AE</color>

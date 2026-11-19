@@ -18,8 +18,6 @@
     <string name="sign_out">Sign Out</string>
     <string name="settings">Settings</string>
     <string name="settings_account">Account</string>
-    <string name="settings_signed_in">Signed in on this device</string>
-    <string name="settings_signed_out">Not signed in</string>
     <string name="nav_home">Home</string>
     <string name="nav_browse">Browse</string>
     <string name="nav_post">Post</string>
@@ -63,7 +61,6 @@
     <string name="map_showing_filters">Showing: %1$s</string>
     <string name="map_radius_min">0.5 %1$s</string>
     <string name="map_radius_max">10 %1$s</string>
-    <string name="map_filter_separator"> · </string>
     <string name="map_back">Back</string>
     <string name="my_location">My Location</string>
     <string name="browse_items_in_area">Browse items in this area</string>
@@ -88,7 +85,6 @@
     <string name="sort_price_high">Price high</string>
     <string name="sort_nearest">Nearest</string>
 
-    <string name="settings_profile">Profile</string>
     <string name="settings_school">School</string>
     <string name="settings_email">School email</string>
     <string name="settings_access_ends">Access ends</string>
@@ -117,7 +113,6 @@
     <string name="settings_password_mismatch">Passwords don\'t match</string>
     <string name="settings_password_short">At least 8 characters</string>
     <string name="settings_password_updated">Password updated</string>
-    <string name="settings_saved">Saved</string>
     <string name="settings_update_failed">Couldn\'t save. Try again.</string>
     <string name="settings_delete_account">Delete account</string>
     <string name="settings_delete_account_title">Delete your account?</string>
@@ -125,7 +120,6 @@
     <string name="settings_delete_confirm_hint">Type DELETE to confirm</string>
     <string name="settings_delete_confirm_word">DELETE</string>
     <string name="settings_delete">Delete</string>
-    <string name="settings_loading">Loading…</string>
     <string name="settings_safety_message">Meet in a busy, well-lit campus spot. Inspect the item before paying. Never send money before you have the item. If a listing feels wrong, stop and contact campus security.</string>
     <string name="settings_terms_message">NOX is a student-only marketplace. Listings and transactions are between students; NOX does not handle payment or delivery. Access ends after your graduation month.</string>
     <string name="settings_privacy_message">NOX stores your display name, school email, school, graduation date, and saved items in Firebase. Your listings are visible to other signed-in students. You can delete your account from this screen.</string>
@@ -133,7 +127,6 @@
     <string name="settings_report_subject">NOX app feedback</string>
     <string name="settings_report_body">Describe the problem and what you expected to happen:</string>
     <string name="settings_report_email">thenorthexchangeapp@gmail.com</string>
-    <string name="settings_access_ends_format">%1$s</string>
     <string name="settings_profile_missing">Profile unavailable</string>
 
     <!-- Post / edit listing -->
@@ -185,7 +178,6 @@
     <string name="post_updated">Listing updated.</string>
     <string name="post_upload_error">Upload error: %1$s</string>
     <string name="post_edit_missing">That listing is no longer available.</string>
-    <string name="post_chat_toast">Chat inbox coming soon</string>
 
     <!-- Listing owner actions -->
     <string name="listing_edit">Edit listing</string>
