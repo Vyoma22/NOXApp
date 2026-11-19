@@ -309,12 +309,11 @@ class SellerProfileActivity : AppCompatActivity() {
     }
 
     private fun renderResults() {
-        val sellerListings = SellerListingFilters.splitBySold(
-            SellerListingFilters.forSeller(allListings, sellerId)
-        )
+        val (available, sold) = SellerListingFilters.forSeller(allListings, sellerId)
+            .partition { !it.sold }
         val tabListings = when (currentTab) {
-            Tab.LISTINGS -> sellerListings.available.filter { !it.salePending }
-            Tab.SOLD -> sellerListings.sold
+            Tab.LISTINGS -> available.filter { !it.salePending }
+            Tab.SOLD -> sold
         }
         val results = SellerListingFilters.apply(tabListings, query, category)
         listingsAdapter.updateList(results)

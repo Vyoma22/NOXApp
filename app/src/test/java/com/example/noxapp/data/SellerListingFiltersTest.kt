@@ -49,28 +49,28 @@ class SellerListingFiltersTest {
         val soldChair = chair.copy(sold = true)
         val soldHeadphones = headphones.copy(sold = true)
 
-        val split = SellerListingFilters.splitBySold(listOf(soldChair, textbook, soldHeadphones))
+        val (available, sold) = listOf(soldChair, textbook, soldHeadphones).partition { !it.sold }
 
-        assertEquals(listOf(textbook), split.available)
-        assertEquals(listOf(soldChair, soldHeadphones), split.sold)
+        assertEquals(listOf(textbook), available)
+        assertEquals(listOf(soldChair, soldHeadphones), sold)
     }
 
     @Test
     fun unsoldIsTheDefaultSoExistingListingsStayAvailable() {
         assertFalse(textbook.sold)
 
-        val split = SellerListingFilters.splitBySold(sellerListings)
+        val (available, sold) = sellerListings.partition { !it.sold }
 
-        assertEquals(sellerListings, split.available)
-        assertTrue(split.sold.isEmpty())
+        assertEquals(sellerListings, available)
+        assertTrue(sold.isEmpty())
     }
 
     @Test
     fun splitOfEmptyListGivesTwoEmptyTabs() {
-        val split = SellerListingFilters.splitBySold(emptyList())
+        val (available, sold) = emptyList<Listing>().partition { !it.sold }
 
-        assertTrue(split.available.isEmpty())
-        assertTrue(split.sold.isEmpty())
+        assertTrue(available.isEmpty())
+        assertTrue(sold.isEmpty())
     }
 
     @Test
@@ -123,11 +123,12 @@ class SellerListingFiltersTest {
             sold = true
         )
         val listings = listOf(textbook, soldBook, chair, foreignBook)
-        val split = SellerListingFilters.splitBySold(SellerListingFilters.forSeller(listings, sellerId))
+        val (available, sold) = SellerListingFilters.forSeller(listings, sellerId)
+            .partition { !it.sold }
 
-        assertEquals(listOf(textbook), SellerListingFilters.apply(split.available, "textbook", null))
-        assertEquals(listOf(soldBook), SellerListingFilters.apply(split.sold, "textbook", null))
-        assertEquals(listOf(chair), SellerListingFilters.apply(split.available, "", "Furniture"))
+        assertEquals(listOf(textbook), SellerListingFilters.apply(available, "textbook", null))
+        assertEquals(listOf(soldBook), SellerListingFilters.apply(sold, "textbook", null))
+        assertEquals(listOf(chair), SellerListingFilters.apply(available, "", "Furniture"))
     }
 
     @Test
