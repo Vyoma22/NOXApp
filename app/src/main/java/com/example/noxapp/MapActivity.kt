@@ -40,7 +40,9 @@ import com.example.noxapp.models.BrowseFilters
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.wireTabBar
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -57,11 +59,11 @@ import com.google.android.gms.maps.model.MapStyleOptions
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.slider.Slider
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -93,6 +95,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     // Pickup-point mode: reuse the map as a pin picker for the post form.
     private var pickMode = false
     private var pickLabel: String? = null
+    // The pin [pickLabel] was resolved for. A label without a matching pin is never returned.
+    private var pickLabelCenter: LatLng? = null
     private var pickConfirmed = false
     private var pickLabelJob: Job? = null
     private var userCampus: Pair<Double, Double>? = null
@@ -148,6 +152,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         restoredCamera = savedInstanceState != null
         pickMode = intent.getBooleanExtra(EXTRA_PICK_LOCATION, false)
         pickLabel = savedInstanceState?.getString(EXTRA_LOCATION_LABEL)
+        // The saved label and the saved pin were written together, so they still belong to each other.
+        if (pickLabel != null) pickLabelCenter = center
         pickConfirmed = savedInstanceState?.getBoolean("pickConfirmed") ?: false
         viewMode = savedInstanceState?.getBoolean(EXTRA_VIEW_LOCATION)
             ?: intent.getBooleanExtra(EXTRA_VIEW_LOCATION, false)
@@ -389,16 +395,28 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun updatePickAddress() {
         if (!pickMode) return
         pickLabelJob?.cancel()
+        // The resolved address belongs to the pin it was looked up for. Drop it as soon as the
+        // pin moves so confirming mid-lookup cannot pair the old address with new coordinates.
+        pickLabel = null
+        pickLabelCenter = null
         val address = findViewById<TextView>(R.id.pickLocationAddress)
         address.setText(R.string.pick_location_address_loading)
-        val latitude = center.latitude
-        val longitude = center.longitude
+        val target = center
+        val latitude = target.latitude
+        val longitude = target.longitude
         pickLabelJob = lifecycleScope.launch {
             val label = withTimeoutOrNull(5_000) {
-                runCatching { LocationSearch.reverse(this@MapActivity, latitude, longitude) }.getOrNull()
+                try {
+                    LocationSearch.reverse(this@MapActivity, latitude, longitude)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
+                }
             }
-            if (isFinishing || isDestroyed) return@launch
+            if (isFinishing || isDestroyed || center != target) return@launch
             pickLabel = label ?: getString(R.string.pick_location_custom)
+            pickLabelCenter = target
             address.text = pickLabel
         }
     }
@@ -653,37 +671,23 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun setupNavigation() {
         findViewById<View>(R.id.mapBackButton).setOnClickListener { finish() }
-        findViewById<BottomNavigationView>(R.id.mapBottomNav).apply {
-            selectedItemId = R.id.navBrowse
-            setOnItemSelectedListener { item ->
-                post {
-                    when (item.itemId) {
-                        R.id.navBrowse -> finish()
-                        R.id.navHome -> {
-                            navigation = NAV_HOME
-                            finish()
-                        }
-                        R.id.navProfile -> {
-                            navigation = NAV_PROFILE
-                            finish()
-                        }
-                        R.id.navPost -> startActivity(
-                            Intent(
-                                this@MapActivity,
-                                com.example.noxapp.postlisting.PostListing::class.java
-                            )
-                        )
-                        R.id.navChat -> Toast.makeText(
-                            this@MapActivity, R.string.map_chat_toast, Toast.LENGTH_SHORT
-                        ).show()
-                    }
+        // Map was launched for a result, so it hands the chosen tab back to Browse instead of
+        // starting activities itself. Browse applies the same tab policy as every other screen.
+        wireTabBar(
+            R.id.mapBottomNav,
+            NavTab.BROWSE,
+            onReselect = { finish() },
+            navigate = { tab ->
+                navigation = when (tab) {
+                    NavTab.HOME -> NAV_HOME
+                    NavTab.PROFILE -> NAV_PROFILE
+                    NavTab.POST -> NAV_POST
+                    NavTab.CHAT -> NAV_CHAT
+                    NavTab.BROWSE -> null
                 }
-                item.itemId == R.id.navBrowse
+                finish()
             }
-            setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navBrowse) finish()
-            }
-        }
+        )
     }
 
     override fun onStart() {
@@ -729,7 +733,11 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             .putExtra(EXTRA_CENTER_LNG, returnCenter.longitude)
             .putExtra(EXTRA_RADIUS_KM, returnRadius)
             .putExtra(EXTRA_NAVIGATION, navigation)
-        if (pickMode && pickConfirmed) data.putExtra(EXTRA_LOCATION_LABEL, pickLabel)
+        // Only return an address that was resolved for the pin being returned. The post form
+        // falls back to its own "pinned location" text when the lookup has not finished.
+        if (pickMode && pickConfirmed && pickLabelCenter == center) {
+            data.putExtra(EXTRA_LOCATION_LABEL, pickLabel)
+        }
         setResult(RESULT_OK, data)
         super.finish()
     }
@@ -752,5 +760,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_LOCATION_TITLE = "locationTitle"
         const val NAV_HOME = "home"
         const val NAV_PROFILE = "profile"
+        const val NAV_POST = "post"
+        const val NAV_CHAT = "chat"
     }
 }

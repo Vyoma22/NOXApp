@@ -11,24 +11,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
-import androidx.lifecycle.lifecycleScope
-import com.example.noxapp.auth.AccessState
-import com.example.noxapp.auth.AuthRepo
-import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.example.noxapp.ui.goTo
+import com.example.noxapp.ui.checkAccessOnStart
+import com.example.noxapp.ui.wireTabBar
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
-import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.firebase.auth.FirebaseAuth
 
 class ProfileActivity : AppCompatActivity() {
@@ -68,23 +63,7 @@ class ProfileActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
         accessJob?.cancel()
-        accessJob = lifecycleScope.launch {
-            val state = try {
-                AuthRepo.checkAccess()
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                null
-            }
-            if (isFinishing || isDestroyed) return@launch
-            // A transient network failure is not the same as being signed out: keep the
-            // screen the student opened instead of clearing the task and bouncing to login.
-            when (state) {
-                AccessState.Allowed -> loadUserProfile()
-                null -> Unit
-                else -> goTo(LoginActivity::class.java)
-            }
-        }
+        accessJob = checkAccessOnStart { loadUserProfile() }
     }
 
     override fun onStop() {
@@ -297,63 +276,11 @@ class ProfileActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNav() {
-        findViewById<BottomNavigationView>(R.id.profileBottomNav).apply {
-            selectedItemId = R.id.navProfile
-            setOnItemSelectedListener { item ->
-                when (item.itemId) {
-                    R.id.navHome -> {
-                        // Leave Material's menu dispatch before starting or finishing anything.
-                        post {
-                            startActivity(
-                                Intent(this@ProfileActivity, MainActivity::class.java)
-                                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                            )
-                            finish()
-                        }
-                        true
-                    }
-                    R.id.navBrowse -> {
-                        post {
-                            startActivity(
-                                Intent(this@ProfileActivity, BrowseActivity::class.java)
-                                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                            )
-                            finish()
-                        }
-                        true
-                    }
-                    R.id.navPost -> {
-                        post {
-                            startActivity(
-                                Intent(
-                                    this@ProfileActivity,
-                                    com.example.noxapp.postlisting.PostListing::class.java
-                                )
-                            )
-                        }
-                        false
-                    }
-
-                    R.id.navChat -> {
-                        post {
-                            startActivity(
-                                Intent(this@ProfileActivity, ChatInboxActivity::class.java)
-                            )
-                        }
-                        false
-                    }
-
-                    else -> false
-                }
-            }
-            setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navProfile && !isFinishing && !isDestroyed) {
-                    // Tapping Profile again returns to its default tab.
-                    selectTab(Tab.MY_LISTINGS)
-                    findViewById<androidx.core.widget.NestedScrollView>(R.id.profileScroll)?.smoothScrollTo(0, 0)
-                }
-            }
-        }
+        wireTabBar(R.id.profileBottomNav, NavTab.PROFILE, onReselect = {
+            // Tapping Profile again returns to its default tab.
+            selectTab(Tab.MY_LISTINGS)
+            findViewById<androidx.core.widget.NestedScrollView>(R.id.profileScroll)?.smoothScrollTo(0, 0)
+        })
     }
 
     companion object {

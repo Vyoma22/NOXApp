@@ -29,7 +29,7 @@ import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.data.SellerListingFilters
 import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
-import com.example.noxapp.models.UserProfile
+import com.example.noxapp.models.SellerProfile
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.google.android.material.snackbar.Snackbar
@@ -202,14 +202,14 @@ class SellerProfileActivity : AppCompatActivity() {
     }
 
     private fun loadProfile() {
-        ListingRepo.getUserProfile(sellerId) { profile ->
-            if (isDestroyed || isFinishing) return@getUserProfile
+        ListingRepo.getSellerProfile(sellerId) { profile ->
+            if (isDestroyed || isFinishing) return@getSellerProfile
             bindHeader(profile)
         }
     }
 
     /** Binds the identity header, keeping the passed-in name until the profile document answers. */
-    private fun bindHeader(profile: UserProfile?) {
+    private fun bindHeader(profile: SellerProfile?) {
         val name = profile?.displayName?.takeIf { it.isNotBlank() } ?: fallbackName
         val nameView = findViewById<TextView>(R.id.sellerNameText)
         val initialView = findViewById<TextView>(R.id.sellerAvatarInitial)

@@ -19,16 +19,12 @@ import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.adapters.ListingAdapter
 import com.example.noxapp.adapters.PillChipAdapter
-import com.example.noxapp.auth.AccessState
-import com.example.noxapp.auth.AuthRepo
-import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingFilters
 import com.example.noxapp.data.ListingRepo
@@ -38,15 +34,15 @@ import com.example.noxapp.models.Listing
 import com.example.noxapp.models.PriceRange
 import com.example.noxapp.models.SortOption
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.example.noxapp.ui.goTo
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.noxapp.ui.checkAccessOnStart
+import com.example.noxapp.ui.openTab
+import com.example.noxapp.ui.wireTabBar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 class BrowseActivity : AppCompatActivity() {
     private var filters = BrowseFilters()
@@ -80,9 +76,12 @@ class BrowseActivity : AppCompatActivity() {
             }
         }
         if (result.resultCode == RESULT_OK) {
+            // The map hands its tab choice back here so it can still return the area it selected.
             when (data?.getStringExtra(MapActivity.EXTRA_NAVIGATION)) {
-                MapActivity.NAV_HOME -> goHome()
-                MapActivity.NAV_PROFILE -> openProfile()
+                MapActivity.NAV_HOME -> openTab(NavTab.HOME)
+                MapActivity.NAV_PROFILE -> openTab(NavTab.PROFILE)
+                MapActivity.NAV_CHAT -> openTab(NavTab.CHAT)
+                MapActivity.NAV_POST -> openTab(NavTab.POST)
             }
         }
     }
@@ -112,24 +111,7 @@ class BrowseActivity : AppCompatActivity() {
         super.onStart()
         accessAllowed = false
         accessJob?.cancel()
-        accessJob = lifecycleScope.launch {
-            val state = try {
-                AuthRepo.checkAccess()
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                null
-            }
-            // A signed-out result can be synchronous, before ON_START is dispatched.
-            // onStop cancels this job, so no lifecycle-state check may skip the gate here.
-            if (isFinishing || isDestroyed) return@launch
-            // null means the check itself failed (offline, Firebase hiccup). Keeping the
-            // current screen is safer than clearing the task and bouncing through login.
-            if (state == null) return@launch
-            if (state != AccessState.Allowed) {
-                goTo(LoginActivity::class.java)
-                return@launch
-            }
+        accessJob = checkAccessOnStart {
             accessAllowed = true
             loadFavorites()
             loadUserCampus()
@@ -463,48 +445,11 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
-        findViewById<BottomNavigationView>(R.id.bottomNavBar).apply {
-            selectedItemId = R.id.navBrowse
-            setOnItemSelectedListener { item ->
-                when (item.itemId) {
-                    R.id.navHome -> post { goHome() }
-                    R.id.navPost -> post {
-                        startActivity(
-                            Intent(
-                                this@BrowseActivity,
-                                com.example.noxapp.postlisting.PostListing::class.java
-                            )
-                        )
-                    }
-
-                    R.id.navChat -> post {
-                        startActivity(
-                            Intent(this@BrowseActivity, ChatInboxActivity::class.java)
-                        )
-                    }
-
-                    R.id.navProfile -> post { openProfile() }
-                }
-                item.itemId == R.id.navBrowse
-            }
-            setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navBrowse && !isFinishing && !isDestroyed) {
-                    // Tapping Browse again restores the unfiltered, unexpanded grid.
-                    clearAllFilters()
-                    findViewById<NestedScrollView>(R.id.browseScroll)?.smoothScrollTo(0, 0)
-                }
-            }
-        }
-    }
-
-    private fun goHome() {
-        startActivity(Intent(this, MainActivity::class.java)
-            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-        finish()
-    }
-
-    private fun openProfile() {
-        startActivity(Intent(this, ProfileActivity::class.java))
+        wireTabBar(R.id.bottomNavBar, NavTab.BROWSE, onReselect = {
+            // Tapping Browse again restores the unfiltered, unexpanded grid.
+            clearAllFilters()
+            findViewById<NestedScrollView>(R.id.browseScroll)?.smoothScrollTo(0, 0)
+        })
     }
 
     private fun restoreState(state: Bundle?) {
