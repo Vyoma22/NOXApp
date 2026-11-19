@@ -29,13 +29,6 @@ object LocationSearch {
         val addresses = withContext(Dispatchers.IO) {
             geocoder.getFromLocation(latitude, longitude, 1).orEmpty()
         }
-        return addresses.firstOrNull()?.let { address ->
-            address.getAddressLine(0) ?: listOfNotNull(
-                address.featureName,
-                address.locality,
-                address.adminArea,
-                address.countryName
-            ).distinct().joinToString(", ").ifEmpty { null }
-        }
+        return addresses.firstOrNull()?.getAddressLine(0)
     }
 }
