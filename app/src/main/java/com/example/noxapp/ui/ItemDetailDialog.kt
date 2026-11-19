@@ -20,7 +20,7 @@ import com.example.noxapp.MapActivity
 import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
 import com.example.noxapp.SellerProfileActivity
-import com.example.noxapp.data.ListingLocation
+import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingReport
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
@@ -228,7 +228,7 @@ object ItemDetailDialog {
      * existed still land on the right campus.
      */
     private fun bindPickupLocation(activity: Activity, dialog: Dialog, listing: Listing) {
-        val location = ListingLocation.resolve(listing)
+        val (latitude, longitude) = CampusLocations.resolve(listing)
         dialog.findViewById<View>(R.id.detailLocationRow).apply {
             contentDescription = activity.getString(R.string.detail_location_view_map)
             setOnClickListener {
@@ -236,10 +236,10 @@ object ItemDetailDialog {
                 activity.startActivity(
                     Intent(activity, MapActivity::class.java)
                         .putExtra(MapActivity.EXTRA_VIEW_LOCATION, true)
-                        .putExtra(MapActivity.EXTRA_CENTER_LAT, location.latitude)
-                        .putExtra(MapActivity.EXTRA_CENTER_LNG, location.longitude)
-                        .putExtra(MapActivity.EXTRA_LOCATION_LABEL, location.label)
-                        .putExtra(MapActivity.EXTRA_LOCATION_TITLE, location.title)
+                        .putExtra(MapActivity.EXTRA_CENTER_LAT, latitude)
+                        .putExtra(MapActivity.EXTRA_CENTER_LNG, longitude)
+                        .putExtra(MapActivity.EXTRA_LOCATION_LABEL, listing.pickupLocation)
+                        .putExtra(MapActivity.EXTRA_LOCATION_TITLE, listing.title)
                 )
             }
         }
