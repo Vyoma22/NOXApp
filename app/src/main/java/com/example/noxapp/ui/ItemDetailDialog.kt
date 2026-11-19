@@ -3,14 +3,11 @@ package com.example.noxapp.ui
 import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
@@ -28,7 +25,9 @@ import com.example.noxapp.data.ListingReport
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.ListingSignals
+import com.example.noxapp.models.formatPrice
 import com.example.noxapp.postlisting.PostListing
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.example.noxapp.ChatConversationActivity
@@ -42,19 +41,8 @@ object ItemDetailDialog {
         listing: Listing,
         onListingChanged: (() -> Unit)? = null
     ) {
-        val dialog = Dialog(activity)
+        val dialog: Dialog = BottomSheetDialog(activity)
         dialog.setContentView(R.layout.dialog_item_details)
-        dialog.window?.apply {
-            // Details rise from the bottom edge as a sheet, so the card the user tapped
-            // stays connected to what opens over it.
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            setGravity(Gravity.BOTTOM)
-            setWindowAnimations(R.style.Animation_NOX_Sheet)
-            setLayout(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-        }
         dialog.setCanceledOnTouchOutside(true)
         dialog.findViewById<TextView>(R.id.detailTitle).text = listing.title
         bindPrice(activity, dialog, listing)
@@ -206,7 +194,6 @@ object ItemDetailDialog {
         val inbox = activity.getString(R.string.settings_report_email)
         val emailIntent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:$inbox")
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(inbox))
             putExtra(Intent.EXTRA_SUBJECT, report.subject(listing))
             putExtra(Intent.EXTRA_TEXT, report.body(listing))
         }
@@ -224,7 +211,7 @@ object ItemDetailDialog {
      * before the new one. The old price stays hidden for listings that never dropped.
      */
     private fun bindPrice(activity: Activity, dialog: Dialog, listing: Listing) {
-        val newPrice = "$${listing.price.toInt()}"
+        val newPrice = "$${formatPrice(listing.price)}"
         dialog.findViewById<TextView>(R.id.detailPrice).text = newPrice
 
         val previousPriceView = dialog.findViewById<TextView>(R.id.detailPreviousPrice)
@@ -233,7 +220,7 @@ object ItemDetailDialog {
             previousPriceView.isVisible = false
             return
         }
-        val oldPrice = "$${previousPrice.toInt()}"
+        val oldPrice = "$${formatPrice(previousPrice)}"
         previousPriceView.text = oldPrice
         previousPriceView.paintFlags =
             previousPriceView.paintFlags or Paint.STRIKE_THRU_TEXT_FLAG

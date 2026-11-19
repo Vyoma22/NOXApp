@@ -15,7 +15,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
@@ -36,10 +35,10 @@ import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.ItemDetailDialog
-import com.example.noxapp.ui.animateChildrenIn
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.goTo
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
@@ -57,7 +56,6 @@ class MainActivity : AppCompatActivity() {
     private var currentSearchQuery: String = ""
     private var userSavedIds: MutableSet<String> = mutableSetOf()
     private val pendingSaves = mutableSetOf<String>()
-    private var feedsAnimated = false
     private var listingsLoaded = false
     private var pendingScrollY: Int? = null
 
@@ -66,9 +64,6 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         applyEdgeToEdgeInsets(R.id.main, R.id.bottomNavBar, R.id.mainScroll)
-
-        // The page assembles itself on first frame instead of landing all at once.
-        findViewById<ViewGroup>(R.id.homeContent).animateChildrenIn(staggerMs = 25L, riseDp = 10f)
 
         // 1. User Greeting
         setupUserGreeting()
@@ -312,9 +307,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupActionCards() {
-        findViewById<CardView>(R.id.browseCard).setOnClickListener { openBrowse() }
+        findViewById<MaterialCardView>(R.id.browseCard).setOnClickListener { openBrowse() }
 
-        findViewById<CardView>(R.id.postCard).setOnClickListener {
+        findViewById<MaterialCardView>(R.id.postCard).setOnClickListener {
             startActivity(Intent(this, PostListing::class.java))
         }
     }
@@ -370,11 +365,6 @@ class MainActivity : AppCompatActivity() {
                 findViewById<SwipeRefreshLayout>(R.id.homeRefresh).isRefreshing = false
                 findViewById<View>(R.id.homeErrorState).isVisible = false
                 applyFilters()
-                if (!feedsAnimated) {
-                    feedsAnimated = true
-                    findViewById<RecyclerView>(R.id.featuredRecyclerView).animateChildrenIn()
-                    findViewById<RecyclerView>(R.id.recentRecyclerView).animateChildrenIn()
-                }
                 pendingScrollY?.let { scrollY ->
                     val scroll = findViewById<NestedScrollView>(R.id.mainScroll)
                     scroll.doOnNextLayout { scroll.scrollTo(0, scrollY) }

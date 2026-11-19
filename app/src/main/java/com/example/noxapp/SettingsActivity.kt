@@ -19,12 +19,12 @@ import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.auth.AuthErrors
 import com.example.noxapp.auth.AuthRepo
 import com.example.noxapp.auth.LoginActivity
-import com.example.noxapp.data.BrowseSession
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.data.Prefs
 import com.example.noxapp.models.SortOption
 import com.example.noxapp.models.UserProfile
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.dp
 import com.example.noxapp.ui.goTo
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -281,7 +281,7 @@ class SettingsActivity : AppCompatActivity() {
                         AuthRepo.reauthenticate(password)
                         ListingRepo.deleteAccountData(uid)
                         AuthRepo.deleteCurrentUser()
-                        BrowseSession.clear()
+                        Prefs.clearBrowseSession(this@SettingsActivity)
                         dialog.dismiss()
                         goTo(LoginActivity::class.java)
                     } catch (e: Exception) {
@@ -300,7 +300,7 @@ class SettingsActivity : AppCompatActivity() {
             .setMessage(R.string.settings_sign_out_message)
             .setPositiveButton(R.string.sign_out) { _, _ ->
                 AuthRepo.signOut()
-                BrowseSession.clear()
+                Prefs.clearBrowseSession(this@SettingsActivity)
                 goTo(LoginActivity::class.java)
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -319,7 +319,6 @@ class SettingsActivity : AppCompatActivity() {
         val email = getString(R.string.settings_report_email)
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:$email")
-            putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
             putExtra(Intent.EXTRA_SUBJECT, getString(R.string.settings_report_subject))
             putExtra(Intent.EXTRA_TEXT, getString(R.string.settings_report_body))
         }
@@ -345,6 +344,4 @@ class SettingsActivity : AppCompatActivity() {
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
     }
-
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 }

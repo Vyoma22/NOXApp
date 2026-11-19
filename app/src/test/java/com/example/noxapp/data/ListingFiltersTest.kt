@@ -8,7 +8,13 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+// Pinned because Robolectric 4.14.1 ships no system image for this project's targetSdk.
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [28])
 class ListingFiltersTest {
     private val book = Listing(
         id = "book",
@@ -148,7 +154,7 @@ class ListingFiltersTest {
     @Test
     fun listingExactlyAtRadiusIsIncluded() {
         val listing = book.copy(latitude = 2.0, longitude = 1.0)
-        val radius = ListingFilters.haversineKm(1.0, 1.0, 2.0, 1.0)
+        val radius = ListingFilters.distanceKm(1.0, 1.0, 2.0, 1.0)
 
         assertTrue(ListingFilters.matches(listing, BrowseFilters(
             centerLat = 1.0,
@@ -160,7 +166,7 @@ class ListingFiltersTest {
     @Test
     fun listingJustOutsideRadiusIsExcluded() {
         val listing = book.copy(latitude = 2.0, longitude = 1.0)
-        val radius = ListingFilters.haversineKm(1.0, 1.0, 2.0, 1.0)
+        val radius = ListingFilters.distanceKm(1.0, 1.0, 2.0, 1.0)
 
         assertFalse(ListingFilters.matches(listing, BrowseFilters(
             centerLat = 1.0,

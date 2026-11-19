@@ -30,7 +30,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
@@ -47,9 +46,13 @@ import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
+import com.example.noxapp.models.formatPrice
+import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.dp
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.async
@@ -161,7 +164,7 @@ class PostListing : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_post_listing)
-        setupInsets()
+        applyEdgeToEdgeInsets(R.id.rootContainer, R.id.bottomNavBar)
 
 		//get ids of views
         itmName = findViewById(R.id.etItmName)
@@ -271,24 +274,6 @@ class PostListing : AppCompatActivity() {
                 (insets.getInsets(WindowInsetsCompat.Type.ime()).bottom - tabBar.height)
                     .coerceAtLeast(0)
             view.updatePadding(bottom = base + covered)
-            if (covered > 0) view.post { scroll.scrollFocusedChildIntoView(covered) }
-            insets
-        }
-    }
-
-    private fun setupInsets() {
-        val root = findViewById<View>(R.id.rootContainer)
-        val nav = findViewById<View>(R.id.bottomNavBar)
-        val navBase = nav.paddingBottom
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
-
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
-            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(bars.left, bars.top, bars.right, 0)
-            nav.updatePadding(bottom = navBase + bars.bottom)
             insets
         }
     }
@@ -702,10 +687,12 @@ class PostListing : AppCompatActivity() {
 
     private fun mediaPreview(model: Any, isVideo: Boolean, onRemove: () -> Unit): View {
         val size = dp(84) //size of media cards
-        val card = CardView(this).apply { //create a rounded cardview
+        val card = MaterialCardView(this).apply { //create a rounded cardview
             layoutParams = LinearLayout.LayoutParams(size, size).apply { marginEnd = dp(10) }
             radius = dp(12).toFloat()
             cardElevation = 0f
+            strokeWidth = 0 //Material3's default card style adds a 1dp outline
+            stateListAnimator = null //stay flat on hover, like the cards in the layouts
             setCardBackgroundColor(ContextCompat.getColor(this@PostListing, R.color.nox_field_bg))
         }
         val frame = FrameLayout(this) //frame for media preview
@@ -754,8 +741,6 @@ class PostListing : AppCompatActivity() {
         val path = url.substringBefore('?').lowercase(Locale.getDefault())
         return listOf(".mp4", ".mov", ".webm", ".mkv", ".avi", ".3gp").any { path.endsWith(it) }
     }
-
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
 
     private fun renderPickedLocation() {
         val label = findViewById<TextView>(R.id.tvPickedLocation)
@@ -810,21 +795,6 @@ class PostListing : AppCompatActivity() {
         pickedLng = null
         pickedLabel = null
         renderPickedLocation()
-    }
-
-    private fun formatPrice(price: Double): String =
-        if (price % 1.0 == 0.0) price.toInt().toString() else price.toString()
-
-    /** Scrolls the focused field above the part of the keyboard that covers [coveredHeight] px. */
-    private fun ScrollView.scrollFocusedChildIntoView(coveredHeight: Int) {
-        val focused = findFocus() ?: return
-        if (focused === this) return
-        val rect = Rect()
-        focused.getDrawingRect(rect)
-        offsetDescendantRectToMyCoords(focused, rect)
-        val margin = (120 * resources.displayMetrics.density).toInt()
-        val overflow = rect.bottom - (height - coveredHeight - margin)
-        if (overflow > 0) smoothScrollBy(0, overflow)
     }
 
     companion object {

@@ -2,12 +2,10 @@ package com.example.noxapp.adapters
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
@@ -15,7 +13,8 @@ import coil.load
 import com.example.noxapp.R
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.ListingSignals
-import com.example.noxapp.ui.pop
+import com.example.noxapp.models.formatPrice
+import com.google.android.material.card.MaterialCardView
 import androidx.recyclerview.widget.LinearLayoutManager
 
 class ListingAdapter(
@@ -29,7 +28,7 @@ class ListingAdapter(
     private var savedIds: Set<String> = savedIds.toSet()
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val card: CardView = view.findViewById(R.id.listingCardContainer)
+        val card: MaterialCardView = view.findViewById(R.id.listingCardContainer)
         val image: ImageView = view.findViewById(R.id.itemImageView)
         val title: TextView = view.findViewById(R.id.itemTitleTextView)
         val price: TextView = view.findViewById(R.id.itemPriceTextView)
@@ -64,7 +63,7 @@ class ListingAdapter(
         val item = items[position]
         val context = holder.itemView.context
         holder.title.text = item.title
-        holder.price.text = "$${item.price.toInt()}"
+        holder.price.text = "$${formatPrice(item.price)}"
         bindBadges(holder, item)
 
         // The gap closes each card off, but on the last card it would widen the row's end inset,
@@ -102,25 +101,12 @@ class ListingAdapter(
 
         // Heart click event
         holder.favoriteBtn.setOnClickListener {
-            // Acknowledge the tap now; the screen owns the optimistic saved set.
-            holder.favoriteIcon.pop()
             onFavoriteClick(item, !savedIds.contains(item.id))
         }
 
         // Card click event
         holder.itemView.setOnClickListener {
             onItemClick(item)
-        }
-
-        // The card dips under the finger so a tap feels physical before the dialog opens.
-        holder.itemView.setOnTouchListener { view, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN ->
-                    view.animate().scaleX(0.96f).scaleY(0.96f).setDuration(90L).start()
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
-                    view.animate().scaleX(1f).scaleY(1f).setDuration(160L).start()
-            }
-            false
         }
     }
 

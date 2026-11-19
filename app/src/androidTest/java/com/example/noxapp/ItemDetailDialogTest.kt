@@ -30,7 +30,7 @@ class ItemDetailDialogTest {
                 ))
             }
             onView(withId(R.id.detailTitle)).inRoot(isDialog()).check(matches(withText("Test textbook")))
-            onView(withId(R.id.detailPrice)).inRoot(isDialog()).check(matches(withText("$24")))
+            onView(withId(R.id.detailPrice)).inRoot(isDialog()).check(matches(withText("$24.99")))
             onView(withId(R.id.detailCondition)).inRoot(isDialog()).check(matches(withText("Used")))
             onView(withId(R.id.detailCategory)).inRoot(isDialog()).check(matches(withText("Books")))
             onView(withId(R.id.detailSellerInitial)).inRoot(isDialog()).check(matches(withText("S")))

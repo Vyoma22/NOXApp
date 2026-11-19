@@ -140,7 +140,7 @@
                     android:layout_marginEnd="20dp"
                     android:orientation="horizontal">
 
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/browseCard"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
@@ -149,10 +149,12 @@
                         android:clickable="true"
                         android:contentDescription="@string/browse_card_action"
                         android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
+                        android:stateListAnimator="@null"
                         app:cardBackgroundColor="@color/nox_card_green"
                         app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp">
+                        app:cardElevation="0dp"
+                        app:rippleColor="?android:attr/colorControlHighlight"
+                        app:strokeWidth="0dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -185,9 +187,9 @@
                                 android:src="@drawable/ic_arrow_forward"
                                 app:tint="@color/nox_dark_green" />
                         </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                    </com.google.android.material.card.MaterialCardView>
 
-                    <androidx.cardview.widget.CardView
+                    <com.google.android.material.card.MaterialCardView
                         android:id="@+id/postCard"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
@@ -196,10 +198,12 @@
                         android:clickable="true"
                         android:contentDescription="@string/post_card_action"
                         android:focusable="true"
-                        android:foreground="?attr/selectableItemBackground"
+                        android:stateListAnimator="@null"
                         app:cardBackgroundColor="@color/nox_card_pink"
                         app:cardCornerRadius="16dp"
-                        app:cardElevation="0dp">
+                        app:cardElevation="0dp"
+                        app:rippleColor="?android:attr/colorControlHighlight"
+                        app:strokeWidth="0dp">
 
                         <LinearLayout
                             android:layout_width="match_parent"
@@ -232,7 +236,7 @@
                                 android:src="@drawable/ic_arrow_forward"
                                 app:tint="@color/nox_dark_green" />
                         </LinearLayout>
-                    </androidx.cardview.widget.CardView>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
                 <ProgressBar

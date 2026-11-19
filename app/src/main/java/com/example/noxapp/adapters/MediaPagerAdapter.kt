@@ -4,8 +4,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.annotation.ColorRes
-import androidx.annotation.LayoutRes
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.noxapp.R
@@ -19,9 +17,9 @@ import com.example.noxapp.R
  */
 class MediaPagerAdapter(
     imageUrls: List<String>,
-    @LayoutRes private val pageLayout: Int = R.layout.item_media_page,
+    private val pageLayout: Int = R.layout.item_media_page,
     private val descriptionFormat: Int = R.string.detail_media_photo_description,
-    @ColorRes private val imageBackgroundColor: Int = R.color.nox_field_bg,
+    private val imageBackgroundColor: Int = R.color.nox_field_bg,
     private val onPhotoClick: ((position: Int) -> Unit)? = null
 ) : RecyclerView.Adapter<MediaPagerAdapter.PageViewHolder>() {
 

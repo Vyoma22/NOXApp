@@ -1,18 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Screens swap instantly. Motion lives inside each screen, not between them. -->
-    <style name="Animation.NOX.Activity" parent="@android:style/Animation.Activity">
-        <item name="android:activityOpenEnterAnimation">@anim/nox_activity_instant</item>
-        <item name="android:activityOpenExitAnimation">@anim/nox_activity_instant</item>
-        <item name="android:activityCloseEnterAnimation">@anim/nox_activity_instant</item>
-        <item name="android:activityCloseExitAnimation">@anim/nox_activity_instant</item>
-    </style>
-
-    <style name="Animation.NOX.Sheet" parent="@android:style/Animation.Dialog">
-        <item name="android:windowEnterAnimation">@anim/nox_sheet_in</item>
-        <item name="android:windowExitAnimation">@anim/nox_sheet_out</item>
-    </style>
-
     <!-- Five tabs leave 72dp per item; Material's 64dp pill plus its 8dp margins
          touches both edges, so the last pill is clipped. A narrower pill stays round. -->
 
@@ -55,5 +42,13 @@
         <item name="android:textColor">@color/nox_dark_green</item>
         <item name="android:textSize">14sp</item>
         <item name="backgroundTint">@null</item>
+    </style>
+
+    <!-- Activity navigation is instant; dialogs and in-screen effects keep their own animations. -->
+    <style name="Animation.NOX.Activity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
     </style>
 </resources>

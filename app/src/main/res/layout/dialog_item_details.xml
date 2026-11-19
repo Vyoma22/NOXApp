@@ -231,12 +231,14 @@
                 android:minHeight="48dp"
                 android:orientation="horizontal">
 
-                <androidx.cardview.widget.CardView
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
+                    android:stateListAnimator="@null"
                     app:cardBackgroundColor="@color/nox_card_green"
                     app:cardCornerRadius="24dp"
-                    app:cardElevation="0dp">
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
 
                     <TextView
                         android:id="@+id/detailSellerInitial"
@@ -247,7 +249,7 @@
                         android:textColor="@color/nox_dark_green"
                         android:textSize="18sp"
                         android:textStyle="bold" />
-                </androidx.cardview.widget.CardView>
+                </com.google.android.material.card.MaterialCardView>
 
                 <LinearLayout
                     android:layout_width="0dp"
