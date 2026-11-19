@@ -32,11 +32,11 @@ import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.NavTab
+import com.example.noxapp.ui.SaveToggle
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.checkAccessOnStart
 import com.example.noxapp.ui.wireTabBar
 import com.google.android.material.card.MaterialCardView
-import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
 import java.util.Locale
@@ -52,7 +52,10 @@ class MainActivity : AppCompatActivity() {
     private var currentCategory: String = "All"
     private var currentSearchQuery: String = ""
     private var userSavedIds: MutableSet<String> = mutableSetOf()
-    private val pendingSaves = mutableSetOf<String>()
+    private val saveToggle = SaveToggle(
+        this, R.id.main, R.id.bottomNavBar,
+        R.string.saved_to_profile, R.string.removed_from_saved, ::applySavedLocally
+    )
     private var listingsLoaded = false
     private var pendingScrollY: Int? = null
     private var accessJob: Job? = null
@@ -114,7 +117,7 @@ class MainActivity : AppCompatActivity() {
         val recentRecycler = findViewById<RecyclerView>(R.id.recentRecyclerView)
 
         val onHeartToggle: (Listing, Boolean) -> Unit = { listing, shouldSave ->
-            toggleSave(listing, shouldSave)
+            saveToggle.toggle(listing, shouldSave)
         }
 
         featuredAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
@@ -239,32 +242,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<EditText>(R.id.searchBar).setText("")
         currentSearchQuery = ""
         applyFilters()
-    }
-
-    private fun toggleSave(listing: Listing, shouldSave: Boolean, showUndo: Boolean = true) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        if (!pendingSaves.add(listing.id)) return
-
-        applySavedLocally(listing.id, shouldSave)
-        ListingRepo.toggleSaveItem(uid, listing.id, shouldSave) { success ->
-            pendingSaves.remove(listing.id)
-            if (isDestroyed) return@toggleSaveItem
-            if (!success) {
-                applySavedLocally(listing.id, !shouldSave)
-                Snackbar.make(findViewById(R.id.main), R.string.save_failed, Snackbar.LENGTH_LONG)
-                    .setAnchorView(R.id.bottomNavBar)
-                    .show()
-            } else if (showUndo) {
-                Snackbar.make(
-                    findViewById(R.id.main),
-                    if (shouldSave) R.string.saved_to_profile else R.string.removed_from_saved,
-                    Snackbar.LENGTH_LONG
-                )
-                    .setAnchorView(R.id.bottomNavBar)
-                    .setAction(R.string.undo) { toggleSave(listing, !shouldSave, showUndo = false) }
-                    .show()
-            }
-        }
     }
 
     private fun applySavedLocally(listingId: String, saved: Boolean) {
