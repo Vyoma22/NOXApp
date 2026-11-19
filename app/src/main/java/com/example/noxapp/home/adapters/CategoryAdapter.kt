@@ -1,4 +1,4 @@
-package com.example.noxapp.home
+package com.example.noxapp.home.adapters
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater

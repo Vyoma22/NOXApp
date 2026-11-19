@@ -19,8 +19,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
-import com.example.noxapp.listing.ListingAdapter
-import com.example.noxapp.browse.PillChipAdapter
+import com.example.noxapp.listing.adapters.ListingAdapter
+import com.example.noxapp.browse.adapters.PillChipAdapter
 import com.example.noxapp.listing.CampusLocations
 import com.example.noxapp.listing.ListingFilters
 import com.example.noxapp.listing.ListingRepo

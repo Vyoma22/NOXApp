@@ -1,4 +1,4 @@
-package com.example.noxapp.chat
+package com.example.noxapp.chat.adapters
 
 import android.view.Gravity
 import android.view.LayoutInflater

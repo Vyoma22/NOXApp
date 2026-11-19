@@ -16,7 +16,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.core.onPageSnapped
-import com.example.noxapp.listing.MediaPagerAdapter
+import com.example.noxapp.listing.adapters.MediaPagerAdapter
 
 /**
  * Fullscreen photo viewer opened from the item detail gallery.

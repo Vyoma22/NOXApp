@@ -1,4 +1,4 @@
-package com.example.noxapp.listing
+package com.example.noxapp.listing.adapters
 
 import android.view.LayoutInflater
 import android.view.View

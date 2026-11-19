@@ -10,8 +10,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
-import com.example.noxapp.chat.ChatInboxAdapter
-import com.example.noxapp.chat.ChatInboxItem
+import com.example.noxapp.chat.adapters.ChatInboxAdapter
+import com.example.noxapp.chat.adapters.ChatInboxItem
 import com.example.noxapp.chat.ChatRepository
 import com.example.noxapp.listing.ListingRepo
 import com.example.noxapp.core.NavTab

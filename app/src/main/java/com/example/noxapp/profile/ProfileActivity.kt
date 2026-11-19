@@ -22,7 +22,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
-import com.example.noxapp.listing.ListingAdapter
+import com.example.noxapp.listing.adapters.ListingAdapter
 import com.example.noxapp.listing.ListingRepo
 import com.example.noxapp.listing.Listing
 import com.example.noxapp.settings.SettingsActivity

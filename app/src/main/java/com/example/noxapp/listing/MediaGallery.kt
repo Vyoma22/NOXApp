@@ -11,8 +11,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.core.onPageSnapped
-import com.example.noxapp.listing.MediaPagerAdapter
-import com.example.noxapp.listing.MediaThumbAdapter
+import com.example.noxapp.listing.adapters.MediaPagerAdapter
+import com.example.noxapp.listing.adapters.MediaThumbAdapter
 
 /**
  * Wires the photo pager, counter, arrow buttons, and thumbnail strip inside the item detail sheet.

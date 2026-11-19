@@ -26,8 +26,8 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
 import com.example.noxapp.browse.BrowseActivity
-import com.example.noxapp.home.CategoryAdapter
-import com.example.noxapp.listing.ListingAdapter
+import com.example.noxapp.home.adapters.CategoryAdapter
+import com.example.noxapp.listing.adapters.ListingAdapter
 import com.example.noxapp.listing.ListingRepo
 import com.example.noxapp.listing.CategoryCatalog
 import com.example.noxapp.listing.Listing

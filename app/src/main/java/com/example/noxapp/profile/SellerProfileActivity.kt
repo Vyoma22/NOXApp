@@ -20,7 +20,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
-import com.example.noxapp.listing.ListingAdapter
+import com.example.noxapp.listing.adapters.ListingAdapter
 import com.example.noxapp.listing.ListingRepo
 import com.example.noxapp.profile.SellerListingFilters
 import com.example.noxapp.listing.CategoryCatalog

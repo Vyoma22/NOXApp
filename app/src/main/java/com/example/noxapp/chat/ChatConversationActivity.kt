@@ -15,8 +15,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import com.example.noxapp.R
-import com.example.noxapp.chat.ChatMessage
-import com.example.noxapp.chat.ChatMessageAdapter
+import com.example.noxapp.chat.adapters.ChatMessage
+import com.example.noxapp.chat.adapters.ChatMessageAdapter
 import com.example.noxapp.chat.ChatRepository
 import com.example.noxapp.listing.ListingRepo
 import com.example.noxapp.chat.SaleTransactionRepository

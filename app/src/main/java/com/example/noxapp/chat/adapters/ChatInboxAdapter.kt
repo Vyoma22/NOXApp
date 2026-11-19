@@ -1,5 +1,5 @@
 
-package com.example.noxapp.chat
+package com.example.noxapp.chat.adapters
 
 import android.graphics.Typeface
 import android.view.LayoutInflater

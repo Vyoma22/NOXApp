@@ -1,4 +1,4 @@
-package com.example.noxapp.browse
+package com.example.noxapp.browse.adapters
 
 import android.annotation.SuppressLint
 import android.content.res.ColorStateList
