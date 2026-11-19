@@ -43,4 +43,12 @@
         <item name="android:textSize">14sp</item>
         <item name="backgroundTint">@null</item>
     </style>
+
+    <!-- Activity navigation is instant; dialogs and in-screen effects keep their own animations. -->
+    <style name="Animation.NOX.Activity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
+    </style>
 </resources>
