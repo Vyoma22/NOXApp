@@ -35,17 +35,22 @@ service cloud.firestore {
     // USERS COLLECTION
     // ----------------------------------------------------
     match /users/{userId} {
-      // Created right after signup, BEFORE email is verified
+      // Created right after signup, BEFORE email is verified.
+      // A deleted profile cannot be recreated: that would let a graduated student
+      // issue themselves a fresh accessExpiresAt and undo the lockout.
       allow create: if isSelf(userId)
         && hasStudentEmail()
+        && !exists(/databases/$(database)/documents/accountDeletions/$(userId))
         && !request.resource.data.keys().hasAny(['rating', 'ratingCount'])
         && request.resource.data.email == request.auth.token.email
         && request.resource.data.accessExpiresAt is timestamp
         && request.resource.data.accessExpiresAt > request.time
         && request.resource.data.accessExpiresAt < request.time + duration.value(2600, 'd'); // ~7 yrs
 
-      // You can always read your own profile; active students can view seller profiles
-      allow read: if isSelf(userId) || isActiveStudent();
+      // Owner only. This document holds the account email, savedItemIds and the access
+      // window. Rules hide whole documents, never individual fields, so the seller card
+      // other students see lives in sellerProfiles/{userId} instead.
+      allow read: if isSelf(userId);
 
       // Profile edits allowed for mutable fields only
       allow update: if isSelf(userId) && isActiveStudent()
@@ -56,7 +61,62 @@ service cloud.firestore {
           'rating', 'ratingCount'
         ]);
 
-      allow delete: if false;
+      // Account deletion. The marker is written in the same atomic batch, so a profile
+      // delete is only accepted as part of a real account teardown, and the permanent
+      // marker then blocks the recreate path above.
+      allow delete: if isSelf(userId)
+        && !exists(/databases/$(database)/documents/accountDeletions/$(userId))
+        && getAfter(
+          /databases/$(database)/documents/accountDeletions/$(userId)
+        ).data.uid == userId
+        && getAfter(
+          /databases/$(database)/documents/accountDeletions/$(userId)
+        ).data.requestedAt == request.time;
+    }
+
+    // ----------------------------------------------------
+    // SELLER PROFILES
+    // Public projection of users/{userId}: the fields another
+    // student needs to see who is selling an item.
+    // ----------------------------------------------------
+    match /sellerProfiles/{userId} {
+      allow read: if isSelf(userId) || isActiveStudent();
+
+      // Only the owner may publish, only these fields, and only the values already in
+      // their account document, so a school or a rating cannot be invented here.
+      function matchesAccount() {
+        let account = get(
+          /databases/$(database)/documents/users/$(userId)
+        ).data;
+        return request.resource.data.get('displayName', null) == account.get('displayName', null)
+          && request.resource.data.get('school', null) == account.get('school', null)
+          && request.resource.data.get('gradYear', null) == account.get('gradYear', null)
+          && request.resource.data.get('rating', 0) == account.get('rating', 0)
+          && request.resource.data.get('ratingCount', 0) == account.get('ratingCount', 0);
+      }
+
+      allow create, update: if isSelf(userId)
+        && request.resource.data.keys().hasOnly([
+          'displayName', 'school', 'gradYear', 'rating', 'ratingCount'
+        ])
+        && matchesAccount();
+
+      allow delete: if isSelf(userId);
+    }
+
+    // ----------------------------------------------------
+    // ACCOUNT DELETIONS
+    // Permanent marker written in the same batch that removes
+    // an account's documents. Authorizes the profile delete and
+    // blocks recreating the profile afterwards.
+    // ----------------------------------------------------
+    match /accountDeletions/{userId} {
+      allow read: if isSelf(userId);
+      allow create: if isSelf(userId)
+        && request.resource.data.keys().hasOnly(['uid', 'requestedAt'])
+        && request.resource.data.uid == userId
+        && request.resource.data.requestedAt == request.time;
+      allow update, delete: if false;
     }
 
     // ----------------------------------------------------
@@ -66,12 +126,48 @@ service cloud.firestore {
       // Active, verified students can view listings.
       allow read: if isActiveStudent();
 
+      // Every feed reads these fields, so a document the rules accept must carry them
+      // with the right type. A string price or a map imageUrls would otherwise be stored
+      // happily and then break listing loading for every other student.
+      function validListingContent(data) {
+        return data.get('title', '') is string
+          && data.get('title', '').size() > 0
+          && data.get('price', 0) is number
+          && data.get('price', 0) >= 0
+          && data.get('category', '') is string
+          && data.get('condition', '') is string
+          && data.get('description', '') is string
+          && data.get('pickupLocation', '') is string
+          && data.get('imageUrls', []) is list
+          && data.get('imageUrls', []).size() <= 5
+          && data.get('latitude', 0) is number
+          && data.get('longitude', 0) is number
+          && data.get('featured', false) is bool
+          && data.get('viewCount', 0) is int
+          && data.get('viewCount', 0) >= 0
+          && (data.get('previousPrice', null) == null
+              || data.get('previousPrice', null) is number);
+      }
+
       // Preserve ordinary listing creation. New items cannot start sold or pending.
       allow create: if isActiveStudent()
         && (request.resource.data.sellerId == request.auth.uid
             || request.resource.data.sellerId == "")
         && request.resource.data.get('sold', false) == false
-        && request.resource.data.get('salePending', false) == false;
+        && request.resource.data.get('salePending', false) == false
+        && request.resource.data.keys().hasAll([
+          'id', 'title', 'price', 'category', 'condition', 'description',
+          'pickupLocation', 'imageUrls', 'sellerId', 'sellerName',
+          'featured', 'sold', 'salePending', 'createdAt', 'latitude', 'longitude'
+        ])
+        && request.resource.data.id == listingId
+        && request.resource.data.sellerId is string
+        && request.resource.data.sellerName is string
+        && request.resource.data.sold is bool
+        && request.resource.data.salePending is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.imageUrls.size() >= 1
+        && validListingContent(request.resource.data);
 
       // Seller can edit their own listing, but cannot bypass sale confirmation.
       allow update: if isActiveStudent()
@@ -85,6 +181,7 @@ service cloud.firestore {
               == resource.data.get('sold', false)
             && request.resource.data.get('salePending', false)
               == resource.data.get('salePending', false)
+            && validListingContent(request.resource.data)
           )
           ||
           // Seller's Confirm Sale is allowed only with a simultaneous sale lock.

@@ -13,11 +13,13 @@ import com.example.noxapp.adapters.ChatInboxAdapter
 import com.example.noxapp.adapters.ChatInboxItem
 import com.example.noxapp.data.ChatRepository
 import com.example.noxapp.data.ListingRepo
-import com.example.noxapp.postlisting.PostListing
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.noxapp.ui.checkAccessOnStart
+import com.example.noxapp.ui.wireTabBar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Job
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -35,6 +37,8 @@ class ChatInboxActivity : AppCompatActivity() {
     private var inboxVersion = 0
 
     private var inboxRows: List<ChatInboxItem> = emptyList()
+
+    private var accessJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -315,10 +319,13 @@ class ChatInboxActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
 
-        listenForConversations()
+        accessJob?.cancel()
+        accessJob = checkAccessOnStart { listenForConversations() }
     }
 
     override fun onStop() {
+
+        accessJob?.cancel()
 
         // Stop Firestore listening when leaving the screen.
         inboxListener?.remove()
@@ -336,86 +343,10 @@ class ChatInboxActivity : AppCompatActivity() {
     // --------------------------------------------------
 
     private fun setupBottomNavigation() {
-
-        val bottomNav =
-            findViewById<BottomNavigationView>(
-                R.id.chatBottomNav
-            )
-
-        bottomNav.selectedItemId = R.id.navChat
-
-        bottomNav.setOnItemSelectedListener { item ->
-
-            when (item.itemId) {
-
-                R.id.navHome -> {
-
-                    bottomNav.post {
-
-                        val intent = Intent(
-                            this@ChatInboxActivity,
-                            MainActivity::class.java
-                        ).addFlags(
-                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                                    Intent.FLAG_ACTIVITY_SINGLE_TOP
-                        )
-
-                        startActivity(intent)
-                        finish()
-                    }
-                }
-
-                R.id.navBrowse -> {
-
-                    bottomNav.post {
-
-                        startActivity(
-                            Intent(
-                                this@ChatInboxActivity,
-                                BrowseActivity::class.java
-                            )
-                        )
-
-                        finish()
-                    }
-                }
-
-                R.id.navPost -> {
-
-                    bottomNav.post {
-
-                        startActivity(
-                            Intent(
-                                this@ChatInboxActivity,
-                                PostListing::class.java
-                            )
-                        )
-
-                        finish()
-                    }
-                }
-
-                R.id.navProfile -> {
-
-                    bottomNav.post {
-
-                        startActivity(
-                            Intent(
-                                this@ChatInboxActivity,
-                                ProfileActivity::class.java
-                            )
-                        )
-
-                        finish()
-                    }
-                }
-
-                R.id.navChat -> {
-                    // Already on Chat.
-                }
-            }
-
-            item.itemId == R.id.navChat
-        }
+        wireTabBar(R.id.chatBottomNav, NavTab.CHAT, onReselect = {
+            // Tapping Chat again returns to the top of the inbox.
+            findViewById<RecyclerView>(R.id.chatInboxRecyclerView)
+                ?.smoothScrollToPosition(0)
+        })
     }
 }

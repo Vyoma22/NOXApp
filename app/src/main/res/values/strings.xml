@@ -78,8 +78,6 @@
     <string name="radius_label">Radius: %1$s %2$s</string>
     <string name="location_denied">Location permission denied, showing campus</string>
     <string name="location_unavailable">Location unavailable, showing campus</string>
-    <string name="map_post_toast">Post an Item Tab</string>
-    <string name="map_chat_toast">Chat Inbox Tab</string>
     <string name="map_get_directions">Get directions</string>
     <string name="map_directions_unavailable">No maps app available</string>
     <string name="map_view_location_close">Close pickup location</string>

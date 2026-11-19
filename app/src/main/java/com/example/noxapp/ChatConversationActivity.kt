@@ -22,9 +22,14 @@ import com.example.noxapp.data.SaleTransactionRepository
 import com.example.noxapp.data.SellerRatingRepository
 import com.example.noxapp.models.SaleStatus
 import com.example.noxapp.models.SaleTransaction
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.SellerRatingDialog
+import com.example.noxapp.ui.checkAccessOnStart
+import com.example.noxapp.ui.openTab
+import com.example.noxapp.ui.wireTabBar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.Job
 
 class ChatConversationActivity : AppCompatActivity() {
 
@@ -62,6 +67,7 @@ class ChatConversationActivity : AppCompatActivity() {
 
     private var liveMessageListener: ListenerRegistration? = null
     private var saleStatusListener: ListenerRegistration? = null
+    private var accessJob: Job? = null
 
     private var currentSaleTransaction: SaleTransaction? = null
     private var currentListingSellerId = ""
@@ -95,6 +101,15 @@ class ChatConversationActivity : AppCompatActivity() {
         setupSendButton()
         setupSellerConfirmation()
         setupListingHeader()
+        setupBottomNavigation()
+    }
+
+    private fun setupBottomNavigation() {
+        wireTabBar(R.id.chatBottomNav, NavTab.CHAT, onReselect = {
+            // A listing dialog opens this screen over Browse too, so the inbox is not always
+            // underneath to finish() back to. Reuse it through the shared tab policy instead.
+            openTab(NavTab.CHAT)
+        })
     }
 
     // --------------------------------------------------
@@ -672,44 +687,54 @@ class ChatConversationActivity : AppCompatActivity() {
     override fun onStart() {
         super.onStart()
 
-        listenForLiveMessages()
-
-        if (
-            enableSaleStatusListener &&
-            conversationId.isNotBlank() &&
-            listingId.isNotBlank()
-        ) {
-
-            saleStatusListener =
-                SaleTransactionRepository.listenToTransaction(
-                    conversationId = conversationId,
-
-                    onUpdate = { transaction ->
-
-                        if (!isFinishing && !isDestroyed) {
-
-                            currentSaleTransaction = transaction
-
-                            renderSaleActions()
-                        }
-                    },
-
-                    onError = { error ->
-
-                        if (!isFinishing && !isDestroyed) {
-
-                            Toast.makeText(
-                                this,
-                                "Unable to load sale status: ${error.message}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                )
+        accessJob?.cancel()
+        accessJob = checkAccessOnStart {
+            listenForLiveMessages()
+            listenForSaleStatus()
         }
     }
 
+    private fun listenForSaleStatus() {
+
+        if (
+            !enableSaleStatusListener ||
+            conversationId.isBlank() ||
+            listingId.isBlank()
+        ) {
+            return
+        }
+
+        saleStatusListener =
+            SaleTransactionRepository.listenToTransaction(
+                conversationId = conversationId,
+
+                onUpdate = { transaction ->
+
+                    if (!isFinishing && !isDestroyed) {
+
+                        currentSaleTransaction = transaction
+
+                        renderSaleActions()
+                    }
+                },
+
+                onError = { error ->
+
+                    if (!isFinishing && !isDestroyed) {
+
+                        Toast.makeText(
+                            this,
+                            "Unable to load sale status: ${error.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            )
+    }
+
     override fun onStop() {
+
+        accessJob?.cancel()
 
         liveMessageListener?.remove()
         liveMessageListener = null

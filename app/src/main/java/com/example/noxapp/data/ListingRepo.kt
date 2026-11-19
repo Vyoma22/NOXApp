@@ -2,12 +2,12 @@
 package com.example.noxapp.data
 
 import com.example.noxapp.models.Listing
+import com.example.noxapp.models.SellerProfile
 import com.example.noxapp.models.UserProfile
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
-import com.google.firebase.firestore.util.CustomClassMapper
 import com.google.firebase.storage.FirebaseStorage
 import kotlinx.coroutines.tasks.await
 import java.lang.Exception
@@ -21,6 +21,10 @@ object ListingRepo {
     private val listingsRef by lazy {
         db.collection("listings")
     }
+
+    /** The only account fields another student may read. Mirrors the sellerProfiles rules. */
+    private val publicSellerFields =
+        listOf("displayName", "school", "gradYear", "rating", "ratingCount")
 
     // --------------------------------------------------
     // LOAD ALL LISTINGS
@@ -87,9 +91,29 @@ object ListingRepo {
     // UPDATE LISTING
     // --------------------------------------------------
 
+    /**
+     * Writes only the fields the edit form owns.
+     *
+     * A whole-document write would push the form's stale snapshot back over everything,
+     * restoring the viewCount from before the edit and undoing a sale that completed while
+     * the seller was typing. Counters and workflow state stay with the server.
+     */
     suspend fun updateListing(listing: Listing) {
         listingsRef.document(listing.id)
-            .set(listing)
+            .update(
+                mapOf(
+                    "title" to listing.title,
+                    "price" to listing.price,
+                    "category" to listing.category,
+                    "condition" to listing.condition,
+                    "description" to listing.description,
+                    "pickupLocation" to listing.pickupLocation,
+                    "imageUrls" to listing.imageUrls,
+                    "latitude" to listing.latitude,
+                    "longitude" to listing.longitude,
+                    "previousPrice" to listing.previousPrice
+                )
+            )
             .await()
     }
 
@@ -197,73 +221,21 @@ object ListingRepo {
     // CONVERT FIRESTORE DOCUMENT TO LISTING
     // --------------------------------------------------
 
-    // Documents written before the model merge
-    // use name/location/imageUrl.
-    // Keep these fallbacks for older listings.
-
-    private fun DocumentSnapshot.toListing(): Listing? {
-
-        val raw = data ?: return null
-
-        val listing = deserializeListing(raw)
-            ?: return null
-
-        return listing.copy(
-            id = id,
-
-            title = listing.title.ifBlank {
-                getString("name").orEmpty()
-            },
-
-            pickupLocation =
-                getString("location")
-                    ?: listing.pickupLocation,
-
-            imageUrls =
-                listing.imageUrls.ifEmpty {
-                    listOfNotNull(getString("imageUrl"))
-                }
-        )
-    }
-
-    // --------------------------------------------------
-    // DESERIALIZE LISTING
-    // --------------------------------------------------
-
     /**
-     * Normalizes createdAt to epoch milliseconds.
-     *
-     * New documents store a Firestore Timestamp,
-     * but Listing.createdAt expects a Long.
+     * Reads a listing through [ListingFields], which takes each value only if it has the expected
+     * type. The typed getters and convertToCustomClass both throw on a malformed document, which
+     * would crash inside the feed's success listener and take every other listing down with it.
      */
-    private fun DocumentSnapshot.deserializeListing(
-        raw: Map<String, Any>
-    ): Listing? {
-
-        val normalised = HashMap(raw)
-
-        val createdAt =
-            ListingTimestamps.toMillis(
-                normalised["createdAt"]
-            )
-
-        if (createdAt != null) {
-            normalised["createdAt"] = createdAt
-        } else {
-            normalised.remove("createdAt")
-        }
-
-        return CustomClassMapper.convertToCustomClass(
-            normalised,
-            Listing::class.java,
-            reference
-        )
+    private fun DocumentSnapshot.toListing(): Listing? {
+        if (!exists()) return null
+        return ListingFields.toListing(id, data.orEmpty())
     }
 
     // --------------------------------------------------
     // GET USER PROFILE
     // --------------------------------------------------
 
+    /** Reads the signed-in student's own account document. Other students' are not readable. */
     fun getUserProfile(
         userId: String,
         onResult: (UserProfile?) -> Unit
@@ -288,6 +260,75 @@ object ListingRepo {
             .addOnFailureListener {
                 onResult(null)
             }
+    }
+
+    // --------------------------------------------------
+    // GET PUBLIC SELLER PROFILE
+    // --------------------------------------------------
+
+    /**
+     * Reads the seller card another student is allowed to see.
+     *
+     * users/{uid} is owner-only, so this reads the public projection instead. A missing
+     * document answers null and the caller keeps the name already on the listing.
+     */
+    fun getSellerProfile(
+        userId: String,
+        onResult: (SellerProfile?) -> Unit
+    ) {
+        db.collection("sellerProfiles").document(userId).get()
+            .addOnSuccessListener { doc ->
+                if (!doc.exists()) {
+                    onResult(null)
+                    return@addOnSuccessListener
+                }
+                val defaults = SellerProfile()
+                onResult(
+                    SellerProfile(
+                        uid = doc.id,
+                        displayName = doc.get("displayName") as? String,
+                        school = doc.get("school") as? String,
+                        gradYear = (doc.get("gradYear") as? Number)?.toLong(),
+                        rating = (doc.get("rating") as? Number)?.toDouble() ?: defaults.rating,
+                        ratingCount = (doc.get("ratingCount") as? Number)?.toLong()
+                            ?: defaults.ratingCount
+                    )
+                )
+            }
+            .addOnFailureListener {
+                onResult(null)
+            }
+    }
+
+    /**
+     * Publishes the owner's public fields when the projection is missing.
+     *
+     * Accounts created before the read split only have users/{uid}, which other students can
+     * no longer read. One copy per account restores their seller card; after that this is a
+     * single read that finds the document and stops.
+     *
+     * The values are copied raw, not through [UserProfile], because the rules compare the
+     * projection against the account document field by field. A default filled in here (0.0
+     * for a rating the account never stored) would not match the absent field over there.
+     */
+    fun ensureSellerProfile(userId: String) {
+        val publicRef = db.collection("sellerProfiles").document(userId)
+        publicRef.get()
+            .addOnSuccessListener { doc ->
+                if (doc.exists()) return@addOnSuccessListener
+                db.collection("users").document(userId).get()
+                    .addOnSuccessListener { account ->
+                        val fields = account.data ?: return@addOnSuccessListener
+                        val public = HashMap<String, Any>()
+                        publicSellerFields.forEach { key ->
+                            val value = fields[key]
+                            if (value != null) public[key] = value
+                        }
+                        publicRef.set(public).addOnFailureListener { }
+                    }
+                    .addOnFailureListener { }
+            }
+            .addOnFailureListener { }
     }
 
     // --------------------------------------------------
@@ -352,8 +393,11 @@ object ListingRepo {
     // DELETE ACCOUNT DATA
     // --------------------------------------------------
 
-    /** Removes the student's listings and profile
-     * document before Firebase Auth deletes the user.
+    /** Removes the student's listings and profile documents before Firebase Auth deletes the user.
+     *
+     * The profile delete is only accepted alongside an accountDeletions marker written in the
+     * same batch. That marker is what authorizes the teardown, and it is permanent, so the
+     * profile cannot be recreated afterwards with a later graduation date.
      */
     suspend fun deleteAccountData(userId: String) {
 
@@ -369,7 +413,19 @@ object ListingRepo {
         }
 
         batch.delete(
+            db.collection("sellerProfiles").document(userId)
+        )
+
+        batch.delete(
             db.collection("users").document(userId)
+        )
+
+        batch.set(
+            db.collection("accountDeletions").document(userId),
+            mapOf(
+                "uid" to userId,
+                "requestedAt" to FieldValue.serverTimestamp()
+            )
         )
 
         batch.commit().await()

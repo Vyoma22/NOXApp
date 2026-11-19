@@ -21,27 +21,24 @@ import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
 import androidx.core.widget.addTextChangedListener
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.adapters.CategoryAdapter
 import com.example.noxapp.adapters.ListingAdapter
-import com.example.noxapp.auth.AccessState
-import com.example.noxapp.auth.AuthRepo
-import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
 import com.example.noxapp.postlisting.PostListing
 import com.example.noxapp.ui.ItemDetailDialog
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
-import com.example.noxapp.ui.goTo
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.noxapp.ui.checkAccessOnStart
+import com.example.noxapp.ui.wireTabBar
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -58,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private val pendingSaves = mutableSetOf<String>()
     private var listingsLoaded = false
     private var pendingScrollY: Int? = null
+    private var accessJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -320,32 +318,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
-        findViewById<BottomNavigationView>(R.id.bottomNavBar).apply {
-            selectedItemId = R.id.navHome
-            setOnItemSelectedListener { item ->
-                when (item.itemId) {
-                    R.id.navBrowse -> post { openBrowse() }
-                    R.id.navPost -> post {
-                        startActivity(Intent(this@MainActivity, PostListing::class.java))
-                    }
-                    R.id.navChat -> post {
-                        startActivity(Intent(this@MainActivity, ChatInboxActivity::class.java))
-                    }
-                    R.id.navProfile -> post {
-                        startActivity(Intent(this@MainActivity, ProfileActivity::class.java))
-                    }
-                }
-                item.itemId == R.id.navHome
-            }
-            setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navHome && !isFinishing && !isDestroyed) {
-                    // Tapping Home again restores the unfiltered feed.
-                    clearFilters()
-                    // The content view can already be detached during a task transition.
-                    findViewById<NestedScrollView>(R.id.mainScroll)?.smoothScrollTo(0, 0)
-                }
-            }
-        }
+        wireTabBar(R.id.bottomNavBar, NavTab.HOME, onReselect = {
+            // Tapping Home again restores the unfiltered feed.
+            clearFilters()
+            // The content view can already be detached during a task transition.
+            findViewById<NestedScrollView>(R.id.mainScroll)?.smoothScrollTo(0, 0)
+        })
     }
 
     private fun loadListingData(showSpinner: Boolean = true) {
@@ -393,22 +371,25 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        lifecycleScope.launch {
-            val state = runCatching { AuthRepo.checkAccess() }.getOrNull()
-            if (state != null && state != AccessState.Allowed) {
-                goTo(LoginActivity::class.java)
-            } else {
-                // Re-sync active user's saved IDs
-                val currentUid = FirebaseAuth.getInstance().currentUser?.uid
-                if (currentUid != null) {
-                    ListingRepo.getSavedItemIds(currentUid) { savedList ->
-                        userSavedIds = savedList.toMutableSet()
-                        featuredAdapter.updateSavedIds(userSavedIds)
-                        recentAdapter.updateSavedIds(userSavedIds)
-                    }
-                }
+        accessJob?.cancel()
+        accessJob = checkAccessOnStart {
+            // Re-sync active user's saved IDs
+            val currentUid = FirebaseAuth.getInstance().currentUser?.uid
+                ?: return@checkAccessOnStart
+            // Accounts predating the public/private profile split still need their seller card
+            // copied into sellerProfiles before other students can see it.
+            ListingRepo.ensureSellerProfile(currentUid)
+            ListingRepo.getSavedItemIds(currentUid) { savedList ->
+                userSavedIds = savedList.toMutableSet()
+                featuredAdapter.updateSavedIds(userSavedIds)
+                recentAdapter.updateSavedIds(userSavedIds)
             }
         }
+    }
+
+    override fun onStop() {
+        accessJob?.cancel()
+        super.onStop()
     }
 	
 	private val activityResultLauncher: ActivityResultLauncher<Intent> =

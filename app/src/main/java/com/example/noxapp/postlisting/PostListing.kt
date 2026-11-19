@@ -38,18 +38,17 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import coil.load
-import com.example.noxapp.MainActivity
 import com.example.noxapp.MapActivity
-import com.example.noxapp.ProfileActivity
 import com.example.noxapp.R
 import com.example.noxapp.data.CampusLocations
 import com.example.noxapp.data.ListingRepo
 import com.example.noxapp.models.CategoryCatalog
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.formatPrice
+import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.dp
-import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.example.noxapp.ui.wireTabBar
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
@@ -65,7 +64,9 @@ import java.util.UUID
 
 class PostListing : AppCompatActivity() {
 
-    private val imagesAndVideos: MutableList<Uri> = mutableListOf()
+    // Only images: the card, the detail sheet and the chat header all render photos, so a video
+    // picked here would upload as an unplayable file.
+    private val pickedImages: MutableList<Uri> = mutableListOf()
     private val existingImageUrls: MutableList<String> = mutableListOf()
     private val storage = FirebaseStorage.getInstance()
 
@@ -104,14 +105,14 @@ class PostListing : AppCompatActivity() {
     private val pickMultipleMedia = //get max of 5 items from gallery
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
             if (uris.isNotEmpty()) {
-                val availableSlots = maxMedia - existingImageUrls.size - imagesAndVideos.size
+                val availableSlots = maxMedia - existingImageUrls.size - pickedImages.size
                 if (availableSlots <= 0) {
                     Toast.makeText(this, R.string.post_max_media, Toast.LENGTH_SHORT).show()
                     return@registerForActivityResult
                 }
 
                 val toAdd = uris.take(availableSlots)
-                imagesAndVideos.addAll(toAdd) //add images and videos to list
+                pickedImages.addAll(toAdd) //add the picked images to the list
 
                 refreshMediaUi()
                 Toast.makeText(
@@ -126,7 +127,7 @@ class PostListing : AppCompatActivity() {
         registerForActivityResult(ActivityResultContracts.TakePicture()) { success -> //open camera
             if (success && cameraTempUri != null) {
                 if (mediaCount() < maxMedia) { //keep media under max number
-                    imagesAndVideos.add(cameraTempUri!!) //add photo uri to ist
+                    pickedImages.add(cameraTempUri!!) //add photo uri to ist
                     refreshMediaUi()
                     Toast.makeText(
                         this,
@@ -197,7 +198,55 @@ class PostListing : AppCompatActivity() {
         watchForFixes(itmPrice)
         watchForFixes(itmDesc)
 
-        intent.getStringExtra(EXTRA_LISTING_ID)?.takeIf { it.isNotBlank() }?.let(::loadListingForEdit)
+        restoreDraft(savedInstanceState)
+
+        // On recreation the form already holds the student's unsaved edits, so the original
+        // listing is only re-read to restore the edit-mode header and the price it started from.
+        intent.getStringExtra(EXTRA_LISTING_ID)?.takeIf { it.isNotBlank() }
+            ?.let { loadListingForEdit(it, restoreForm = savedInstanceState == null) }
+    }
+
+    /**
+     * Saves the parts of the draft that are not views. The text fields, the spinners and the
+     * condition radio group save themselves, but picked photos, the camera's temp file and a
+     * map pin live only in this activity's fields.
+     */
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putStringArrayList(STATE_PICKED_IMAGES, ArrayList(pickedImages.map { it.toString() }))
+        outState.putStringArrayList(STATE_EXISTING_IMAGES, ArrayList(existingImageUrls))
+        cameraTempUri?.let { outState.putString(STATE_CAMERA_URI, it.toString()) }
+        pickedLat?.let { outState.putDouble(STATE_PICK_LAT, it) }
+        pickedLng?.let { outState.putDouble(STATE_PICK_LNG, it) }
+        outState.putString(STATE_PICK_LABEL, pickedLabel)
+        outState.putInt(STATE_PREVIOUS_BUILDING, previousBuildingIndex)
+        pendingCustomPickRevertIndex?.let { outState.putInt(STATE_PENDING_REVERT, it) }
+        outState.putBoolean(STATE_VALIDATION_ATTEMPTED, validationAttempted)
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun restoreDraft(state: Bundle?) {
+        if (state == null) return
+        state.getStringArrayList(STATE_PICKED_IMAGES)?.forEach { pickedImages.add(Uri.parse(it)) }
+        state.getStringArrayList(STATE_EXISTING_IMAGES)?.let { existingImageUrls.addAll(it) }
+        cameraTempUri = state.getString(STATE_CAMERA_URI)?.let { Uri.parse(it) }
+        if (state.containsKey(STATE_PICK_LAT)) pickedLat = state.getDouble(STATE_PICK_LAT)
+        if (state.containsKey(STATE_PICK_LNG)) pickedLng = state.getDouble(STATE_PICK_LNG)
+        pickedLabel = state.getString(STATE_PICK_LABEL)
+        previousBuildingIndex = state.getInt(STATE_PREVIOUS_BUILDING, 0)
+        if (state.containsKey(STATE_PENDING_REVERT)) {
+            pendingCustomPickRevertIndex = state.getInt(STATE_PENDING_REVERT)
+        }
+        validationAttempted = state.getBoolean(STATE_VALIDATION_ATTEMPTED, false)
+        refreshMediaUi()
+        renderPickedLocation()
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        // super fills the text fields back in, so the inline errors can only be rebuilt after it.
+        super.onRestoreInstanceState(savedInstanceState)
+        if (validationAttempted) {
+            renderInlineErrors(PostListingValidator.validate(currentInput()))
+        }
     }
 
     private fun setupSpinners() {
@@ -279,55 +328,10 @@ class PostListing : AppCompatActivity() {
     }
 
     private fun setupBottomNavigation() {
-        findViewById<BottomNavigationView>(R.id.bottomNavBar).apply {
-            selectedItemId = R.id.navPost
-
-            setOnItemSelectedListener { item ->
-                when (item.itemId) {
-                    R.id.navHome -> {
-                        startActivity(
-                            Intent(this@PostListing, MainActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        )
-                        finish()
-                        true
-                    }
-                    R.id.navBrowse -> {
-                        startActivity(
-                            Intent(this@PostListing, com.example.noxapp.BrowseActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                        )
-                        finish()
-                        true
-                    }
-                    R.id.navPost -> true
-
-                    R.id.navChat -> {
-                        startActivity(
-                            Intent(
-                                this@PostListing,
-                                com.example.noxapp.ChatInboxActivity::class.java
-                            )
-                        )
-                        finish()
-                        true
-                    }
-
-                    R.id.navProfile -> {
-                        startActivity(Intent(this@PostListing, ProfileActivity::class.java))
-                        finish()
-                        true
-                    }
-                    else -> false
-                }
-            }
-
-            setOnItemReselectedListener { item ->
-                if (item.itemId == R.id.navPost) {
-                    findViewById<ScrollView>(R.id.formScrollView)?.smoothScrollTo(0, 0)
-                }
-            }
-        }
+        wireTabBar(R.id.bottomNavBar, NavTab.POST, onReselect = {
+            // Tapping Post again returns to the top of the form.
+            findViewById<ScrollView>(R.id.formScrollView)?.smoothScrollTo(0, 0)
+        })
     }
 
     private fun showMediaSourceDialog() {
@@ -342,7 +346,7 @@ class PostListing : AppCompatActivity() {
         sheetView.findViewById<LinearLayout>(R.id.optionGallery).setOnClickListener {
             dialog.dismiss()
             pickMultipleMedia.launch(
-                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
+                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
             )
         }
 
@@ -369,7 +373,7 @@ class PostListing : AppCompatActivity() {
             }
     }
 
-    private fun loadListingForEdit(listingId: String) {
+    private fun loadListingForEdit(listingId: String, restoreForm: Boolean) {
         ListingRepo.getListing(listingId) { listing ->
             if (isDestroyed) return@getListing
             if (listing == null) {
@@ -377,16 +381,20 @@ class PostListing : AppCompatActivity() {
                 finish()
                 return@getListing
             }
-			
-			//store the listing and restore its existing image urls
+
+			//store the listing being edited
             editingListing = listing
-            existingImageUrls.clear()
-            existingImageUrls.addAll(listing.imageUrls)
 
 			//update ui to indicate the user is editing an existing listing
             findViewById<TextView>(R.id.headerTitle).setText(R.string.post_edit_title)
             postListingButton.setText(R.string.post_save_changes)
-			
+
+            // A recreated form keeps the draft; overwriting it here would discard unsaved edits.
+            if (!restoreForm) return@getListing
+
+            existingImageUrls.clear()
+            existingImageUrls.addAll(listing.imageUrls)
+
 			//populate fields with the listing's existing details
             itmName.setText(listing.title)
             itmPrice.setText(formatPrice(listing.price))
@@ -470,7 +478,7 @@ class PostListing : AppCompatActivity() {
 
             lifecycleScope.launch { //coroutine to handle media and listing upload
                 try {
-                    val uploadedUrls = imagesAndVideos.map { uri ->
+                    val uploadedUrls = pickedImages.map { uri ->
                         async { uploadMediaFile(uri) }
                     }.awaitAll()
                     val allImages = existingImageUrls + uploadedUrls
@@ -638,7 +646,7 @@ class PostListing : AppCompatActivity() {
         })
     }
 
-    private fun mediaCount() = existingImageUrls.size + imagesAndVideos.size
+    private fun mediaCount() = existingImageUrls.size + pickedImages.size
 
     private fun updateMediaSubtitle() {
         findViewById<TextView>(R.id.btnText2)?.text =
@@ -677,9 +685,9 @@ class PostListing : AppCompatActivity() {
                 refreshMediaUi()
             })
         }
-        imagesAndVideos.toList().forEach { uri -> //display newly selected media files that havent been uploaded
-            mediaPreviewRow.addView(mediaPreview(uri, isVideoUri(uri)) {
-                imagesAndVideos.remove(uri)
+        pickedImages.toList().forEach { uri -> //display newly selected images that havent been uploaded
+            mediaPreviewRow.addView(mediaPreview(uri, isVideo = false) {
+                pickedImages.remove(uri)
                 refreshMediaUi()
             })
         }
@@ -734,9 +742,7 @@ class PostListing : AppCompatActivity() {
         return card
     }
 
-    private fun isVideoUri(uri: Uri): Boolean =
-        contentResolver.getType(uri)?.startsWith("video/") == true
-
+    /** Listings posted before the picker was limited to images can still reference a video. */
     private fun looksLikeVideo(url: String): Boolean {
         val path = url.substringBefore('?').lowercase(Locale.getDefault())
         return listOf(".mp4", ".mov", ".webm", ".mkv", ".avi", ".3gp").any { path.endsWith(it) }
@@ -799,5 +805,15 @@ class PostListing : AppCompatActivity() {
 
     companion object {
         const val EXTRA_LISTING_ID = "listingId"
+
+        private const val STATE_PICKED_IMAGES = "post.pickedImages"
+        private const val STATE_EXISTING_IMAGES = "post.existingImages"
+        private const val STATE_CAMERA_URI = "post.cameraUri"
+        private const val STATE_PICK_LAT = "post.pickLat"
+        private const val STATE_PICK_LNG = "post.pickLng"
+        private const val STATE_PICK_LABEL = "post.pickLabel"
+        private const val STATE_PREVIOUS_BUILDING = "post.previousBuilding"
+        private const val STATE_PENDING_REVERT = "post.pendingRevert"
+        private const val STATE_VALIDATION_ATTEMPTED = "post.validationAttempted"
     }
 }

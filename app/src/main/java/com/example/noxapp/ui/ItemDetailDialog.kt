@@ -304,9 +304,9 @@ object ItemDetailDialog {
         }
         openSellerProfileOnTap(activity, dialog, row, listing, listingName)
 
-        ListingRepo.getUserProfile(listing.sellerId) { profile ->
+        ListingRepo.getSellerProfile(listing.sellerId) { profile ->
             // The sheet may have been dismissed while Firestore answered.
-            if (!dialog.isShowing) return@getUserProfile
+            if (!dialog.isShowing) return@getSellerProfile
             profile?.displayName?.takeIf { it.isNotBlank() }
                 ?.let {
                     showSellerName(activity, nameView, initialView, it)
