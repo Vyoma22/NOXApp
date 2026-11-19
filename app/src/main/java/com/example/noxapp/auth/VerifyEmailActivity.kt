@@ -9,10 +9,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.example.noxapp.MainActivity
+import com.example.noxapp.home.MainActivity
 import com.example.noxapp.R
-import com.example.noxapp.ui.applySystemBarPadding
-import com.example.noxapp.ui.goTo
+import com.example.noxapp.core.applySystemBarPadding
+import com.example.noxapp.core.goTo
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 

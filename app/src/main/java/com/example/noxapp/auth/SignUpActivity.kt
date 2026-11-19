@@ -12,8 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.R
-import com.example.noxapp.ui.applySystemBarPadding
-import com.example.noxapp.ui.goTo
+import com.example.noxapp.core.applySystemBarPadding
+import com.example.noxapp.core.goTo
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch

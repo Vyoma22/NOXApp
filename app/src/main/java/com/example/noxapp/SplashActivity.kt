@@ -6,6 +6,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import com.example.noxapp.auth.LoginActivity
 import com.example.noxapp.auth.VerifyEmailActivity
+import com.example.noxapp.home.MainActivity
 import com.google.firebase.auth.FirebaseAuth
 
 /**
