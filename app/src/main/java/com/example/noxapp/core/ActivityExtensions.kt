@@ -1,0 +1,133 @@
+package com.example.noxapp.core
+
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.view.View
+import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.ScrollView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
+import androidx.core.widget.addTextChangedListener
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.PagerSnapHelper
+import androidx.recyclerview.widget.RecyclerView
+import com.example.noxapp.R
+
+// Opens [target] and clears the back stack
+fun Activity.goTo(target: Class<out Activity>) {
+    startActivity(
+        Intent(this, target).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+    )
+}
+
+/**
+ * Status-bar, navigation-bar, and keyboard padding for screens whose root is a
+ * [ScrollView] (login, sign-up, verify email).
+ *
+ * The window is edge to edge, so `adjustResize` no longer shrinks it and the keyboard
+ * would otherwise sit on top of the low fields. The bottom padding is raised to the
+ * keyboard height so the fields stay reachable by scrolling.
+ */
+fun Activity.applySystemBarPadding() {
+    // Android 11+ reports the IME as an inset instead of resizing an edge-to-edge window.
+    // Turn the resize off so the keyboard is counted once, through the padding below.
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+    }
+    val root = findViewById<View>(R.id.main)
+    ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+        val bottom = maxOf(bars.bottom, ime.bottom)
+        view.setPadding(bars.left, bars.top, bars.right, bottom)
+        insets
+    }
+}
+
+/**
+ * Edge-to-edge inset handling for screens that have a bottom tab bar.
+ *
+ * Status bar and side insets pad [rootId], but the navigation bar inset does not: it is added to
+ * the tab bar's own bottom padding (so its background runs all the way to the bottom of the
+ * screen, behind the system navigation bar) and to [scrollId]'s bottom padding (so scrolled
+ * content still clears the bar).
+ *
+ * The IME is deliberately not handled here: `adjustResize` shrinks the window instead, and
+ * Material's BottomNavigationView already pads itself for the keyboard, so adding IME padding to
+ * the root would double-count it and collapse the screen.
+ */
+fun Activity.applyEdgeToEdgeInsets(
+    rootId: Int,
+    tabBarId: Int? = null,
+    scrollId: Int? = null,
+) {
+    val root = findViewById<View>(rootId)
+    val tabBar = tabBarId?.let { findViewById<View>(it) }
+    val scroll = scrollId?.let { findViewById<View>(it) }
+    val tabBarPadding = tabBar?.paddingBottom ?: 0
+    val scrollPadding = scroll?.paddingBottom ?: 0
+
+    // Stop the system painting its light contrast scrim over the tab bar area (3-button nav).
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        window.isNavigationBarContrastEnforced = false
+    }
+
+    ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+        view.setPadding(bars.left, bars.top, bars.right, 0)
+        tabBar?.updatePadding(bottom = tabBarPadding + bars.bottom)
+        scroll?.updatePadding(bottom = scrollPadding + bars.bottom)
+        insets
+    }
+}
+
+/** Converts a dp measurement to pixels for views built in code rather than inflated from XML. */
+fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+/**
+ * Turns a horizontal RecyclerView into a snapped pager and reports the page it settles on.
+ * Shared by the detail sheet's gallery and the fullscreen viewer.
+ */
+fun RecyclerView.onPageSnapped(layoutManager: LinearLayoutManager, onPosition: (Int) -> Unit) {
+    val snapHelper = PagerSnapHelper()
+    snapHelper.attachToRecyclerView(this)
+    addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            if (newState != RecyclerView.SCROLL_STATE_IDLE) return
+            val snapped = snapHelper.findSnapView(layoutManager) ?: return
+            val position = layoutManager.getPosition(snapped)
+            if (position != RecyclerView.NO_POSITION) onPosition(position)
+        }
+    })
+}
+
+/**
+ * Seeds a search field, keeps its clear button in step with the text, and hides the keyboard
+ * when the user submits. Shared by Browse and the seller profile.
+ */
+fun Activity.wireSearchBox(searchId: Int, clearId: Int, initial: String, onChanged: (String) -> Unit) {
+    val search = findViewById<EditText>(searchId)
+    val clear = findViewById<ImageButton>(clearId)
+    search.setText(initial)
+    clear.isVisible = initial.isNotEmpty()
+    search.addTextChangedListener { text ->
+        val query = text?.toString().orEmpty()
+        clear.isVisible = query.isNotEmpty()
+        onChanged(query)
+    }
+    clear.setOnClickListener { search.setText("") }
+    search.setOnEditorActionListener { _, action, _ ->
+        if (action != EditorInfo.IME_ACTION_SEARCH) return@setOnEditorActionListener false
+        WindowCompat.getInsetsController(window, search).hide(WindowInsetsCompat.Type.ime())
+        search.clearFocus()
+        true
+    }
+}

@@ -1,0 +1,766 @@
+package com.example.noxapp.map
+
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.graphics.Canvas
+import android.net.Uri
+import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
+import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintSet
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
+import androidx.core.graphics.createBitmap
+import androidx.core.widget.doAfterTextChanged
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
+import com.example.noxapp.R
+import com.example.noxapp.listing.CampusLocations
+import com.example.noxapp.listing.ListingFilters
+import com.example.noxapp.listing.ListingRepo
+import com.example.noxapp.map.LocationSearch
+import com.example.noxapp.core.Prefs
+import com.example.noxapp.listing.BrowseFilters
+import com.example.noxapp.listing.Listing
+import com.example.noxapp.listing.PriceRange
+import com.example.noxapp.listing.ItemDetailDialog
+import com.example.noxapp.core.NavTab
+import com.example.noxapp.core.applyEdgeToEdgeInsets
+import com.example.noxapp.core.dp
+import com.example.noxapp.core.wireTabBar
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptor
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.Circle
+import com.google.android.gms.maps.model.CircleOptions
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.MapStyleOptions
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.tasks.CancellationTokenSource
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.slider.Slider
+import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.auth.FirebaseAuth
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.IOException
+import kotlin.math.asin
+import kotlin.math.cos
+import kotlin.math.sin
+
+class MapActivity : AppCompatActivity(), OnMapReadyCallback {
+    private var map: GoogleMap? = null
+    private var circle: Circle? = null
+    private val markers = mutableListOf<Marker>()
+    private var listings = emptyList<Listing>()
+    private var baseFilters = BrowseFilters()
+    private var listingsLoaded = false
+    private var listingsError = false
+    private var center = LatLng(CampusLocations.ONTARIO_TECH.first, CampusLocations.ONTARIO_TECH.second)
+    private var initialCenter = center
+    private var radiusKm = 2.0
+    private var initialRadiusKm = 2.0
+    private var hasSelection = false
+    private var locationPending = false
+    private var locationCancellation: CancellationTokenSource? = null
+    private var restoredCamera = false
+    private var navigation: String? = null
+    private var searchJob: Job? = null
+    private var searchResultsDialog: AlertDialog? = null
+
+    // Pickup-point mode: reuse the map as a pin picker for the post form.
+    private var pickMode = false
+    private var pickLabel: String? = null
+    // The pin [pickLabel] was resolved for. A label without a matching pin is never returned.
+    private var pickLabelCenter: LatLng? = null
+    private var pickConfirmed = false
+    private var pickLabelJob: Job? = null
+    private var userCampus: Pair<Double, Double>? = null
+
+    // View-location mode: a read-only map focused on one listing's pickup point.
+    private var viewMode = false
+    private var viewLabel: String? = null
+    private var viewTitle: String? = null
+    private var viewTarget: LatLng? = null
+
+    private val locationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (locationPending) {
+            if (hasLocationPermission()) locateDevice() else campusFallback(R.string.location_denied)
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContentView(R.layout.activity_map)
+        arrangeLayout()
+        applyEdgeToEdgeInsets(R.id.mapRoot, R.id.mapBottomNav)
+        val state = savedInstanceState ?: intent.extras
+        center = LatLng(
+            state?.getDouble(EXTRA_CENTER_LAT, center.latitude) ?: center.latitude,
+            state?.getDouble(EXTRA_CENTER_LNG, center.longitude) ?: center.longitude
+        )
+        initialCenter = if (savedInstanceState != null) {
+            LatLng(
+                savedInstanceState.getDouble("initialCenterLat", center.latitude),
+                savedInstanceState.getDouble("initialCenterLng", center.longitude)
+            )
+        } else {
+            LatLng(
+                intent.getDoubleExtra(EXTRA_CENTER_LAT, center.latitude),
+                intent.getDoubleExtra(EXTRA_CENTER_LNG, center.longitude)
+            )
+        }
+        radiusKm = state?.getDouble(EXTRA_RADIUS_KM, 2.0) ?: 2.0
+        initialRadiusKm = savedInstanceState?.getDouble("initialRadiusKm")
+            ?: intent.getDoubleExtra(EXTRA_RADIUS_KM, radiusKm)
+
+        baseFilters = BrowseFilters(
+            query = intent.getStringExtra(EXTRA_QUERY).orEmpty(),
+            category = intent.getStringExtra(EXTRA_CATEGORY),
+            priceRange = PriceRange.entries.firstOrNull { it.name == intent.getStringExtra(EXTRA_PRICE) },
+            condition = intent.getStringExtra(EXTRA_CONDITION)
+        )
+        hasSelection = savedInstanceState?.getBoolean(EXTRA_HAS_SELECTION) ?: false
+        locationPending = savedInstanceState?.getBoolean("locationPending") ?: false
+        restoredCamera = savedInstanceState != null
+        pickMode = intent.getBooleanExtra(EXTRA_PICK_LOCATION, false)
+        pickLabel = savedInstanceState?.getString(EXTRA_LOCATION_LABEL)
+        // The saved label and the saved pin were written together, so they still belong to each other.
+        if (pickLabel != null) pickLabelCenter = center
+        pickConfirmed = savedInstanceState?.getBoolean("pickConfirmed") ?: false
+        viewMode = savedInstanceState?.getBoolean(EXTRA_VIEW_LOCATION)
+            ?: intent.getBooleanExtra(EXTRA_VIEW_LOCATION, false)
+        viewLabel = savedInstanceState?.getString(EXTRA_LOCATION_LABEL)
+            ?: intent.getStringExtra(EXTRA_LOCATION_LABEL)
+        viewTitle = savedInstanceState?.getString(EXTRA_LOCATION_TITLE)
+            ?: intent.getStringExtra(EXTRA_LOCATION_TITLE)
+        if (viewMode) viewTarget = center
+
+        setupControls()
+        setupLocationSearch()
+        setupNavigation()
+        applyPickMode()
+        applyViewMode()
+        if (!viewMode) loadUserCampus()
+        refreshArea()
+        (supportFragmentManager.findFragmentById(R.id.campusMap) as SupportMapFragment).getMapAsync(this)
+        if (!pickMode && !viewMode) loadListings()
+    }
+
+    private fun arrangeLayout() {
+        val root = findViewById<ConstraintLayout>(R.id.mapRoot)
+        val margin = dp(12)
+        ConstraintSet().apply {
+            clone(root)
+            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                create(R.id.mapGuideline, ConstraintSet.VERTICAL)
+                setGuidelinePercent(R.id.mapGuideline, 0.52f)
+                connect(R.id.campusMap, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START)
+                connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
+                connect(R.id.mapTopBar, ConstraintSet.END, R.id.mapGuideline, ConstraintSet.START, margin)
+
+                // Anchor mapItemsScroll to the right side (guideline to parent end)
+                connect(R.id.mapItemsScroll, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP)
+                connect(R.id.mapItemsScroll, ConstraintSet.START, R.id.mapGuideline, ConstraintSet.END)
+                connect(R.id.mapItemsScroll, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
+                connect(R.id.mapItemsScroll, ConstraintSet.BOTTOM, R.id.mapBottomNav, ConstraintSet.TOP)
+                constrainWidth(R.id.mapItemsScroll, ConstraintSet.MATCH_CONSTRAINT)
+                constrainHeight(R.id.mapItemsScroll, ConstraintSet.MATCH_CONSTRAINT)
+            } else {
+                clear(R.id.mapItemsScroll, ConstraintSet.TOP)
+                clear(R.id.mapItemsScroll, ConstraintSet.START)
+                connect(R.id.mapItemsScroll, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START)
+                connect(R.id.mapItemsScroll, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END)
+                constrainWidth(R.id.mapItemsScroll, ConstraintSet.MATCH_CONSTRAINT)
+                constrainHeight(R.id.mapItemsScroll, ConstraintSet.WRAP_CONTENT)
+                connect(R.id.campusMap, ConstraintSet.BOTTOM, R.id.mapItemsScroll, ConstraintSet.TOP)
+            }
+            applyTo(root)
+        }
+    }
+
+    private fun setupControls() {
+        findViewById<View>(R.id.myLocationButton).setOnClickListener {
+            cancelSearch()
+            locationPending = true
+            if (hasLocationPermission()) locateDevice() else locationPermission.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
+        findViewById<Slider>(R.id.radiusSlider).apply {
+            value = radiusKm.toFloat()
+            setLabelFormatter {
+                getString(R.string.radius_label, Prefs.formatDistance(it.toDouble()), Prefs.distanceUnit(this@MapActivity))
+            }
+            addOnChangeListener { _, value, _ ->
+                radiusKm = value.toDouble()
+                refreshArea()
+            }
+            addOnSliderTouchListener(object : Slider.OnSliderTouchListener {
+                override fun onStartTrackingTouch(slider: Slider) = Unit
+                override fun onStopTrackingTouch(slider: Slider) { fitCircle() }
+            })
+        }
+        findViewById<View>(R.id.searchAreaButton).apply {
+            setOnClickListener {
+                map?.stopAnimation()
+                center = map?.cameraPosition?.target ?: center
+                hasSelection = true
+                finish()
+            }
+        }
+    }
+
+    private fun setupLocationSearch() {
+        findViewById<EditText>(R.id.locationSearchInput).apply {
+            doAfterTextChanged {
+                error = null
+                cancelSearch()
+            }
+            setOnEditorActionListener { _, action, _ ->
+                if (action == EditorInfo.IME_ACTION_SEARCH) {
+                    searchLocation()
+                    true
+                } else false
+            }
+        }
+        findViewById<View>(R.id.locationSearchButton).apply {
+            isEnabled = false
+            setOnClickListener { searchLocation() }
+        }
+    }
+
+    private fun searchLocation() {
+        val readyMap = map ?: return
+        val input = findViewById<EditText>(R.id.locationSearchInput)
+        val query = input.text.toString().trim()
+        cancelSearch()
+        if (query.isEmpty()) {
+            input.error = getString(R.string.location_search_required)
+            return
+        }
+        WindowCompat.getInsetsController(window, input).hide(WindowInsetsCompat.Type.ime())
+        input.clearFocus()
+        val status = findViewById<TextView>(R.id.locationSearchStatus)
+        status.setText(R.string.location_search_loading)
+        status.isVisible = true
+        searchJob = lifecycleScope.launch {
+            val addresses = try {
+                withTimeoutOrNull(15_000) { LocationSearch.find(this@MapActivity, query) }
+            } catch (_: IOException) {
+                null
+            }
+            if (isFinishing || isDestroyed) return@launch
+            if (addresses.isNullOrEmpty()) {
+                status.setText(if (addresses == null) R.string.location_search_error else R.string.location_search_empty)
+                return@launch
+            }
+            status.isVisible = false
+            val labels = addresses.map { address ->
+                address.getAddressLine(0) ?: listOfNotNull(
+                    address.featureName, address.locality, address.adminArea, address.countryName
+                ).distinct().joinToString(", ").ifEmpty { "${address.latitude}, ${address.longitude}" }
+            }
+            searchResultsDialog = MaterialAlertDialogBuilder(this@MapActivity)
+                .setTitle(R.string.location_search_results)
+                .setItems(labels.toTypedArray()) { _, index ->
+                    val address = addresses[index]
+                    readyMap.stopAnimation()
+                    readyMap.moveCamera(CameraUpdateFactory.newLatLng(LatLng(address.latitude, address.longitude)))
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .setOnDismissListener { searchResultsDialog = null }
+                .show()
+        }
+    }
+
+    private fun cancelSearch() {
+        searchJob?.cancel()
+        searchJob = null
+        searchResultsDialog?.dismiss()
+        searchResultsDialog = null
+        findViewById<View>(R.id.locationSearchStatus).isVisible = false
+    }
+
+    private fun applyPickMode() {
+        if (!pickMode) return
+        findViewById<View>(R.id.radiusCard).isVisible = false
+        findViewById<View>(R.id.pickLocationCard).isVisible = true
+        findViewById<View>(R.id.mapBottomNav).isVisible = false
+        findViewById<TextView>(R.id.pickLocationAddress).setText(R.string.pick_location_help)
+        findViewById<View>(R.id.pickLocationConfirm).setOnClickListener { confirmPick() }
+
+        val scroll = findViewById<View>(R.id.mapItemsScroll)
+        val basePadding = scroll.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(scroll) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(bottom = basePadding + bars.bottom)
+            insets
+        }
+    }
+
+    /**
+     * View-location mode shows one pickup pin and an info card. The radius, search, filters, and
+     * the browsing bottom bar do not apply to a single fixed point, so they all go away.
+     */
+    private fun applyViewMode() {
+        if (!viewMode) return
+        findViewById<View>(R.id.radiusCard).isVisible = false
+        findViewById<View>(R.id.mapItemsScroll).isVisible = false
+        findViewById<View>(R.id.mapBottomNav).isVisible = false
+        findViewById<View>(R.id.mapCenterPin).isVisible = false
+        findViewById<View>(R.id.locationSearchInput).isVisible = false
+        findViewById<View>(R.id.locationSearchButton).isVisible = false
+        findViewById<View>(R.id.myLocationButton).isVisible = false
+
+        findViewById<TextView>(R.id.locationInfoLabel).text =
+            viewLabel.orEmpty().ifBlank { getString(R.string.pick_location_title) }
+        findViewById<TextView>(R.id.locationInfoTitle).apply {
+            text = viewTitle.orEmpty()
+            isVisible = text.isNotBlank()
+        }
+        findViewById<View>(R.id.locationInfoDirections).setOnClickListener { openDirections() }
+        findViewById<View>(R.id.locationInfoClose).setOnClickListener { finish() }
+
+        // The browsing panel is gone, so the map can run behind the floating pickup card.
+        val root = findViewById<ConstraintLayout>(R.id.mapRoot)
+        ConstraintSet().apply {
+            clone(root)
+            connect(R.id.campusMap, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM)
+            applyTo(root)
+        }
+
+        // The card sits at the very bottom of an edge-to-edge window, so lift it above the
+        // system navigation bar instead of letting the bar cover the actions.
+        val card = findViewById<View>(R.id.locationInfoCard)
+        card.isVisible = true
+        val baseMargin = (card.layoutParams as ViewGroup.MarginLayoutParams).bottomMargin
+        ViewCompat.setOnApplyWindowInsetsListener(card) { view, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updateLayoutParams<ViewGroup.MarginLayoutParams> { bottomMargin = baseMargin + bars.bottom }
+            insets
+        }
+    }
+
+    private fun openDirections() {
+        val target = viewTarget ?: center
+        val label = viewLabel.orEmpty()
+        val query = if (label.isBlank()) {
+            "${target.latitude},${target.longitude}"
+        } else {
+            "${target.latitude},${target.longitude}(${Uri.encode(label)})"
+        }
+        val intent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("geo:${target.latitude},${target.longitude}?q=$query")
+        )
+        runCatching { startActivity(intent) }.onFailure {
+            Toast.makeText(this, R.string.map_directions_unavailable, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun confirmPick() {
+        hasSelection = true
+        pickConfirmed = true
+        finish()
+    }
+
+    private fun updatePickAddress() {
+        if (!pickMode) return
+        pickLabelJob?.cancel()
+        // The resolved address belongs to the pin it was looked up for. Drop it as soon as the
+        // pin moves so confirming mid-lookup cannot pair the old address with new coordinates.
+        pickLabel = null
+        pickLabelCenter = null
+        val address = findViewById<TextView>(R.id.pickLocationAddress)
+        address.setText(R.string.pick_location_address_loading)
+        val target = center
+        val latitude = target.latitude
+        val longitude = target.longitude
+        pickLabelJob = lifecycleScope.launch {
+            val label = withTimeoutOrNull(5_000) {
+                try {
+                    LocationSearch.reverse(this@MapActivity, latitude, longitude)
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (_: Exception) {
+                    null
+                }
+            }
+            if (isFinishing || isDestroyed || center != target) return@launch
+            pickLabel = label ?: getString(R.string.pick_location_custom)
+            pickLabelCenter = target
+            address.text = pickLabel
+        }
+    }
+
+    private fun loadUserCampus() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        ListingRepo.getUserProfile(uid) { profile ->
+            userCampus = CampusLocations.forSchool(profile?.school)
+        }
+    }
+
+    private fun campusCenter(): Pair<Double, Double> =
+        userCampus ?: CampusLocations.ONTARIO_TECH
+
+    override fun onMapReady(googleMap: GoogleMap) {
+        if (isDestroyed || isFinishing) return
+        map = googleMap
+
+        // Immediately align map camera target to center so it never defaults to (0.0, 0.0).
+        // Pick and view modes zoom in on one pin instead of framing a browsing radius.
+        googleMap.moveCamera(
+            CameraUpdateFactory.newLatLngZoom(center, if (pickMode || viewMode) 17f else 14f)
+        )
+
+        val nightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        googleMap.setMapStyle(MapStyleOptions.loadRawResourceStyle(
+            this,
+            if (nightMode) R.raw.map_style_night else R.raw.map_style
+        ))
+        googleMap.uiSettings.isMapToolbarEnabled = false
+        googleMap.uiSettings.isMyLocationButtonEnabled = false
+        val green = ContextCompat.getColor(this, R.color.nox_primary_green)
+        circle = googleMap.addCircle(CircleOptions().center(center).radius(radiusKm * 1000)
+            .fillColor(ColorUtils.setAlphaComponent(green, 46)).strokeColor(green)
+            .strokeWidth(resources.displayMetrics.density))
+        circle?.isVisible = !pickMode && !viewMode
+        googleMap.setOnMarkerClickListener { marker ->
+            val listing = marker.tag as? Listing
+            if (listing != null) {
+                ItemDetailDialog.show(this, listing) { loadListings() }
+                true
+            } else {
+                // The pickup pin has no listing tag, so let the info window open normally.
+                false
+            }
+        }
+        findViewById<View>(R.id.searchAreaButton).isEnabled = true
+        findViewById<View>(R.id.locationSearchButton).isEnabled = true
+        if (!viewMode) {
+            googleMap.setOnCameraMoveListener {
+                center = googleMap.cameraPosition.target
+                refreshArea()
+            }
+        }
+        if (pickMode) {
+            googleMap.setOnCameraIdleListener { updatePickAddress() }
+            updatePickAddress()
+        }
+        if (viewMode) {
+            addViewLocationPin(googleMap)
+        } else {
+            rebuildMarkers()
+            refreshArea()
+            if (!restoredCamera && !pickMode) findViewById<View>(R.id.campusMap).post { fitCircle(false) }
+        }
+    }
+
+    /** One labelled pin on the pickup point, with the listing title and pickup name in its window. */
+    private fun addViewLocationPin(googleMap: GoogleMap) {
+        val label = viewLabel.orEmpty().ifBlank { getString(R.string.pick_location_title) }
+        googleMap.addMarker(
+            MarkerOptions()
+                .position(viewTarget ?: center)
+                .title(viewTitle.orEmpty())
+                .snippet(label)
+                .icon(markerIcon())
+                .anchor(0.5f, 0.5f)
+        )?.showInfoWindow()
+    }
+
+    private fun loadListings() {
+        ListingRepo.loadPublicListings(
+            onSuccess = {
+                if (!isDestroyed) {
+                    listings = it
+                    listingsLoaded = true
+                    listingsError = false
+                    rebuildMarkers()
+                    refreshArea()
+                }
+            },
+            onError = {
+                if (!isDestroyed) {
+                    listings = emptyList()
+                    listingsLoaded = true
+                    listingsError = true
+                    rebuildMarkers()
+                    refreshArea()
+                    Toast.makeText(
+                        this@MapActivity,
+                        R.string.browse_load_error,
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+        )
+    }
+
+    /** The green NOX pin, drawn once and shared by the browse markers and the pickup pin. */
+    private fun markerIcon(): BitmapDescriptor {
+        val drawable = requireNotNull(ContextCompat.getDrawable(this, R.drawable.ic_map_marker))
+        val bitmap = createBitmap(drawable.intrinsicWidth, drawable.intrinsicHeight)
+        drawable.setBounds(0, 0, bitmap.width, bitmap.height)
+        drawable.draw(Canvas(bitmap))
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    private fun rebuildMarkers() {
+        val readyMap = map ?: return
+        markers.forEach { it.remove() }
+        markers.clear()
+        val icon = markerIcon()
+        listings.filter { ListingFilters.matches(it, baseFilters) }.forEach { listing ->
+            val (lat, lng) = CampusLocations.resolve(listing)
+            readyMap.addMarker(MarkerOptions().position(LatLng(lat, lng)).title(listing.title)
+                .icon(icon).anchor(0.5f, 0.5f))?.let { marker ->
+                marker.tag = listing
+                markers.add(marker)
+            }
+        }
+    }
+
+    private fun refreshArea() {
+        if (viewMode) return
+        val unit = Prefs.distanceUnit(this)
+        val label = getString(R.string.radius_label, Prefs.formatDistance(radiusKm), unit)
+        findViewById<TextView>(R.id.radiusLabel).text = label
+        findViewById<Slider>(R.id.radiusSlider).contentDescription = label
+        findViewById<TextView>(R.id.radiusMinLabel).text = getString(R.string.map_radius_min, unit)
+        findViewById<TextView>(R.id.radiusMaxLabel).text = getString(R.string.map_radius_max, unit)
+        circle?.center = center
+        circle?.radius = radiusKm * 1000
+        val areaFilters = baseFilters.copy(
+            centerLat = center.latitude,
+            centerLng = center.longitude,
+            radiusKm = radiusKm
+        )
+        markers.forEach { marker ->
+            val listing = marker.tag as Listing
+            marker.alpha = if (ListingFilters.matches(listing, areaFilters)) 1f else 0.4f
+        }
+        updateAreaSummary(unit)
+        updateFilterSummary()
+    }
+
+    private fun updateAreaSummary(unit: String) {
+        val summary = findViewById<TextView>(R.id.mapAreaSummary)
+        summary.text = when {
+            listingsError -> getString(R.string.map_area_error)
+            !listingsLoaded -> getString(R.string.map_area_loading)
+            else -> {
+                val areaFilters = baseFilters.copy(
+                    centerLat = center.latitude,
+                    centerLng = center.longitude,
+                    radiusKm = radiusKm
+                )
+                val count = listings.count { ListingFilters.matches(it, areaFilters) }
+                resources.getQuantityString(
+                    R.plurals.map_area_count, count, count, Prefs.formatDistance(radiusKm), unit
+                )
+            }
+        }
+    }
+
+    private fun updateFilterSummary() {
+        val parts = mutableListOf<String>()
+        baseFilters.category?.let { parts.add(it) }
+        baseFilters.priceRange?.let { parts.add(it.label) }
+        baseFilters.condition?.let { parts.add(it) }
+        if (baseFilters.query.isNotBlank()) parts.add("\"${baseFilters.query}\"")
+        val summary = findViewById<TextView>(R.id.mapFilterSummary)
+        summary.isVisible = parts.isNotEmpty()
+        if (parts.isNotEmpty()) {
+            summary.text = getString(R.string.map_showing_filters, parts.joinToString(" · "))
+        }
+    }
+
+    private fun fitCircle(animate: Boolean = true) {
+        val readyMap = map ?: return
+        val view = findViewById<View>(R.id.campusMap)
+        if (view.width == 0 || view.height == 0 || isDestroyed) return
+        val angularRadius = radiusKm / 6371.0
+        val latitudeDelta = Math.toDegrees(angularRadius)
+        val longitudeDelta = Math.toDegrees(asin(
+            (sin(angularRadius) / cos(Math.toRadians(center.latitude))).coerceIn(-1.0, 1.0)
+        ))
+        val bounds = LatLngBounds.builder()
+            .include(LatLng(center.latitude - latitudeDelta, center.longitude - longitudeDelta))
+            .include(LatLng(center.latitude + latitudeDelta, center.longitude + longitudeDelta))
+            .build()
+        val padding = dp(48)
+            .coerceAtMost(minOf(view.width, view.height) / 4)
+        val update = CameraUpdateFactory.newLatLngBounds(bounds, view.width, view.height, padding)
+        if (animate) readyMap.animateCamera(update) else readyMap.moveCamera(update)
+    }
+
+    private fun hasLocationPermission() =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    @SuppressLint("MissingPermission")
+    private fun locateDevice() {
+        if (!hasLocationPermission() || locationCancellation != null) return
+        val cancellation = CancellationTokenSource()
+        locationCancellation = cancellation
+        LocationServices.getFusedLocationProviderClient(this)
+            .getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellation.token)
+            .addOnSuccessListener { location ->
+                if (locationCancellation !== cancellation || isDestroyed || isFinishing) return@addOnSuccessListener
+                locationCancellation = null
+                if (location == null) campusFallback(R.string.location_unavailable) else {
+                    locationPending = false
+                    center = LatLng(location.latitude, location.longitude)
+                    refreshArea()
+                    fitCircle()
+                }
+            }
+            .addOnFailureListener {
+                if (locationCancellation === cancellation && !isDestroyed && !isFinishing) {
+                    locationCancellation = null
+                    campusFallback(R.string.location_unavailable)
+                }
+            }
+    }
+
+    private fun campusFallback(message: Int) {
+        cancelLocation()
+        locationPending = false
+        val campus = campusCenter()
+        center = LatLng(campus.first, campus.second)
+        refreshArea()
+        fitCircle()
+        Snackbar.make(findViewById(R.id.mapRoot), message, Snackbar.LENGTH_LONG)
+            .setAnchorView(R.id.mapBottomNav).show()
+    }
+
+    private fun cancelLocation() {
+        locationCancellation?.cancel()
+        locationCancellation = null
+    }
+
+    private fun setupNavigation() {
+        findViewById<View>(R.id.mapBackButton).setOnClickListener { finish() }
+        // Map was launched for a result, so it hands the chosen tab back to Browse instead of
+        // starting activities itself. Browse applies the same tab policy as every other screen.
+        wireTabBar(
+            R.id.mapBottomNav,
+            NavTab.BROWSE,
+            onReselect = { finish() },
+            navigate = { tab ->
+                navigation = when (tab) {
+                    NavTab.HOME -> NAV_HOME
+                    NavTab.PROFILE -> NAV_PROFILE
+                    NavTab.POST -> NAV_POST
+                    NavTab.CHAT -> NAV_CHAT
+                    NavTab.BROWSE -> null
+                }
+                finish()
+            }
+        )
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (locationPending && hasLocationPermission()) locateDevice()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (listingsLoaded && !pickMode && !viewMode) loadListings()
+    }
+
+    override fun onStop() {
+        cancelLocation()
+        cancelSearch()
+        pickLabelJob?.cancel()
+        super.onStop()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putDouble(EXTRA_CENTER_LAT, center.latitude)
+        outState.putDouble(EXTRA_CENTER_LNG, center.longitude)
+        outState.putDouble(EXTRA_RADIUS_KM, radiusKm)
+        outState.putBoolean(EXTRA_HAS_SELECTION, hasSelection)
+        outState.putBoolean("locationPending", locationPending)
+        outState.putBoolean("pickConfirmed", pickConfirmed)
+        outState.putBoolean(EXTRA_VIEW_LOCATION, viewMode)
+        outState.putString(EXTRA_LOCATION_LABEL, if (viewMode) viewLabel else pickLabel)
+        outState.putString(EXTRA_LOCATION_TITLE, viewTitle)
+        outState.putDouble("initialCenterLat", initialCenter.latitude)
+        outState.putDouble("initialCenterLng", initialCenter.longitude)
+        outState.putDouble("initialRadiusKm", initialRadiusKm)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun finish() {
+        // Return original launch coordinates if no new area selection was committed
+        val returnCenter = if (!hasSelection && !pickMode) initialCenter else center
+        val returnRadius = if (!hasSelection && !pickMode) initialRadiusKm else radiusKm
+        val data = Intent()
+            .putExtra(EXTRA_HAS_SELECTION, hasSelection)
+            .putExtra(EXTRA_CENTER_LAT, returnCenter.latitude)
+            .putExtra(EXTRA_CENTER_LNG, returnCenter.longitude)
+            .putExtra(EXTRA_RADIUS_KM, returnRadius)
+            .putExtra(EXTRA_NAVIGATION, navigation)
+        // Only return an address that was resolved for the pin being returned. The post form
+        // falls back to its own "pinned location" text when the lookup has not finished.
+        if (pickMode && pickConfirmed && pickLabelCenter == center) {
+            data.putExtra(EXTRA_LOCATION_LABEL, pickLabel)
+        }
+        setResult(RESULT_OK, data)
+        super.finish()
+    }
+
+    companion object {
+        const val EXTRA_HAS_SELECTION = "hasSelection"
+        const val EXTRA_CENTER_LAT = "centerLat"
+        const val EXTRA_CENTER_LNG = "centerLng"
+        const val EXTRA_RADIUS_KM = "radiusKm"
+        const val EXTRA_NAVIGATION = "navigation"
+        const val EXTRA_QUERY = "query"
+        const val EXTRA_CATEGORY = "category"
+        const val EXTRA_PRICE = "priceRange"
+        const val EXTRA_CONDITION = "condition"
+        const val EXTRA_PICK_LOCATION = "pickLocation"
+        const val EXTRA_VIEW_LOCATION = "viewLocation"
+        const val EXTRA_LOCATION_LABEL = "locationLabel"
+        const val EXTRA_LOCATION_TITLE = "locationTitle"
+        const val NAV_HOME = "home"
+        const val NAV_PROFILE = "profile"
+        const val NAV_POST = "post"
+        const val NAV_CHAT = "chat"
+    }
+}

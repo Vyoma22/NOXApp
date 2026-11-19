@@ -46,33 +46,33 @@
             android:name=".auth.VerifyEmailActivity"
             android:exported="false" />
         <activity
-            android:name=".MainActivity"
+            android:name=".home.MainActivity"
             android:exported="false" />
         <activity
-            android:name=".ProfileActivity"
+            android:name=".profile.ProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".SellerProfileActivity"
+            android:name=".profile.SellerProfileActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".SettingsActivity"
+            android:name=".settings.SettingsActivity"
             android:exported="false" />
         <activity
             android:name=".postlisting.PostListing"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".MapActivity"
+            android:name=".map.MapActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".BrowseActivity"
+            android:name=".browse.BrowseActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <!-- Fullscreen viewer for listing photos, opened from the item detail sheet. -->
         <activity
-            android:name=".ui.MediaViewerActivity"
+            android:name=".listing.MediaViewerActivity"
             android:exported="false"
             android:theme="@style/Theme.NOXApp.MediaViewer" />
         <!-- Camera capture writes into the app cache; without this provider launchCamera throws. -->
@@ -91,11 +91,11 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name=".ChatInboxActivity"
+            android:name=".chat.ChatInboxActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
-            android:name=".ChatConversationActivity"
+            android:name=".chat.ChatConversationActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
     </application>

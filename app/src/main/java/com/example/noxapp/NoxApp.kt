@@ -3,7 +3,7 @@ package com.example.noxapp
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
-import com.example.noxapp.data.Prefs
+import com.example.noxapp.core.Prefs
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 
