@@ -8,7 +8,6 @@ import android.widget.ImageButton
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.adapters.MediaPagerAdapter
@@ -34,7 +33,6 @@ class MediaGallery(
     private val thumbnails: RecyclerView = dialog.findViewById(R.id.detailMediaThumbnails)
     private val emptyState: View = dialog.findViewById(R.id.detailMediaEmpty)
 
-    private val snapHelper = PagerSnapHelper()
     private val pagerLayoutManager =
         LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
     private val thumbAdapter = MediaThumbAdapter(this.imageUrls) { position -> goTo(position) }
@@ -52,7 +50,9 @@ class MediaGallery(
         pager.layoutManager = pagerLayoutManager
         pager.adapter = pagerAdapter
         pager.itemAnimator = null
-        snapHelper.attachToRecyclerView(pager)
+        pager.onPageSnapped(pagerLayoutManager) { position ->
+            if (position != currentPosition) showPosition(position)
+        }
         thumbnails.layoutManager =
             LinearLayoutManager(activity, LinearLayoutManager.HORIZONTAL, false)
         thumbnails.adapter = thumbAdapter
@@ -60,16 +60,6 @@ class MediaGallery(
 
         previousButton.setOnClickListener { goTo(currentPosition - 1) }
         nextButton.setOnClickListener { goTo(currentPosition + 1) }
-        pager.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                if (newState != RecyclerView.SCROLL_STATE_IDLE) return
-                val snapped = snapHelper.findSnapView(pagerLayoutManager) ?: return
-                val position = pagerLayoutManager.getPosition(snapped)
-                if (position != RecyclerView.NO_POSITION && position != currentPosition) {
-                    showPosition(position)
-                }
-            }
-        })
 
         // A single photo needs no navigation, so the controls stay out of the way.
         val multiple = imageUrls.size > 1

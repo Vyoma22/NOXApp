@@ -13,7 +13,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.adapters.MediaPagerAdapter
@@ -31,7 +30,6 @@ class MediaViewerActivity : AppCompatActivity() {
         const val EXTRA_START_INDEX = "extra_start_index"
     }
 
-    private val snapHelper = PagerSnapHelper()
     private lateinit var pager: RecyclerView
     private lateinit var pagerLayoutManager: LinearLayoutManager
     private lateinit var counter: TextView
@@ -68,15 +66,7 @@ class MediaViewerActivity : AppCompatActivity() {
             imageBackgroundColor = R.color.black
         )
         pager.itemAnimator = null
-        snapHelper.attachToRecyclerView(pager)
-        pager.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                if (newState != RecyclerView.SCROLL_STATE_IDLE) return
-                val snapped = snapHelper.findSnapView(pagerLayoutManager) ?: return
-                val position = pagerLayoutManager.getPosition(snapped)
-                if (position != RecyclerView.NO_POSITION) showPosition(position)
-            }
-        })
+        pager.onPageSnapped(pagerLayoutManager) { showPosition(it) }
 
         val startIndex = intent.getIntExtra(EXTRA_START_INDEX, 0)
             .coerceIn(0, imageUrls.lastIndex)

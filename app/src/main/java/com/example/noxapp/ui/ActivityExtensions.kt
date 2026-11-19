@@ -10,6 +10,9 @@ import android.widget.ScrollView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.PagerSnapHelper
+import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 
 // Opens [target] and clears the back stack
@@ -82,3 +85,20 @@ fun Activity.applyEdgeToEdgeInsets(
 
 /** Converts a dp measurement to pixels for views built in code rather than inflated from XML. */
 fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+/**
+ * Turns a horizontal RecyclerView into a snapped pager and reports the page it settles on.
+ * Shared by the detail sheet's gallery and the fullscreen viewer.
+ */
+fun RecyclerView.onPageSnapped(layoutManager: LinearLayoutManager, onPosition: (Int) -> Unit) {
+    val snapHelper = PagerSnapHelper()
+    snapHelper.attachToRecyclerView(this)
+    addOnScrollListener(object : RecyclerView.OnScrollListener() {
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            if (newState != RecyclerView.SCROLL_STATE_IDLE) return
+            val snapped = snapHelper.findSnapView(layoutManager) ?: return
+            val position = layoutManager.getPosition(snapped)
+            if (position != RecyclerView.NO_POSITION) onPosition(position)
+        }
+    })
+}
