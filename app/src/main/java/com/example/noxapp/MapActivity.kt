@@ -42,6 +42,7 @@ import com.example.noxapp.models.PriceRange
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.dp
 import com.example.noxapp.ui.wireTabBar
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -176,7 +177,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun arrangeLayout() {
         val root = findViewById<ConstraintLayout>(R.id.mapRoot)
-        val margin = (12 * resources.displayMetrics.density).toInt()
+        val margin = dp(12)
         ConstraintSet().apply {
             clone(root)
             if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -217,7 +218,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<Slider>(R.id.radiusSlider).apply {
             value = radiusKm.toFloat()
             setLabelFormatter {
-                getString(R.string.radius_label, formatRadius(it.toDouble()), Prefs.distanceUnit(this@MapActivity))
+                getString(R.string.radius_label, Prefs.formatDistance(it.toDouble()), Prefs.distanceUnit(this@MapActivity))
             }
             addOnChangeListener { _, value, _ ->
                 radiusKm = value.toDouble()
@@ -553,7 +554,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun refreshArea() {
         if (viewMode) return
         val unit = Prefs.distanceUnit(this)
-        val label = getString(R.string.radius_label, formatRadius(radiusKm), unit)
+        val label = getString(R.string.radius_label, Prefs.formatDistance(radiusKm), unit)
         findViewById<TextView>(R.id.radiusLabel).text = label
         findViewById<Slider>(R.id.radiusSlider).contentDescription = label
         findViewById<TextView>(R.id.radiusMinLabel).text = getString(R.string.map_radius_min, unit)
@@ -586,7 +587,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 )
                 val count = listings.count { ListingFilters.matches(it, areaFilters) }
                 resources.getQuantityString(
-                    R.plurals.map_area_count, count, count, formatRadius(radiusKm), unit
+                    R.plurals.map_area_count, count, count, Prefs.formatDistance(radiusKm), unit
                 )
             }
         }
@@ -618,7 +619,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             .include(LatLng(center.latitude - latitudeDelta, center.longitude - longitudeDelta))
             .include(LatLng(center.latitude + latitudeDelta, center.longitude + longitudeDelta))
             .build()
-        val padding = (48 * resources.displayMetrics.density).toInt()
+        val padding = dp(48)
             .coerceAtMost(minOf(view.width, view.height) / 4)
         val update = CameraUpdateFactory.newLatLngBounds(bounds, view.width, view.height, padding)
         if (animate) readyMap.animateCamera(update) else readyMap.moveCamera(update)
@@ -741,8 +742,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         setResult(RESULT_OK, data)
         super.finish()
     }
-
-    private fun formatRadius(value: Double) = Prefs.formatDistance(value)
 
     companion object {
         const val EXTRA_HAS_SELECTION = "hasSelection"

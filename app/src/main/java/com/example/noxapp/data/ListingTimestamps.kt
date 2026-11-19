@@ -17,7 +17,7 @@ object ListingTimestamps {
 
     /** Epoch millis for [value], or null when it is missing or an unsupported/garbage type. */
     fun toMillis(value: Any?): Long? = when (value) {
-        is Timestamp -> value.seconds * 1_000L + value.nanoseconds / 1_000_000L
+        is Timestamp -> value.toDate().time
         is Date -> value.time
         is Number -> value.toLong()
         else -> null

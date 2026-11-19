@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.models.CategoryCatalog
+import com.example.noxapp.ui.dp
 
 class PillChipAdapter(
     private val onCategorySelected: (String?) -> Unit,
@@ -63,7 +64,7 @@ class PillChipAdapter(
             else -> CategoryCatalog.iconFor(category)
         }
         text.setCompoundDrawablesRelativeWithIntrinsicBounds(icon, 0, 0, 0)
-        text.compoundDrawablePadding = (6 * context.resources.displayMetrics.density).toInt()
+        text.compoundDrawablePadding = context.dp(6)
         text.compoundDrawableTintList = ColorStateList.valueOf(foreground)
         text.setOnClickListener {
             if (isToggle) {

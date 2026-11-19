@@ -14,6 +14,7 @@ import com.example.noxapp.R
 import com.example.noxapp.models.Listing
 import com.example.noxapp.models.ListingSignals
 import com.example.noxapp.models.formatPrice
+import com.example.noxapp.ui.dp
 import com.google.android.material.card.MaterialCardView
 import androidx.recyclerview.widget.LinearLayoutManager
 
@@ -49,8 +50,8 @@ class ListingAdapter(
 
         // If parent is a horizontal RecyclerView (Home feed), set a fixed width of 150dp
         if (parent is RecyclerView && (parent.layoutManager as? LinearLayoutManager)?.orientation == LinearLayoutManager.HORIZONTAL) {
-            val widthInPx = (150 * parent.context.resources.displayMetrics.density).toInt()
-            holder.carouselGapPx = (12 * parent.context.resources.displayMetrics.density).toInt()
+            val widthInPx = parent.context.dp(150)
+            holder.carouselGapPx = parent.context.dp(12)
             view.layoutParams = RecyclerView.LayoutParams(widthInPx, RecyclerView.LayoutParams.WRAP_CONTENT).apply {
                 marginEnd = holder.carouselGapPx
             }

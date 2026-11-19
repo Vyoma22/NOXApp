@@ -2,6 +2,12 @@ package com.example.noxapp.models
 
 import com.example.noxapp.R
 
+data class CategoryItem(
+    val name: String,
+    val iconResId: Int,
+    var isSelected: Boolean = false
+)
+
 /**
  * The one category list the whole app reads from.
  *
