@@ -3,22 +3,17 @@ package com.example.noxapp
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
-import android.view.inputmethod.EditorInfo
 import android.view.View
 import android.widget.EditText
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -38,6 +33,7 @@ import com.example.noxapp.ui.NavTab
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
 import com.example.noxapp.ui.checkAccessOnStart
 import com.example.noxapp.ui.openTab
+import com.example.noxapp.ui.wireSearchBox
 import com.example.noxapp.ui.wireTabBar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
@@ -167,27 +163,10 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun setupSearch() {
-        val search = findViewById<EditText>(R.id.browseSearch)
-        val clear = findViewById<ImageButton>(R.id.browseSearchClear)
-
-        search.setText(filters.query)
-        clear.isVisible = filters.query.isNotEmpty()
-        search.addTextChangedListener { text ->
-            filters = filters.copy(query = text?.toString().orEmpty())
-            clear.isVisible = !text.isNullOrEmpty()
+        wireSearchBox(R.id.browseSearch, R.id.browseSearchClear, filters.query) { text ->
+            filters = filters.copy(query = text)
             renderResults()
             saveSession()
-        }
-        clear.setOnClickListener { search.setText("") }
-        search.setOnEditorActionListener { _, action, _ ->
-            if (action == EditorInfo.IME_ACTION_SEARCH) {
-                WindowCompat.getInsetsController(window, search)
-                    .hide(WindowInsetsCompat.Type.ime())
-                search.clearFocus()
-                true
-            } else {
-                false
-            }
         }
     }
 

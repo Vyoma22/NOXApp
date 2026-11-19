@@ -6,10 +6,16 @@ import android.content.Intent
 import android.os.Build
 import android.view.View
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.ScrollView
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -101,4 +107,27 @@ fun RecyclerView.onPageSnapped(layoutManager: LinearLayoutManager, onPosition: (
             if (position != RecyclerView.NO_POSITION) onPosition(position)
         }
     })
+}
+
+/**
+ * Seeds a search field, keeps its clear button in step with the text, and hides the keyboard
+ * when the user submits. Shared by Browse and the seller profile.
+ */
+fun Activity.wireSearchBox(searchId: Int, clearId: Int, initial: String, onChanged: (String) -> Unit) {
+    val search = findViewById<EditText>(searchId)
+    val clear = findViewById<ImageButton>(clearId)
+    search.setText(initial)
+    clear.isVisible = initial.isNotEmpty()
+    search.addTextChangedListener { text ->
+        val query = text?.toString().orEmpty()
+        clear.isVisible = query.isNotEmpty()
+        onChanged(query)
+    }
+    clear.setOnClickListener { search.setText("") }
+    search.setOnEditorActionListener { _, action, _ ->
+        if (action != EditorInfo.IME_ACTION_SEARCH) return@setOnEditorActionListener false
+        WindowCompat.getInsetsController(window, search).hide(WindowInsetsCompat.Type.ime())
+        search.clearFocus()
+        true
+    }
 }

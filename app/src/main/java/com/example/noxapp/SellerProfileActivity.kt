@@ -7,21 +7,16 @@ import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.view.View
-import android.view.inputmethod.EditorInfo
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.adapters.ListingAdapter
@@ -32,6 +27,7 @@ import com.example.noxapp.models.Listing
 import com.example.noxapp.models.SellerProfile
 import com.example.noxapp.ui.ItemDetailDialog
 import com.example.noxapp.ui.applyEdgeToEdgeInsets
+import com.example.noxapp.ui.wireSearchBox
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 
@@ -154,26 +150,9 @@ class SellerProfileActivity : AppCompatActivity() {
     }
 
     private fun setupSearch() {
-        val search = findViewById<EditText>(R.id.sellerSearch)
-        val clear = findViewById<ImageButton>(R.id.sellerSearchClear)
-
-        search.setText(query)
-        clear.isVisible = query.isNotEmpty()
-        search.addTextChangedListener { text ->
-            query = text?.toString().orEmpty()
-            clear.isVisible = query.isNotEmpty()
+        wireSearchBox(R.id.sellerSearch, R.id.sellerSearchClear, query) { text ->
+            query = text
             renderResults()
-        }
-        clear.setOnClickListener { search.setText("") }
-        search.setOnEditorActionListener { _, action, _ ->
-            if (action == EditorInfo.IME_ACTION_SEARCH) {
-                WindowCompat.getInsetsController(window, search)
-                    .hide(WindowInsetsCompat.Type.ime())
-                search.clearFocus()
-                true
-            } else {
-                false
-            }
         }
     }
 
