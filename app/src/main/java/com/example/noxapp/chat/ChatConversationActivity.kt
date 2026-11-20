@@ -510,6 +510,7 @@ class ChatConversationActivity : AppCompatActivity() {
             conversationId = conversationId,
             onUpdate = { records ->
                 if (isFinishing || isDestroyed) return@listenToMessages
+                ChatRepository.markConversationRead(conversationId)
                 val chatMessages = records.map { record ->
                     ChatMessage(
                         senderId = record.senderId,
