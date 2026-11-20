@@ -14,13 +14,6 @@ import com.example.noxapp.core.onPageSnapped
 import com.example.noxapp.listing.adapters.MediaPagerAdapter
 import com.example.noxapp.listing.adapters.MediaThumbAdapter
 
-/**
- * Wires the photo pager, counter, arrow buttons, and thumbnail strip inside the item detail sheet.
- *
- * Kept out of [ItemDetailDialog] so the dialog still reads as listing fields plus actions. The
- * pager is a snapped [RecyclerView] rather than a ViewPager, so the feature needs no new
- * dependencies.
- */
 class MediaGallery(
     private val activity: Activity,
     private val dialog: Dialog,
@@ -62,7 +55,6 @@ class MediaGallery(
         previousButton.setOnClickListener { goTo(currentPosition - 1) }
         nextButton.setOnClickListener { goTo(currentPosition + 1) }
 
-        // A single photo needs no navigation, so the controls stay out of the way.
         val multiple = imageUrls.size > 1
         previousButton.isVisible = multiple
         nextButton.isVisible = multiple
@@ -74,7 +66,6 @@ class MediaGallery(
     private fun goTo(position: Int) {
         if (imageUrls.isEmpty()) return
         val target = position.coerceIn(0, imageUrls.lastIndex)
-        // Update the controls right away; the pager settles onto the same page a moment later.
         showPosition(target)
         pager.smoothScrollToPosition(target)
     }
@@ -90,7 +81,6 @@ class MediaGallery(
             imageUrls.size
         )
 
-        // The arrow at either end stays in place but greys out instead of wrapping around.
         previousButton.isEnabled = currentPosition > 0
         nextButton.isEnabled = currentPosition < imageUrls.lastIndex
         previousButton.alpha = if (previousButton.isEnabled) 1f else 0.35f
@@ -110,6 +100,12 @@ class MediaGallery(
     }
 
     private fun openViewer(position: Int) {
+        val url = imageUrls.getOrNull(position) ?: return
+        if (MediaHelper.isVideoUrl(url)) {
+            MediaHelper.playVideo(activity, url)
+            return
+        }
+
         activity.startActivity(
             Intent(activity, MediaViewerActivity::class.java)
                 .putStringArrayListExtra(

@@ -5,16 +5,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
 import com.example.noxapp.R
+import com.example.noxapp.listing.MediaHelper
 
-/**
- * Pages a listing's photos into a snapped horizontal [RecyclerView].
- *
- * The item detail sheet and the fullscreen viewer share this adapter; the caller supplies the
- * page layout (rounded crop in the sheet, letterboxed on black in the viewer) and which string
- * describes a page to screen readers.
- */
 class MediaPagerAdapter(
     imageUrls: List<String>,
     private val pageLayout: Int = R.layout.item_media_page,
@@ -38,17 +31,12 @@ class MediaPagerAdapter(
         val context = holder.itemView.context
         val url = imageUrls[position]
 
-        // A recycled page must never keep the previous photo's description or bitmap.
         holder.image.contentDescription = context.getString(
             descriptionFormat,
             position + 1,
             imageUrls.size
         )
-        holder.image.load(url) {
-            crossfade(true)
-            placeholder(imageBackgroundColor)
-            error(imageBackgroundColor)
-        }
+        MediaHelper.loadThumbnail(holder.image, url)
         holder.image.setOnClickListener(
             onPhotoClick?.let { click -> View.OnClickListener { click(position) } }
         )

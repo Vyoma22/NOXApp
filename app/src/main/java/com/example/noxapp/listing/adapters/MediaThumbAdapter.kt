@@ -6,13 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.recyclerview.widget.RecyclerView
-import coil.load
 import com.example.noxapp.R
+import com.example.noxapp.listing.MediaHelper
 
-/**
- * Thumbnail strip under the item detail gallery. The selected photo keeps full opacity and a
- * green ring; the rest dim to about half so the current page reads at a glance.
- */
 class MediaThumbAdapter(
     private val imageUrls: List<String>,
     private val onThumbClick: (position: Int) -> Unit
@@ -33,11 +29,7 @@ class MediaThumbAdapter(
         val context = holder.itemView.context
         val selected = position == selectedPosition
 
-        holder.image.load(imageUrls[position]) {
-            crossfade(true)
-            placeholder(R.color.nox_field_bg)
-            error(R.color.nox_field_bg)
-        }
+        MediaHelper.loadThumbnail(holder.image, imageUrls[position])
         holder.itemView.setBackgroundResource(
             if (selected) R.drawable.bg_media_thumb_selected else R.drawable.bg_media_thumb_normal
         )
