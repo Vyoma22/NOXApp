@@ -23,6 +23,8 @@ import com.example.noxapp.R
 import com.example.noxapp.chat.adapters.ChatMessage
 import com.example.noxapp.chat.adapters.ChatMessageAdapter
 import com.example.noxapp.core.checkAccessOnStart
+import com.example.noxapp.listing.ItemDetailDialog
+import com.example.noxapp.listing.Listing
 import com.example.noxapp.listing.ListingRepo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
@@ -62,6 +64,8 @@ class ChatConversationActivity : AppCompatActivity() {
     private var ratingListener: ListenerRegistration? = null
     private var accessJob: Job? = null
 
+    private var currentListing: Listing? = null
+    private var loadedThumbnailUrl: String? = null
     private var currentSaleTransaction: SaleTransaction? = null
     private var currentRatingRecord: SellerRatingRecord? = null
     private var currentListingSellerId = ""
@@ -271,9 +275,10 @@ class ChatConversationActivity : AppCompatActivity() {
         messagesRecyclerView = findViewById(R.id.chatMessagesRecyclerView)
         messageAdapter = ChatMessageAdapter(
             if (listingId.isBlank()) messages.toList() else emptyList(),
-            previewSellerId
+            currentUserId.ifBlank { previewSellerId }
         )
         messagesRecyclerView.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
+        messagesRecyclerView.itemAnimator = null
         messagesRecyclerView.adapter = messageAdapter
     }
 
@@ -366,7 +371,7 @@ class ChatConversationActivity : AppCompatActivity() {
     }
 
     // --------------------------------------------------
-    // PRODUCT INFORMATION
+    // PRODUCT INFORMATION & ITEM DETAILS DIALOG
     // --------------------------------------------------
 
     private fun setupListingHeader() {
@@ -377,12 +382,25 @@ class ChatConversationActivity : AppCompatActivity() {
         val itemDetails = findViewById<TextView>(R.id.chatItemDetails)
         val avatar = findViewById<TextView>(R.id.chatAvatar)
 
-        studentName.text = "Loading seller..."
-        itemDetails.text = "Loading listing..."
-        thumbnail.setImageDrawable(null)
+        if (studentName.text == "Amazon Cat") {
+            studentName.text = ""
+            itemDetails.text = ""
+            avatar.text = ""
+        }
+
+        val openListingDetails = View.OnClickListener {
+            val listing = currentListing ?: return@OnClickListener
+            ItemDetailDialog.show(this, listing) {
+                setupListingHeader()
+            }
+        }
+        itemDetails.setOnClickListener(openListingDetails)
+        thumbnail.setOnClickListener(openListingDetails)
 
         ListingRepo.getListing(listingId) { listing ->
             if (isFinishing || isDestroyed) return@getListing
+            currentListing = listing
+
             if (listing == null) {
                 studentName.text = "Seller unavailable"
                 itemDetails.text = "Listing unavailable"
@@ -409,13 +427,16 @@ class ChatConversationActivity : AppCompatActivity() {
             itemDetails.text = "${listing.title} · \$${listing.price.toInt()}"
 
             val photoUrl = listing.imageUrls.firstOrNull { it.isNotBlank() }
-            if (photoUrl.isNullOrBlank()) {
-                thumbnail.setImageDrawable(null)
-            } else {
-                thumbnail.load(photoUrl) {
-                    crossfade(true)
-                    placeholder(R.color.nox_chip_bg)
-                    error(R.color.nox_chip_bg)
+            if (photoUrl != loadedThumbnailUrl) {
+                loadedThumbnailUrl = photoUrl
+                if (photoUrl.isNullOrBlank()) {
+                    thumbnail.setImageDrawable(null)
+                } else {
+                    thumbnail.load(photoUrl) {
+                        crossfade(false)
+                        placeholder(R.color.nox_chip_bg)
+                        error(R.color.nox_chip_bg)
+                    }
                 }
             }
         }
@@ -438,6 +459,7 @@ class ChatConversationActivity : AppCompatActivity() {
     private fun listenForSaleStatus() {
         if (conversationId.isBlank() || listingId.isBlank()) return
 
+        saleStatusListener?.remove()
         saleStatusListener = SaleTransactionRepository.listenToTransaction(
             conversationId = conversationId,
             onUpdate = { transaction ->
@@ -456,6 +478,8 @@ class ChatConversationActivity : AppCompatActivity() {
 
     private fun listenForSaleRating() {
         if (conversationId.isBlank() || listingId.isBlank()) return
+
+        ratingListener?.remove()
         ratingListener = SellerRatingRepository.listenToRating(conversationId) { rating ->
             if (!isFinishing && !isDestroyed) {
                 currentRatingRecord = rating
@@ -505,6 +529,7 @@ class ChatConversationActivity : AppCompatActivity() {
             }
         )
     }
+
     // --------------------------------------------------
     // SHOW CORRECT SALE BUTTONS FOR EACH USER
     // --------------------------------------------------
