@@ -62,7 +62,7 @@ class ProfileActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(R.layout.activity_profile)
 
-        applyEdgeToEdgeInsets(R.id.profileRoot, R.id.profileBottomNav, R.id.profileScroll)
+        applyEdgeToEdgeInsets(R.id.profileRoot, R.id.profileBottomNav)
 
         savedInstanceState?.getString(STATE_TAB)?.let { saved ->
             currentTab = Tab.entries.firstOrNull { it.name == saved } ?: Tab.MY_LISTINGS
@@ -106,7 +106,6 @@ class ProfileActivity : AppCompatActivity() {
         tabSold = findViewById(R.id.tabSold)
     }
 
-    /** Populates header immediately from FirebaseAuth so the name/avatar never flashes blank. */
     private fun bindImmediateAuthHeader() {
         val user = FirebaseAuth.getInstance().currentUser ?: return
         val initialName = user.displayName?.takeIf { it.isNotBlank() }
