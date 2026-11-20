@@ -1,7 +1,9 @@
 package com.example.noxapp.postlisting
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -42,6 +44,7 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.R
 import com.example.noxapp.core.NavTab
+import com.example.noxapp.core.PermissionHelper
 import com.example.noxapp.core.applyEdgeToEdgeInsets
 import com.example.noxapp.core.dp
 import com.example.noxapp.core.wireTabBar
@@ -61,6 +64,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Locale
 import java.util.UUID
@@ -89,6 +93,7 @@ class PostListing : AppCompatActivity() {
 
     private var validationAttempted = false
     private var cameraTempUri: Uri? = null
+    private var pendingCameraIsVideo = false
     private var editingListing: Listing? = null
     private var pickedLat: Double? = null
     private var pickedLng: Double? = null
@@ -102,6 +107,32 @@ class PostListing : AppCompatActivity() {
 
     private val maxMedia = 5
     private val maxVideoSeconds = 5
+
+    private val requestCameraPermissionsLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+            if (results.values.all { it }) {
+                launchCamera(pendingCameraIsVideo)
+            } else {
+                val permissions = cameraPermissionsFor(pendingCameraIsVideo)
+                val permanent = PermissionHelper.isPermanentlyDenied(this, permissions)
+                PermissionHelper.showDeniedDialog(
+                    activity = this,
+                    title = if (pendingCameraIsVideo) "Camera & Microphone Needed" else "Camera Permission Needed",
+                    message = when {
+                        pendingCameraIsVideo && permanent ->
+                            "Camera or microphone access was disabled. Enable both in Settings to record a listing video, or pick a video from your gallery."
+                        pendingCameraIsVideo ->
+                            "NOX needs both camera and microphone access to record videos with audio for your listing."
+                        permanent ->
+                            "Camera access was disabled. Enable it in Settings to take item photos, or choose photos from your gallery instead."
+                        else ->
+                            "NOX needs camera access to take photos of your listing. You can still upload existing photos from your gallery."
+                    },
+                    permanentlyDenied = permanent,
+                    onRetry = { checkAndLaunchCamera(pendingCameraIsVideo) }
+                )
+            }
+        }
 
     private val pickMultipleMedia =
         registerForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(5)) { uris ->
@@ -134,9 +165,7 @@ class PostListing : AppCompatActivity() {
         }
 
     private val takePhotoLauncher =
-        registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-            onCameraMediaCaptured(success)
-        }
+        registerForActivityResult(ActivityResultContracts.TakePicture(), ::onCameraMediaCaptured)
 
     private val takeVideoLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -207,6 +236,7 @@ class PostListing : AppCompatActivity() {
         outState.putStringArrayList(STATE_PICKED_IMAGES, ArrayList(pickedMedia.map { it.toString() }))
         outState.putStringArrayList(STATE_EXISTING_IMAGES, ArrayList(existingMediaUrls))
         cameraTempUri?.let { outState.putString(STATE_CAMERA_URI, it.toString()) }
+        outState.putBoolean(STATE_PENDING_CAMERA_VIDEO, pendingCameraIsVideo)
         pickedLat?.let { outState.putDouble(STATE_PICK_LAT, it) }
         pickedLng?.let { outState.putDouble(STATE_PICK_LNG, it) }
         outState.putString(STATE_PICK_LABEL, pickedLabel)
@@ -221,6 +251,7 @@ class PostListing : AppCompatActivity() {
         state.getStringArrayList(STATE_PICKED_IMAGES)?.forEach { pickedMedia.add(Uri.parse(it)) }
         state.getStringArrayList(STATE_EXISTING_IMAGES)?.let { existingMediaUrls.addAll(it) }
         cameraTempUri = state.getString(STATE_CAMERA_URI)?.let { Uri.parse(it) }
+        pendingCameraIsVideo = state.getBoolean(STATE_PENDING_CAMERA_VIDEO, false)
         if (state.containsKey(STATE_PICK_LAT)) pickedLat = state.getDouble(STATE_PICK_LAT)
         if (state.containsKey(STATE_PICK_LNG)) pickedLng = state.getDouble(STATE_PICK_LNG)
         pickedLabel = state.getString(STATE_PICK_LABEL)
@@ -311,7 +342,7 @@ class PostListing : AppCompatActivity() {
 
     private fun setupBottomNavigation() {
         wireTabBar(R.id.bottomNavBar, NavTab.POST, onReselect = {
-            findViewById<ScrollView>(R.id.formScrollView)?.smoothScrollTo(0, 0)
+            formScrollView.smoothScrollTo(0, 0)
         })
     }
 
@@ -321,14 +352,28 @@ class PostListing : AppCompatActivity() {
             .setTitle("Add Media")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> launchCamera(isVideo = false)
-                    1 -> launchCamera(isVideo = true)
+                    0 -> checkAndLaunchCamera(isVideo = false)
+                    1 -> checkAndLaunchCamera(isVideo = true)
                     2 -> pickMultipleMedia.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo)
                     )
                 }
             }
             .show()
+    }
+
+    private fun cameraPermissionsFor(isVideo: Boolean): Array<String> =
+        if (isVideo) arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+        else arrayOf(Manifest.permission.CAMERA)
+
+    private fun checkAndLaunchCamera(isVideo: Boolean) {
+        pendingCameraIsVideo = isVideo
+        val required = cameraPermissionsFor(isVideo)
+        if (PermissionHelper.hasAll(this, *required)) {
+            launchCamera(isVideo)
+        } else {
+            requestCameraPermissionsLauncher.launch(required)
+        }
     }
 
     private fun launchCamera(isVideo: Boolean) {
@@ -343,6 +388,7 @@ class PostListing : AppCompatActivity() {
                 val videoIntent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
                     putExtra(MediaStore.EXTRA_OUTPUT, uri)
                     putExtra(MediaStore.EXTRA_DURATION_LIMIT, maxVideoSeconds)
+                    putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0)
                     addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 }
                 takeVideoLauncher.launch(videoIntent)
@@ -352,12 +398,6 @@ class PostListing : AppCompatActivity() {
         }.onFailure {
             Log.e("PostListing", "No camera app available", it)
             Toast.makeText(this, R.string.post_camera_unavailable, Toast.LENGTH_LONG).show()
-        }
-        val videoIntent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
-            putExtra(MediaStore.EXTRA_OUTPUT, uri)
-            putExtra(MediaStore.EXTRA_DURATION_LIMIT, maxVideoSeconds)
-            putExtra(MediaStore.EXTRA_VIDEO_QUALITY, 0) // Low/standard quality = tiny file size & fast buffering
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
         }
     }
 
@@ -408,8 +448,7 @@ class PostListing : AppCompatActivity() {
 
             val buildings = resources.getStringArray(R.array.locations).toList()
             val locationIndex = PickupLocationSelection.selectionFor(listing.pickupLocation, buildings)
-            val isCustomLocation = PickupLocationSelection.isCustom(locationIndex, customLocationIndex)
-            if (isCustomLocation) {
+            if (PickupLocationSelection.isCustom(locationIndex, customLocationIndex)) {
                 pickedLabel = listing.pickupLocation.ifBlank { getString(R.string.post_location_pinned) }
                 if (listing.latitude != 0.0 || listing.longitude != 0.0) {
                     pickedLat = listing.latitude
@@ -418,9 +457,7 @@ class PostListing : AppCompatActivity() {
             } else {
                 previousBuildingIndex = locationIndex
             }
-            suppressLocationClear = true
-            listingLocation.setSelection(locationIndex)
-            suppressLocationClear = false
+            withSuppressedLocationClear { listingLocation.setSelection(locationIndex) }
 
             itmConditions.check(
                 when (listing.condition.lowercase(Locale.getDefault())) {
@@ -460,16 +497,10 @@ class PostListing : AppCompatActivity() {
             return
         }
 
-        val name = input.title.trim()
-        val category = input.category
         val price = PostListingValidator.parsePrice(input.priceText) ?: 0.0
-        val desc = input.description.trim()
-        val predefinedLocation = listingLocation.selectedItem?.toString().orEmpty()
         val location = pickedLabel?.takeIf { it.isNotBlank() }
-            ?: if (customLocationSelected) getString(R.string.post_location_pinned) else predefinedLocation
-        val condition = input.condition
-        val latitude = pickedLat ?: 0.0
-        val longitude = pickedLng ?: 0.0
+            ?: if (customLocationSelected) getString(R.string.post_location_pinned)
+            else listingLocation.selectedItem?.toString().orEmpty()
 
         postListingButton.isEnabled = false
         postListingButton.setText(R.string.post_uploading)
@@ -480,49 +511,32 @@ class PostListing : AppCompatActivity() {
             lifecycleScope.launch {
                 try {
                     val uploadedUrls = coroutineScope {
-                        pickedMedia.map { uri ->
-                            async { uploadMediaFile(uri) }
-                        }.awaitAll()
+                        pickedMedia.map { uri -> async { uploadMediaFile(uri) } }.awaitAll()
                     }
                     val allMedia = existingMediaUrls + uploadedUrls
+                    val base = editingListing ?: Listing(sellerId = uid, sellerName = displayName)
+                    val updatedListing = base.copy(
+                        title = input.title.trim(),
+                        category = input.category,
+                        price = price,
+                        description = input.description.trim(),
+                        pickupLocation = location,
+                        condition = input.condition,
+                        imageUrls = allMedia,
+                        latitude = pickedLat ?: 0.0,
+                        longitude = pickedLng ?: 0.0,
+                        previousPrice = if (editingListing != null && price != base.price) {
+                            base.price
+                        } else {
+                            base.previousPrice
+                        }
+                    )
 
-                    val original = editingListing
-                    if (original != null) {
-                        ListingRepo.updateListing(
-                            original.copy(
-                                title = name,
-                                category = category,
-                                price = price,
-                                description = desc,
-                                pickupLocation = location,
-                                condition = condition,
-                                imageUrls = allMedia,
-                                latitude = latitude,
-                                longitude = longitude,
-                                previousPrice = if (price != original.price) {
-                                    original.price
-                                } else {
-                                    original.previousPrice
-                                }
-                            )
-                        )
+                    if (editingListing != null) {
+                        ListingRepo.updateListing(updatedListing)
                         Toast.makeText(this@PostListing, R.string.post_updated, Toast.LENGTH_SHORT).show()
                     } else {
-                        val newListingId = ListingRepo.createListing(
-                            Listing(
-                                sellerId = uid,
-                                sellerName = displayName,
-                                title = name,
-                                category = category,
-                                price = price,
-                                description = desc,
-                                pickupLocation = location,
-                                condition = condition,
-                                imageUrls = allMedia,
-                                latitude = latitude,
-                                longitude = longitude
-                            )
-                        )
+                        val newListingId = ListingRepo.createListing(updatedListing)
                         Log.d("PostListing", "Listing written to Firestore: $newListingId")
                         Toast.makeText(this@PostListing, R.string.post_success, Toast.LENGTH_SHORT).show()
                     }
@@ -550,17 +564,9 @@ class PostListing : AppCompatActivity() {
         val isVideo = isVideoUri(uri)
 
         if (isVideo) {
-            val thumbBitmap = runCatching {
-                val retriever = MediaMetadataRetriever()
-                retriever.setDataSource(this, uri)
-                val frame = retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
-                retriever.release()
-                frame
-            }.getOrNull()
-
-            if (thumbBitmap != null) {
-                val baos = java.io.ByteArrayOutputStream()
-                thumbBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, baos)
+            extractFirstFrame(uri)?.let { thumbBitmap ->
+                val baos = ByteArrayOutputStream()
+                thumbBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos)
                 storage.reference.child("listings/${fileId}_thumb.jpg")
                     .putBytes(baos.toByteArray())
                     .await()
@@ -571,28 +577,33 @@ class PostListing : AppCompatActivity() {
         val ref = storage.reference.child("listings/$fileId.$ext")
         val stream = contentResolver.openInputStream(uri)
             ?: throw IllegalStateException("Could not open selected file")
-        stream.use { input ->
-            ref.putStream(input).await()
-        }
+        stream.use { input -> ref.putStream(input).await() }
         return ref.downloadUrl.await().toString()
     }
+
+    private fun extractFirstFrame(uri: Uri): Bitmap? = runCatching {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(this, uri)
+            retriever.getFrameAtTime(0, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+        } finally {
+            retriever.release()
+        }
+    }.getOrNull()
 
     private fun isVideoUri(uri: Uri): Boolean =
         contentResolver.getType(uri)?.startsWith("video/") == true ||
                 uri.toString().endsWith(".mp4", ignoreCase = true)
 
-    private fun isVideoSizeAcceptable(uri: Uri, maxMb: Int = 8): Boolean {
-        val sizeBytes = contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0L
-        return sizeBytes in 1..(maxMb * 1024L * 1024L)
-    }
-
     private fun isVideoWithinLimit(uri: Uri): Boolean = runCatching {
         val retriever = MediaMetadataRetriever()
-        retriever.setDataSource(this, uri)
-        val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
-        retriever.release()
-        // Allow a 500ms buffer for camera encoder keyframe rounding
-        durationMs <= (maxVideoSeconds * 1000L) + 500L
+        try {
+            retriever.setDataSource(this, uri)
+            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+            durationMs <= (maxVideoSeconds * 1000L) + 500L
+        } finally {
+            retriever.release()
+        }
     }.getOrDefault(false)
 
     private fun currentInput() = PostListingValidator.Input(
@@ -619,12 +630,8 @@ class PostListing : AppCompatActivity() {
     }
 
     private fun renderInlineError(view: TextView, error: PostListingValidator.Error?, messageRes: Int) {
-        if (error == null) {
-            view.isVisible = false
-        } else {
-            view.setText(messageRes)
-            view.isVisible = true
-        }
+        view.isVisible = error != null
+        if (error != null) view.setText(messageRes)
     }
 
     private fun focusFirstInvalid(errors: Map<PostListingValidator.Field, PostListingValidator.Error>) {
@@ -691,7 +698,7 @@ class PostListing : AppCompatActivity() {
 
         mediaPreviewLabel.text = getString(R.string.post_selected_media, count)
         existingMediaUrls.toList().forEach { url ->
-            mediaPreviewRow.addView(mediaPreview(url, looksLikeVideo(url)) {
+            mediaPreviewRow.addView(mediaPreview(url, MediaHelper.isVideoUrl(url)) {
                 existingMediaUrls.remove(url)
                 refreshMediaUi()
             })
@@ -753,11 +760,6 @@ class PostListing : AppCompatActivity() {
         return card
     }
 
-    private fun looksLikeVideo(url: String): Boolean {
-        val path = url.substringBefore('?').lowercase(Locale.getDefault())
-        return listOf(".mp4", ".mov", ".webm", ".mkv", ".avi", ".3gp").any { path.endsWith(it) }
-    }
-
     private fun renderPickedLocation() {
         val label = findViewById<TextView>(R.id.tvPickedLocation)
         val lat = pickedLat
@@ -789,18 +791,23 @@ class PostListing : AppCompatActivity() {
         launchMapPicker()
     }
 
-    private fun selectCustomLocationEntry() {
+    private inline fun withSuppressedLocationClear(block: () -> Unit) {
         suppressLocationClear = true
-        listingLocation.setSelection(customLocationIndex)
-        suppressLocationClear = false
+        try {
+            block()
+        } finally {
+            suppressLocationClear = false
+        }
+    }
+
+    private fun selectCustomLocationEntry() {
+        withSuppressedLocationClear { listingLocation.setSelection(customLocationIndex) }
     }
 
     private fun revertPendingCustomPick() {
         val revertTo = pendingCustomPickRevertIndex ?: return
         pendingCustomPickRevertIndex = null
-        suppressLocationClear = true
-        listingLocation.setSelection(revertTo)
-        suppressLocationClear = false
+        withSuppressedLocationClear { listingLocation.setSelection(revertTo) }
     }
 
     private fun clearPickedLocation() {
@@ -817,6 +824,7 @@ class PostListing : AppCompatActivity() {
         private const val STATE_PICKED_IMAGES = "post.pickedImages"
         private const val STATE_EXISTING_IMAGES = "post.existingImages"
         private const val STATE_CAMERA_URI = "post.cameraUri"
+        private const val STATE_PENDING_CAMERA_VIDEO = "post.pendingCameraVideo"
         private const val STATE_PICK_LAT = "post.pickLat"
         private const val STATE_PICK_LNG = "post.pickLng"
         private const val STATE_PICK_LABEL = "post.pickLabel"
