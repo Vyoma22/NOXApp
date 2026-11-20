@@ -67,7 +67,6 @@ object ItemDetailDialog {
         dialog.findViewById<TextView>(R.id.detailLocation)?.text = "Pickup: ${listing.pickupLocation}"
         bindPickupLocation(activity, dialog, listing)
 
-        // Listings can carry up to five photos; the gallery handles swiping, arrows and the viewer.
         MediaGallery(activity, dialog, listing.imageUrls).bind()
 
         dialog.findViewById<ImageButton>(R.id.detailClose)?.setOnClickListener { dialog.dismiss() }
@@ -77,7 +76,6 @@ object ItemDetailDialog {
         dialog.findViewById<ViewGroup>(R.id.ownerActions)?.isVisible = isOwner
         bindViewCount(activity, dialog, listing, isOwner)
 
-        // Reporting is for buyers; the owner edits or deletes the listing above instead.
         val reportButton = dialog.findViewById<Button>(R.id.reportListingButton)
         reportButton?.isVisible = !isOwner
         reportButton?.setOnClickListener {
@@ -113,6 +111,7 @@ object ItemDetailDialog {
         }
 
         val messageSellerButton = dialog.findViewById<Button>(R.id.messageSellerButton)
+        messageSellerButton?.isVisible = !isOwner
         messageSellerButton?.setOnClickListener {
             if (listing.id.isBlank()) {
                 Toast.makeText(

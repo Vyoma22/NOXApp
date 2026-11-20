@@ -11,17 +11,19 @@
 
     <!-- Conversation header -->
     <LinearLayout
+        android:id="@+id/chatHeaderBar"
         android:layout_width="match_parent"
-        android:layout_height="88dp"
+        android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:minHeight="68dp"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="10dp">
 
         <ImageButton
             android:id="@+id/chatBackButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Back"
             android:padding="10dp"
@@ -29,10 +31,10 @@
             app:tint="@color/nox_dark_green" />
 
         <androidx.cardview.widget.CardView
-            android:layout_width="44dp"
-            android:layout_height="44dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             app:cardBackgroundColor="@color/nox_card_green"
-            app:cardCornerRadius="22dp"
+            app:cardCornerRadius="21dp"
             app:cardElevation="0dp">
 
             <TextView
@@ -42,14 +44,15 @@
                 android:gravity="center"
                 android:text="AC"
                 android:textColor="@color/nox_dark_green"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold" />
         </androidx.cardview.widget.CardView>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -61,7 +64,7 @@
                 android:maxLines="1"
                 android:text="Amazon Cat"
                 android:textColor="@color/nox_dark_green"
-                android:textSize="17sp"
+                android:textSize="16sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -75,41 +78,36 @@
                 android:textSize="12sp" />
         </LinearLayout>
 
-        <!-- Temporary item thumbnail placeholder -->
-
         <!-- Product photo for this conversation -->
         <com.google.android.material.card.MaterialCardView
-            android:layout_width="36dp"
-            android:layout_height="40dp"
-            app:cardCornerRadius="7dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            app:cardBackgroundColor="@color/nox_chip_bg"
+            app:cardCornerRadius="8dp"
             app:cardElevation="0dp"
-            app:cardBackgroundColor="@color/nox_chip_bg">
+            app:strokeWidth="0dp">
 
             <ImageView
                 android:id="@+id/chatItemThumbnail"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:contentDescription="Listing product photo" />
-
+                android:contentDescription="Listing product photo"
+                android:scaleType="centerCrop" />
         </com.google.android.material.card.MaterialCardView>
 
-
-        <!-- Seller-only button. Hidden until role checking is added. -->
-
+        <!-- Seller-only button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/confirmSaleButton"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:layout_marginStart="6dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
             android:minWidth="0dp"
             android:minHeight="0dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:text="Confirm Sale"
+            android:paddingHorizontal="14dp"
             android:singleLine="true"
+            android:text="Confirm Sale"
             android:textAllCaps="false"
             android:textColor="@android:color/white"
             android:textSize="12sp"
@@ -118,8 +116,6 @@
             app:backgroundTint="@color/nox_primary_green"
             app:cornerRadius="10dp"
             tools:visibility="visible" />
-
-
     </LinearLayout>
 
     <View
@@ -141,12 +137,11 @@
         android:id="@+id/chatSellerConfirmCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="8dp"
         android:visibility="gone"
         app:cardBackgroundColor="@color/nox_chip_bg"
-        app:cardCornerRadius="24dp"
+        app:cardCornerRadius="20dp"
         app:cardElevation="0dp">
 
         <LinearLayout
@@ -160,22 +155,22 @@
                 android:layout_height="wrap_content"
                 android:text="Finished the exchange?"
                 android:textColor="@color/nox_dark_green"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:text="If you've handed over the item and received the payment, confirm the sale to complete the transaction."
                 android:textColor="@color/nox_dark_green"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/sendSaleConfirmationButton"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="14dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:text="✓ Confirm Sale"
@@ -184,25 +179,20 @@
                 android:textSize="15sp"
                 android:textStyle="bold"
                 app:backgroundTint="@color/nox_primary_green"
-                app:cornerRadius="10dp" />
-
+                app:cornerRadius="12dp" />
         </LinearLayout>
-
     </com.google.android.material.card.MaterialCardView>
 
-
-    <!-- Buyer confirmation card -->
-    <!-- Hidden until the seller confirms the exchange -->
+    <!-- Buyer confirmation card: hidden until seller confirms the exchange -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/chatBuyerConfirmCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginHorizontal="16dp"
         android:layout_marginBottom="8dp"
         android:visibility="gone"
         app:cardBackgroundColor="@color/nox_chip_bg"
-        app:cardCornerRadius="24dp"
+        app:cardCornerRadius="20dp"
         app:cardElevation="0dp"
         tools:visibility="visible">
 
@@ -217,22 +207,22 @@
                 android:layout_height="wrap_content"
                 android:text="Confirm Your Purchase"
                 android:textColor="@color/nox_dark_green"
-                android:textSize="18sp"
+                android:textSize="17sp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:text="The seller has confirmed the exchange. Did you receive your item?"
                 android:textColor="@color/nox_dark_green"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/confirmPurchaseButton"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:layout_marginTop="14dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
                 android:text="✓ Confirm Purchase"
@@ -241,12 +231,12 @@
                 android:textSize="15sp"
                 android:textStyle="bold"
                 app:backgroundTint="@color/nox_primary_green"
-                app:cornerRadius="10dp" />
+                app:cornerRadius="12dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/reportPurchaseIssueButton"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
+                android:layout_height="44dp"
                 android:layout_marginTop="8dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
@@ -255,11 +245,14 @@
                 android:textColor="@color/nox_dark_green"
                 android:textSize="14sp"
                 app:backgroundTint="@color/nox_cream_bg"
-                app:cornerRadius="10dp" />
-
+                app:cornerRadius="12dp" />
         </LinearLayout>
-
     </com.google.android.material.card.MaterialCardView>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/nox_search_stroke" />
 
     <!-- Message input -->
     <LinearLayout
@@ -268,37 +261,36 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp">
 
         <EditText
             android:id="@+id/chatMessageInput"
             android:layout_width="0dp"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:background="@drawable/rounded_search_box"
             android:hint="Type a message..."
             android:inputType="textCapSentences|textMultiLine"
             android:maxLines="4"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp"
+            android:minHeight="46dp"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="10dp"
             android:textColor="@color/nox_dark_green"
             android:textColorHint="@color/nox_subtext"
             android:textSize="14sp" />
 
         <TextView
             android:id="@+id/chatSendButton"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="46dp"
+            android:layout_height="46dp"
+            android:layout_marginStart="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="Send message"
             android:gravity="center"
             android:text="➤"
-            android:textColor="@color/nox_dark_green"
-            android:textSize="28sp" />
+            android:textColor="@color/nox_primary_green"
+            android:textSize="26sp" />
     </LinearLayout>
-
-    <!-- Reuse the existing NOX bottom navigation -->
-    <include
-        android:id="@+id/chatBottomNav"
-        layout="@layout/nav_bar" />
 
 </LinearLayout>
