@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
@@ -58,9 +59,11 @@ class ChatConversationActivity : AppCompatActivity() {
 
     private var liveMessageListener: ListenerRegistration? = null
     private var saleStatusListener: ListenerRegistration? = null
+    private var ratingListener: ListenerRegistration? = null
     private var accessJob: Job? = null
 
     private var currentSaleTransaction: SaleTransaction? = null
+    private var currentRatingRecord: SellerRatingRecord? = null
     private var currentListingSellerId = ""
     private var confirmPurchaseDefaultText: CharSequence = "Confirm Purchase"
     private var ratingPromptShownForVisit = false
@@ -274,6 +277,11 @@ class ChatConversationActivity : AppCompatActivity() {
         messagesRecyclerView.adapter = messageAdapter
     }
 
+    private fun isConversationClosed(): Boolean {
+        val status = currentSaleTransaction?.status ?: SaleStatus.ACTIVE
+        return status != SaleStatus.ACTIVE
+    }
+
     private fun setupSendButton() {
         val messageInput = findViewById<EditText>(R.id.chatMessageInput)
         val sendButton = findViewById<TextView>(R.id.chatSendButton)
@@ -284,6 +292,7 @@ class ChatConversationActivity : AppCompatActivity() {
             sendButton.alpha = 1f
 
             sendButton.setOnClickListener {
+                if (isConversationClosed()) return@setOnClickListener
                 val text = messageInput.text.toString().trim()
                 if (text.isEmpty()) return@setOnClickListener
 
@@ -296,14 +305,12 @@ class ChatConversationActivity : AppCompatActivity() {
                     onSuccess = {
                         if (!isFinishing && !isDestroyed) {
                             messageInput.text.clear()
-                            messageInput.isEnabled = true
-                            sendButton.isEnabled = true
+                            updateComposerLockState()
                         }
                     },
                     onError = { error ->
                         if (!isFinishing && !isDestroyed) {
-                            messageInput.isEnabled = true
-                            sendButton.isEnabled = true
+                            updateComposerLockState()
                             Toast.makeText(this, "Message failed: ${error.message}", Toast.LENGTH_LONG).show()
                         }
                     }
@@ -328,6 +335,33 @@ class ChatConversationActivity : AppCompatActivity() {
                 messageInput.text.clear()
                 messagesRecyclerView.scrollToPosition(messages.lastIndex)
             }
+        }
+    }
+
+    private fun updateComposerLockState() {
+        if (isPreview || conversationId.isBlank() || listingId.isBlank()) return
+        val messageInput = findViewById<EditText>(R.id.chatMessageInput)
+        val sendButton = findViewById<TextView>(R.id.chatSendButton)
+        val status = currentSaleTransaction?.status ?: SaleStatus.ACTIVE
+
+        if (status == SaleStatus.ACTIVE) {
+            messageInput.isEnabled = true
+            messageInput.hint = "Type a message..."
+            sendButton.isEnabled = true
+            sendButton.alpha = 1f
+        } else {
+            WindowCompat.getInsetsController(window, messageInput).hide(WindowInsetsCompat.Type.ime())
+            messageInput.clearFocus()
+            messageInput.text.clear()
+            messageInput.isEnabled = false
+            messageInput.hint = when (status) {
+                SaleStatus.PENDING_BUYER -> "Conversation closed — awaiting buyer confirmation"
+                SaleStatus.AWAITING_RATING -> "Conversation closed — awaiting buyer rating"
+                SaleStatus.COMPLETED -> "Conversation closed — item sold"
+                else -> "Conversation closed"
+            }
+            sendButton.isEnabled = false
+            sendButton.alpha = 0.35f
         }
     }
 
@@ -397,6 +431,7 @@ class ChatConversationActivity : AppCompatActivity() {
         accessJob = checkAccessOnStart {
             listenForLiveMessages()
             listenForSaleStatus()
+            listenForSaleRating()
         }
     }
 
@@ -419,12 +454,24 @@ class ChatConversationActivity : AppCompatActivity() {
         )
     }
 
+    private fun listenForSaleRating() {
+        if (conversationId.isBlank() || listingId.isBlank()) return
+        ratingListener = SellerRatingRepository.listenToRating(conversationId) { rating ->
+            if (!isFinishing && !isDestroyed) {
+                currentRatingRecord = rating
+                renderSaleActions()
+            }
+        }
+    }
+
     override fun onStop() {
         accessJob?.cancel()
         liveMessageListener?.remove()
         liveMessageListener = null
         saleStatusListener?.remove()
         saleStatusListener = null
+        ratingListener?.remove()
+        ratingListener = null
         ratingPromptShownForVisit = false
         super.onStop()
     }
@@ -461,11 +508,17 @@ class ChatConversationActivity : AppCompatActivity() {
     private fun renderSaleActions() {
         if (isPreview || listingId.isBlank()) return
 
+        updateComposerLockState()
+
         val uid = currentUserId
         val sellerButton = findViewById<View>(R.id.confirmSaleButton)
         val sellerCard = findViewById<View>(R.id.chatSellerConfirmCard)
         val buyerCard = findViewById<View>(R.id.chatBuyerConfirmCard)
         val confirmPurchase = findViewById<TextView>(R.id.confirmPurchaseButton)
+        val ratingCard = findViewById<View>(R.id.chatRatingSummaryCard)
+        val ratingTitle = findViewById<TextView>(R.id.chatRatingTitle)
+        val ratingStars = findViewById<TextView>(R.id.chatRatingStars)
+        val ratingReview = findViewById<TextView>(R.id.chatRatingReview)
 
         val isSeller = uid.isNotBlank() && currentListingSellerId.isNotBlank() && uid == currentListingSellerId
         val transaction = currentSaleTransaction?.takeIf {
@@ -486,6 +539,17 @@ class ChatConversationActivity : AppCompatActivity() {
         buyerCard.isVisible = canAct && isBuyer && buyerNeedsAction
 
         confirmPurchase.text = if (status == SaleStatus.AWAITING_RATING) "Rate Seller" else confirmPurchaseDefaultText
+
+        val rating = currentRatingRecord
+        if (status == SaleStatus.COMPLETED && rating != null && rating.stars in 1..5) {
+            ratingCard.isVisible = true
+            ratingTitle.text = if (isSeller) "Sale Completed · Buyer Review" else "Sale Completed · Your Review"
+            ratingStars.text = "★".repeat(rating.stars) + "☆".repeat(5 - rating.stars) + " (${rating.stars}/5)"
+            ratingReview.isVisible = rating.review.isNotBlank()
+            ratingReview.text = rating.review
+        } else {
+            ratingCard.isVisible = false
+        }
 
         if (canAct && isBuyer && status == SaleStatus.AWAITING_RATING && !ratingPromptShownForVisit) {
             ratingPromptShownForVisit = true

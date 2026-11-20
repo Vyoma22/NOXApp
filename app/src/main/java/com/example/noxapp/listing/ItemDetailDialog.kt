@@ -73,6 +73,7 @@ object ItemDetailDialog {
 
         val isOwner = listing.sellerId.isNotBlank() &&
                 listing.sellerId == FirebaseAuth.getInstance().currentUser?.uid
+        val isLockedForSale = listing.sold || listing.salePending
         dialog.findViewById<ViewGroup>(R.id.ownerActions)?.isVisible = isOwner
         bindViewCount(activity, dialog, listing, isOwner)
 
@@ -83,7 +84,9 @@ object ItemDetailDialog {
             sendListingReport(activity, listing)
         }
 
-        dialog.findViewById<Button>(R.id.editListingButton)?.setOnClickListener {
+        val editButton = dialog.findViewById<Button>(R.id.editListingButton)
+        editButton?.isVisible = isOwner && !isLockedForSale
+        editButton?.setOnClickListener {
             dialog.dismiss()
             activity.startActivity(
                 Intent(activity, PostListing::class.java)
