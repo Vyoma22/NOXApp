@@ -43,8 +43,10 @@
         android:id="@+id/detailScroll"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:clipToPadding="false"
         android:fillViewport="true"
-        android:paddingBottom="20dp"
+        android:nestedScrollingEnabled="true"
+        android:paddingBottom="24dp"
         android:scrollbars="none">
 
         <LinearLayout
@@ -83,9 +85,7 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
-                <!-- One snapped page per image; arrows and the counter float over the pager.
-                     The gallery is sized to dominate the sheet so a photo is readable without
-                     opening the fullscreen viewer; the sheet scrolls when the screen is short. -->
+                <!-- One snapped page per image; arrows and the counter float over the pager. -->
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/detailMediaPager"
                     android:layout_width="match_parent"
@@ -147,8 +147,7 @@
                 android:overScrollMode="never"
                 android:visibility="gone" />
 
-            <!-- A price cut shows the old price struck through next to the new one. The row keeps
-                 both prices on one line and only appears when there is a drop to show. -->
+            <!-- Price row -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -202,7 +201,6 @@
                     android:textSize="12sp" />
             </LinearLayout>
 
-            <!-- Cheap social proof: how many students have opened this listing. -->
             <TextView
                 android:id="@+id/detailViewCount"
                 android:layout_width="wrap_content"
@@ -217,8 +215,7 @@
                 android:layout_marginTop="16dp"
                 android:background="@color/nox_search_stroke" />
 
-            <!-- Seller identity: a buyer should know who they are meeting before they message.
-                 The row opens that seller's read-only profile. -->
+            <!-- Seller row -->
             <LinearLayout
                 android:id="@+id/detailSeller"
                 android:layout_width="match_parent"
@@ -287,7 +284,6 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <!-- Affordance that the seller row opens their profile. -->
                 <ImageView
                     android:id="@+id/detailSellerChevron"
                     android:layout_width="20dp"
@@ -307,7 +303,7 @@
                 android:textColor="@color/nox_dark_green"
                 android:textSize="14sp" />
 
-            <!-- The pickup point opens the map on the listing's pin. -->
+            <!-- Pickup point -->
             <LinearLayout
                 android:id="@+id/detailLocationRow"
                 android:layout_width="match_parent"
@@ -344,7 +340,7 @@
                     app:tint="@color/nox_subtext" />
             </LinearLayout>
 
-            <!-- Only shown to the student who owns the listing. -->
+            <!-- Owner actions -->
             <LinearLayout
                 android:id="@+id/ownerActions"
                 android:layout_width="match_parent"
@@ -390,7 +386,7 @@
                 android:textColor="@color/white"
                 android:textSize="14sp" />
 
-            <!-- Buyers can flag a listing; owners get edit/delete above instead. -->
+            <!-- Buyer report button -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/reportListingButton"
                 style="@style/Widget.Material3.Button.TextButton"
