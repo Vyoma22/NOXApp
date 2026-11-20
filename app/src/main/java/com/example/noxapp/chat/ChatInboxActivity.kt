@@ -1,353 +1,221 @@
-
 package com.example.noxapp.chat
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.format.DateUtils
 import android.view.View
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.noxapp.R
 import com.example.noxapp.chat.adapters.ChatInboxAdapter
 import com.example.noxapp.chat.adapters.ChatInboxItem
-import com.example.noxapp.chat.ChatRepository
-import com.example.noxapp.listing.ListingRepo
 import com.example.noxapp.core.NavTab
 import com.example.noxapp.core.applyEdgeToEdgeInsets
 import com.example.noxapp.core.checkAccessOnStart
 import com.example.noxapp.core.wireTabBar
+import com.example.noxapp.listing.Listing
+import com.example.noxapp.listing.ListingRepo
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.Job
 import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
 import java.util.Locale
 
 class ChatInboxActivity : AppCompatActivity() {
 
-    // SAFETY SWITCH:
-    // Keep false until approved Firebase rules are deployed.
     private val enableRealInbox = true
 
     private lateinit var chatAdapter: ChatInboxAdapter
+    private lateinit var emptyStateView: View
+    private lateinit var recyclerView: RecyclerView
 
     private var inboxListener: ListenerRegistration? = null
-
-    // Prevent old product requests from updating newer inbox data.
     private var inboxVersion = 0
-
     private var inboxRows: List<ChatInboxItem> = emptyList()
-
     private var accessJob: Job? = null
+
+    private val listingCache = mutableMapOf<String, Listing?>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         enableEdgeToEdge()
-
         setContentView(R.layout.activity_chat_inbox)
 
-        applyEdgeToEdgeInsets(
-            R.id.main,
-            R.id.chatBottomNav
-        )
+        applyEdgeToEdgeInsets(R.id.main, R.id.chatBottomNav)
+
+        emptyStateView = findViewById(R.id.chatInboxEmptyState)
+        recyclerView = findViewById(R.id.chatInboxRecyclerView)
 
         setupBottomNavigation()
         setupConversationList()
     }
 
-    // --------------------------------------------------
-    // SET UP THE CHAT INBOX
-    // --------------------------------------------------
-
     private fun setupConversationList() {
-
-        // Keep Amazon Cat as our temporary preview.
-        // Once real inbox is enabled, this sample disappears.
         val previewConversations = if (!enableRealInbox) {
-
             listOf(
                 ChatInboxItem(
                     conversationId = "preview-amazon-cat",
                     studentName = "Amazon Cat",
                     listingTitle = "MacBook Air · $550",
                     lastMessage = "Perfect, see you then!",
-                    time = "2m",
+                    time = "Today · 2:15 PM",
                     hasUnread = true
                 )
             )
-
         } else {
             emptyList()
         }
 
-        val recyclerView =
-            findViewById<RecyclerView>(
-                R.id.chatInboxRecyclerView
-            )
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.itemAnimator = null
 
-        recyclerView.layoutManager =
-            LinearLayoutManager(this)
-
-        // Create the adapter.
-        chatAdapter = ChatInboxAdapter(
-            previewConversations
-        ) { selectedConversation ->
-
-            val intent = Intent(
-                this,
-                ChatConversationActivity::class.java
-            )
-
-            if (enableRealInbox) {
-
-                // A real conversation requires both IDs.
-                intent.putExtra(
-                    "conversationId",
-                    selectedConversation.conversationId
-                )
-
-                intent.putExtra(
-                    "listingId",
-                    selectedConversation.listingId
-                )
+        chatAdapter = ChatInboxAdapter(previewConversations) { selected ->
+            val intent = Intent(this, ChatConversationActivity::class.java).apply {
+                if (enableRealInbox) {
+                    putExtra("conversationId", selected.conversationId)
+                    putExtra("listingId", selected.listingId)
+                }
             }
-
-            // In preview mode, no Firebase IDs are passed.
-            // This preserves the Amazon Cat demonstration.
             startActivity(intent)
         }
 
         recyclerView.adapter = chatAdapter
-
         inboxRows = previewConversations
-
-        updateEmptyState()
+        emptyStateView.isVisible = !enableRealInbox && inboxRows.isEmpty()
     }
-
-    // --------------------------------------------------
-    // SHOW OR HIDE EMPTY INBOX MESSAGE
-    // --------------------------------------------------
-
-    private fun updateEmptyState() {
-
-        findViewById<View>(
-            R.id.chatInboxEmptyState
-        ).visibility =
-            if (inboxRows.isEmpty()) {
-                View.VISIBLE
-            } else {
-                View.GONE
-            }
-    }
-
-    // --------------------------------------------------
-    // LISTEN TO REAL FIREBASE CONVERSATIONS
-    // --------------------------------------------------
 
     private fun listenForConversations() {
-
-        // Never contact the real Chat collection
-        // while our safety switch is disabled.
         if (!enableRealInbox) return
 
-        val userId =
-            FirebaseAuth.getInstance().currentUser?.uid
-
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId.isNullOrBlank()) {
-
-            Toast.makeText(
-                this,
-                "Please sign in to view conversations",
-                Toast.LENGTH_SHORT
-            ).show()
-
+            Toast.makeText(this, "Please sign in to view conversations", Toast.LENGTH_SHORT).show()
             return
         }
 
-        inboxListener =
-            ChatRepository.listenToMyConversations(
-                userId = userId,
+        inboxListener?.remove()
+        inboxListener = ChatRepository.listenToMyConversations(
+            userId = userId,
+            onUpdate = { conversations ->
+                if (isFinishing || isDestroyed) return@listenToMyConversations
 
-                onUpdate = { conversations ->
+                val version = ++inboxVersion
 
-                    if (isFinishing || isDestroyed) {
-                        return@listenToMyConversations
-                    }
+                inboxRows = conversations.map { thread ->
+                    buildInboxItem(
+                        thread = thread,
+                        userId = userId,
+                        listing = listingCache[thread.listingId],
+                        isLoaded = listingCache.containsKey(thread.listingId)
+                    )
+                }
 
-                    // Ignore results from older updates.
-                    val version = ++inboxVersion
+                chatAdapter.updateConversations(inboxRows)
+                emptyStateView.isVisible = inboxRows.isEmpty()
 
-                    val timeFormatter =
-                        SimpleDateFormat(
-                            "h:mm a",
-                            Locale.getDefault()
-                        )
+                conversations
+                    .distinctBy { it.listingId }
+                    .filter { it.listingId.isNotBlank() && !listingCache.containsKey(it.listingId) }
+                    .forEach { thread ->
+                        ListingRepo.getListing(thread.listingId) { listing ->
+                            if (isFinishing || isDestroyed || version != inboxVersion) return@getListing
 
-                    // First display the conversations
-                    // using the available Firestore data.
-                    inboxRows = conversations.map { conversation ->
-
-                        val otherStudentName =
-                            if (conversation.sellerId == userId) {
-                                "Buyer"
-                            } else {
-                                "Seller"
+                            listingCache[thread.listingId] = listing
+                            inboxRows = conversations.map { item ->
+                                buildInboxItem(
+                                    thread = item,
+                                    userId = userId,
+                                    listing = listingCache[item.listingId],
+                                    isLoaded = listingCache.containsKey(item.listingId)
+                                )
                             }
-
-                        ChatInboxItem(
-                            conversationId = conversation.id,
-
-                            listingId = conversation.listingId,
-
-                            studentName = otherStudentName,
-
-                            listingTitle = "Loading product...",
-
-                            lastMessage =
-                                conversation.lastMessage.ifBlank {
-                                    "No messages yet"
-                                },
-
-                            time =
-                                conversation.lastMessageAt
-                                    ?.toDate()
-                                    ?.let {
-                                        timeFormatter.format(it)
-                                    }
-                                    .orEmpty(),
-
-                            // Real unread tracking has not
-                            // been implemented yet.
-                            hasUnread = false
-                        )
-                    }
-
-                    chatAdapter.updateConversations(inboxRows)
-
-                    updateEmptyState()
-
-                    // Fetch product information for
-                    // each conversation in the inbox.
-                    conversations.forEach { conversation ->
-
-                        ListingRepo.getListing(
-                            conversation.listingId
-                        ) { listing ->
-
-                            // Prevent outdated callbacks from
-                            // modifying the current inbox.
-                            if (
-                                isFinishing ||
-                                isDestroyed ||
-                                version != inboxVersion
-                            ) {
-                                return@getListing
-                            }
-
-                            inboxRows = inboxRows.map { item ->
-
-                                if (
-                                    item.conversationId !=
-                                    conversation.id
-                                ) {
-                                    item
-
-                                } else {
-
-                                    // Show the other person.
-                                    // Do not retrieve private
-                                    // student profile information.
-                                    val name =
-                                        if (
-                                            conversation.sellerId ==
-                                            userId
-                                        ) {
-                                            "Buyer"
-                                        } else {
-                                            listing?.sellerName
-                                                ?.ifBlank {
-                                                    "Seller"
-                                                }
-                                                ?: "Seller"
-                                        }
-
-                                    val productDetails =
-                                        if (listing != null) {
-
-                                            "${listing.title} · \$${listing.price.toInt()}"
-
-                                        } else {
-
-                                            "Listing unavailable"
-                                        }
-
-                                    item.copy(
-                                        studentName = name,
-                                        listingTitle = productDetails
-                                    )
-                                }
-                            }
-
-                            chatAdapter.updateConversations(
-                                inboxRows
-                            )
-
-                            updateEmptyState()
+                            chatAdapter.updateConversations(inboxRows)
                         }
                     }
-                },
-
-                onError = { error ->
-
-                    if (!isFinishing && !isDestroyed) {
-
-                        Toast.makeText(
-                            this,
-                            "Unable to load chats: ${error.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
+            },
+            onError = { error ->
+                if (!isFinishing && !isDestroyed) {
+                    Toast.makeText(this, "Unable to load chats: ${error.message}", Toast.LENGTH_LONG).show()
                 }
-            )
+            }
+        )
     }
 
-    // --------------------------------------------------
-    // START AND STOP FIREBASE LISTENER
-    // --------------------------------------------------
+    private fun buildInboxItem(
+        thread: ChatThread,
+        userId: String,
+        listing: Listing?,
+        isLoaded: Boolean
+    ): ChatInboxItem {
+        val isSeller = thread.sellerId == userId
+        val name = when {
+            isSeller -> "Buyer"
+            !isLoaded -> "Seller"
+            else -> listing?.sellerName?.ifBlank { "Seller" } ?: "Seller"
+        }
+
+        val productDetails = when {
+            !isLoaded -> ""
+            listing != null -> "${listing.title} · \$${listing.price.toInt()}"
+            else -> "Listing unavailable"
+        }
+
+        val formattedTimestamp = thread.lastMessageAt
+            ?.toDate()
+            ?.let { formatInboxDateTime(it) }
+            .orEmpty()
+
+        return ChatInboxItem(
+            conversationId = thread.id,
+            listingId = thread.listingId,
+            studentName = name,
+            listingTitle = productDetails,
+            lastMessage = thread.lastMessage.ifBlank { "No messages yet" },
+            time = formattedTimestamp,
+            hasUnread = false
+        )
+    }
+
+    private fun formatInboxDateTime(date: Date): String {
+        val millis = date.time
+        val timePart = SimpleDateFormat("h:mm a", Locale.getDefault()).format(date)
+
+        return when {
+            DateUtils.isToday(millis) -> "Today · $timePart"
+            DateUtils.isToday(millis + DateUtils.DAY_IN_MILLIS) -> "Yesterday · $timePart"
+            else -> {
+                val nowYear = Calendar.getInstance().get(Calendar.YEAR)
+                val msgYear = Calendar.getInstance().apply { time = date }.get(Calendar.YEAR)
+                val datePattern = if (nowYear == msgYear) "MMM d" else "MMM d, yyyy"
+                val datePart = SimpleDateFormat(datePattern, Locale.getDefault()).format(date)
+                "$datePart · $timePart"
+            }
+        }
+    }
 
     override fun onStart() {
         super.onStart()
-
         accessJob?.cancel()
         accessJob = checkAccessOnStart { listenForConversations() }
     }
 
     override fun onStop() {
-
         accessJob?.cancel()
-
-        // Stop Firestore listening when leaving the screen.
         inboxListener?.remove()
         inboxListener = null
-
-        // Ignore any pending product lookup callbacks.
         inboxVersion++
-
         super.onStop()
     }
 
-    // --------------------------------------------------
-    // BOTTOM NAVIGATION
-    // KEEP THE EXISTING NOX NAVIGATION WORKING
-    // --------------------------------------------------
-
     private fun setupBottomNavigation() {
         wireTabBar(R.id.chatBottomNav, NavTab.CHAT, onReselect = {
-            // Tapping Chat again returns to the top of the inbox.
-            findViewById<RecyclerView>(R.id.chatInboxRecyclerView)
-                ?.smoothScrollToPosition(0)
+            recyclerView.smoothScrollToPosition(0)
         })
     }
 }

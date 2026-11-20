@@ -480,14 +480,19 @@ class ChatConversationActivity : AppCompatActivity() {
         if (conversationId.isBlank()) return
         val uid = currentUserId.ifBlank { return }
 
-        messageAdapter = ChatMessageAdapter(emptyList(), uid)
-        messagesRecyclerView.adapter = messageAdapter
-
+        messageAdapter.setCurrentUserId(uid)
+        liveMessageListener?.remove()
         liveMessageListener = ChatRepository.listenToMessages(
             conversationId = conversationId,
             onUpdate = { records ->
                 if (isFinishing || isDestroyed) return@listenToMessages
-                val chatMessages = records.map { ChatMessage(it.senderId, it.text) }
+                val chatMessages = records.map { record ->
+                    ChatMessage(
+                        senderId = record.senderId,
+                        text = record.text,
+                        timestampMillis = record.createdAt?.toDate()?.time ?: 0L
+                    )
+                }
                 messageAdapter.updateMessages(chatMessages)
                 if (chatMessages.isNotEmpty()) {
                     messagesRecyclerView.scrollToPosition(chatMessages.lastIndex)
@@ -500,7 +505,6 @@ class ChatConversationActivity : AppCompatActivity() {
             }
         )
     }
-
     // --------------------------------------------------
     // SHOW CORRECT SALE BUTTONS FOR EACH USER
     // --------------------------------------------------
