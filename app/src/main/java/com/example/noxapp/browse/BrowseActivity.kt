@@ -1,5 +1,6 @@
 package com.example.noxapp.browse
 
+import android.Manifest
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
@@ -17,7 +18,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
-import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -25,6 +25,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
 import com.example.noxapp.browse.adapters.PillChipAdapter
 import com.example.noxapp.core.NavTab
+import com.example.noxapp.core.PermissionHelper
 import com.example.noxapp.core.Prefs
 import com.example.noxapp.core.SaveToggle
 import com.example.noxapp.core.applyEdgeToEdgeInsets
@@ -49,6 +50,7 @@ import kotlinx.coroutines.Job
 import java.util.Locale
 
 class BrowseActivity : AppCompatActivity() {
+
     private var filters = BrowseFilters()
     private var categoriesExpanded = false
     private var mapVisitInProgress = false
@@ -57,10 +59,6 @@ class BrowseActivity : AppCompatActivity() {
     private var accessJob: Job? = null
     private var allListings: List<Listing> = emptyList()
     private var savedIds = mutableSetOf<String>()
-    private val saveToggle = SaveToggle(
-        this, R.id.browseRoot, R.id.bottomNavBar,
-        R.string.browse_saved, R.string.browse_unsaved, ::applySavedLocally
-    )
     private var listingsLoading = false
     private var listingsLoaded = false
     private var listingsError = false
@@ -73,6 +71,11 @@ class BrowseActivity : AppCompatActivity() {
     private lateinit var browseSearch: EditText
     private lateinit var categoryAdapter: PillChipAdapter
     private lateinit var listingAdapter: ListingAdapter
+
+    private val saveToggle = SaveToggle(
+        this, R.id.browseRoot, R.id.bottomNavBar,
+        R.string.browse_saved, R.string.browse_unsaved, ::applySavedLocally
+    )
 
     private val voiceSearchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -89,27 +92,51 @@ class BrowseActivity : AppCompatActivity() {
             }
         }
 
-    private val mapLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        mapVisitInProgress = false
-        val data = result.data ?: return@registerForActivityResult
-        if (result.resultCode != RESULT_OK) return@registerForActivityResult
-
-        if (data.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false)) {
-            val lat = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, Double.NaN)
-            val lng = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LNG, Double.NaN)
-            val radius = data.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, Double.NaN)
-            if (validArea(lat, lng, radius)) {
-                filters = filters.copy(centerLat = lat, centerLng = lng, radiusKm = radius)
-                renderState()
+    private val micPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                launchVoiceSearch()
+            } else {
+                val permanent = PermissionHelper.isPermanentlyDenied(
+                    this,
+                    arrayOf(Manifest.permission.RECORD_AUDIO)
+                )
+                PermissionHelper.showDeniedDialog(
+                    activity = this,
+                    title = "Microphone Permission Needed",
+                    message = if (permanent) {
+                        "Microphone access is disabled. Enable it in Settings to use voice search, or type your search instead."
+                    } else {
+                        "NOX needs microphone access to search listings with your voice."
+                    },
+                    permanentlyDenied = permanent,
+                    onRetry = { startVoiceSearchWithPermission() }
+                )
             }
         }
-        when (data.getStringExtra(MapActivity.EXTRA_NAVIGATION)) {
-            MapActivity.NAV_HOME -> openTab(NavTab.HOME)
-            MapActivity.NAV_PROFILE -> openTab(NavTab.PROFILE)
-            MapActivity.NAV_CHAT -> openTab(NavTab.CHAT)
-            MapActivity.NAV_POST -> openTab(NavTab.POST)
+
+    private val mapLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            mapVisitInProgress = false
+            val data = result.data ?: return@registerForActivityResult
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+
+            if (data.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false)) {
+                val lat = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, Double.NaN)
+                val lng = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LNG, Double.NaN)
+                val radius = data.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, Double.NaN)
+                if (validArea(lat, lng, radius)) {
+                    filters = filters.copy(centerLat = lat, centerLng = lng, radiusKm = radius)
+                    renderState()
+                }
+            }
+            when (data.getStringExtra(MapActivity.EXTRA_NAVIGATION)) {
+                MapActivity.NAV_HOME -> openTab(NavTab.HOME)
+                MapActivity.NAV_PROFILE -> openTab(NavTab.PROFILE)
+                MapActivity.NAV_CHAT -> openTab(NavTab.CHAT)
+                MapActivity.NAV_POST -> openTab(NavTab.POST)
+            }
         }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -203,31 +230,41 @@ class BrowseActivity : AppCompatActivity() {
         val voice = findViewById<ImageButton>(R.id.browseSearchVoice)
         val clear = findViewById<ImageButton>(R.id.browseSearchClear)
 
+        fun syncSearchIcons(query: String) {
+            val hasText = query.isNotEmpty()
+            voice.isVisible = !hasText
+            clear.isVisible = hasText
+        }
+
+        syncSearchIcons(filters.query)
         wireSearchBox(R.id.browseSearch, R.id.browseSearchClear, filters.query) { text ->
+            syncSearchIcons(text)
             filters = filters.copy(query = text)
             renderResults()
             saveSession()
         }
 
-        voice.isVisible = filters.query.isEmpty()
-        clear.isVisible = filters.query.isNotEmpty()
-        browseSearch.addTextChangedListener { text ->
-            val hasText = !text.isNullOrEmpty()
-            voice.isVisible = !hasText
-            clear.isVisible = hasText
-        }
+        voice.setOnClickListener { startVoiceSearchWithPermission() }
+    }
 
-        voice.setOnClickListener {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
-            }
-            if (intent.resolveActivity(packageManager) != null) {
-                voiceSearchLauncher.launch(intent)
-            } else {
-                Toast.makeText(this, "Speech recognition is not available.", Toast.LENGTH_LONG).show()
-            }
+    private fun startVoiceSearchWithPermission() {
+        if (PermissionHelper.hasAll(this, Manifest.permission.RECORD_AUDIO)) {
+            launchVoiceSearch()
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun launchVoiceSearch() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
+        }
+        if (intent.resolveActivity(packageManager) != null) {
+            voiceSearchLauncher.launch(intent)
+        } else {
+            Toast.makeText(this, "Speech recognition is not available.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -314,9 +351,12 @@ class BrowseActivity : AppCompatActivity() {
 
         findViewById<MaterialButton>(R.id.browseMapButton).apply {
             isSelected = hasArea
-            val color = ColorStateList.valueOf(ContextCompat.getColor(
-                this@BrowseActivity, if (hasArea) R.color.nox_accent_text else R.color.nox_dark_green
-            ))
+            val color = ColorStateList.valueOf(
+                ContextCompat.getColor(
+                    this@BrowseActivity,
+                    if (hasArea) R.color.nox_accent_text else R.color.nox_dark_green
+                )
+            )
             iconTint = color
             setTextColor(color)
         }
@@ -336,6 +376,7 @@ class BrowseActivity : AppCompatActivity() {
     private fun renderResults() {
         val results = ListingFilters.apply(allListings, filters)
         listingAdapter.updateList(results)
+
         findViewById<TextView>(R.id.browseResultCount).text = if (listingsLoading) {
             getString(R.string.browse_loading)
         } else {
@@ -376,34 +417,37 @@ class BrowseActivity : AppCompatActivity() {
         listingsError = false
         loadErrorSnackbar?.dismiss()
         renderResults()
+
         ListingRepo.loadPublicListings(
             onSuccess = { listings ->
-                if (!isDestroyed && !isFinishing) {
-                    allListings = listings
-                    listingsLoading = false
-                    listingsLoaded = true
-                    browseRefresh.isRefreshing = false
-                    renderResults()
-                    pendingScrollY?.let { scrollY ->
-                        browseScroll.doOnNextLayout { browseScroll.scrollTo(0, scrollY) }
-                        browseScroll.requestLayout()
-                        pendingScrollY = null
-                    }
+                if (isActivityGone()) return@loadPublicListings
+                allListings = listings
+                listingsLoading = false
+                listingsLoaded = true
+                browseRefresh.isRefreshing = false
+                renderResults()
+                pendingScrollY?.let { scrollY ->
+                    browseScroll.doOnNextLayout { browseScroll.scrollTo(0, scrollY) }
+                    browseScroll.requestLayout()
+                    pendingScrollY = null
                 }
             },
             onError = {
-                if (!isDestroyed && !isFinishing) {
-                    allListings = emptyList()
-                    listingsLoading = false
-                    listingsLoaded = true
-                    listingsError = true
-                    browseRefresh.isRefreshing = false
-                    renderResults()
-                    loadErrorSnackbar = Snackbar.make(findViewById(R.id.browseRoot), R.string.browse_load_error, Snackbar.LENGTH_INDEFINITE)
-                        .setAnchorView(R.id.bottomNavBar)
-                        .setAction(R.string.browse_retry) { loadListings() }
-                    loadErrorSnackbar?.show()
-                }
+                if (isActivityGone()) return@loadPublicListings
+                allListings = emptyList()
+                listingsLoading = false
+                listingsLoaded = true
+                listingsError = true
+                browseRefresh.isRefreshing = false
+                renderResults()
+                loadErrorSnackbar = Snackbar.make(
+                    findViewById(R.id.browseRoot),
+                    R.string.browse_load_error,
+                    Snackbar.LENGTH_INDEFINITE
+                )
+                    .setAnchorView(R.id.bottomNavBar)
+                    .setAction(R.string.browse_retry) { loadListings() }
+                loadErrorSnackbar?.show()
             }
         )
     }
@@ -412,7 +456,10 @@ class BrowseActivity : AppCompatActivity() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val generation = ++favoritesGeneration
         ListingRepo.getSavedItemIds(uid) { ids ->
-            if (!isDestroyed && generation == favoritesGeneration && FirebaseAuth.getInstance().currentUser?.uid == uid) {
+            if (!isActivityGone() &&
+                generation == favoritesGeneration &&
+                FirebaseAuth.getInstance().currentUser?.uid == uid
+            ) {
                 savedIds = ids.toMutableSet()
                 listingAdapter.updateSavedIds(savedIds)
             }
@@ -422,7 +469,9 @@ class BrowseActivity : AppCompatActivity() {
     private fun loadUserCampus() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         ListingRepo.getUserProfile(uid) { profile ->
-            userCampus = CampusLocations.forSchool(profile?.school)
+            if (!isActivityGone()) {
+                userCampus = CampusLocations.forSchool(profile?.school)
+            }
         }
     }
 
@@ -497,4 +546,6 @@ class BrowseActivity : AppCompatActivity() {
     private fun validArea(lat: Double?, lng: Double?, radius: Double?): Boolean =
         lat != null && lng != null && radius != null && lat.isFinite() && lng.isFinite() &&
                 radius.isFinite() && lat in -90.0..90.0 && lng in -180.0..180.0 && radius > 0.0
+
+    private fun isActivityGone(): Boolean = isDestroyed || isFinishing
 }

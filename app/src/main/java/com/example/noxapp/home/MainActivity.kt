@@ -1,5 +1,6 @@
 package com.example.noxapp.home
 
+import android.Manifest
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -26,6 +27,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
 import com.example.noxapp.browse.BrowseActivity
 import com.example.noxapp.core.NavTab
+import com.example.noxapp.core.PermissionHelper
 import com.example.noxapp.core.SaveToggle
 import com.example.noxapp.core.applyEdgeToEdgeInsets
 import com.example.noxapp.core.checkAccessOnStart
@@ -61,13 +63,14 @@ class MainActivity : AppCompatActivity() {
     private var currentCategory: String = "All"
     private var currentSearchQuery: String = ""
     private var userSavedIds: MutableSet<String> = mutableSetOf()
+    private var listingsLoaded = false
+    private var pendingScrollY: Int? = null
+    private var accessJob: Job? = null
+
     private val saveToggle = SaveToggle(
         this, R.id.main, R.id.bottomNavBar,
         R.string.saved_to_profile, R.string.removed_from_saved, ::applySavedLocally
     )
-    private var listingsLoaded = false
-    private var pendingScrollY: Int? = null
-    private var accessJob: Job? = null
 
     private val voiceSearchLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -84,21 +87,36 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+    private val micPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                launchVoiceSearch()
+            } else {
+                val permanent = PermissionHelper.isPermanentlyDenied(
+                    this,
+                    arrayOf(Manifest.permission.RECORD_AUDIO)
+                )
+                PermissionHelper.showDeniedDialog(
+                    activity = this,
+                    title = "Microphone Permission Needed",
+                    message = if (permanent) {
+                        "Microphone access is disabled. Enable it in Settings to use voice search, or type your search instead."
+                    } else {
+                        "NOX needs microphone access to search listings with your voice."
+                    },
+                    permanentlyDenied = permanent,
+                    onRetry = { startVoiceSearchWithPermission() }
+                )
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         applyEdgeToEdgeInsets(R.id.main, R.id.bottomNavBar, R.id.mainScroll)
 
-        mainScroll = findViewById(R.id.mainScroll)
-        homeRefresh = findViewById(R.id.homeRefresh)
-        searchBar = findViewById(R.id.searchBar)
-        featuredSection = findViewById(R.id.featuredSection)
-        recentSection = findViewById(R.id.recentSection)
-        homeLoading = findViewById(R.id.homeLoading)
-        homeErrorState = findViewById(R.id.homeErrorState)
-        homeEmptyState = findViewById(R.id.homeEmptyState)
-
+        bindViews()
         setupUserGreeting()
         setupCategories()
         setupListingFeeds()
@@ -109,10 +127,22 @@ class MainActivity : AppCompatActivity() {
         loadListingData()
     }
 
+    private fun bindViews() {
+        mainScroll = findViewById(R.id.mainScroll)
+        homeRefresh = findViewById(R.id.homeRefresh)
+        searchBar = findViewById(R.id.searchBar)
+        featuredSection = findViewById(R.id.featuredSection)
+        recentSection = findViewById(R.id.recentSection)
+        homeLoading = findViewById(R.id.homeLoading)
+        homeErrorState = findViewById(R.id.homeErrorState)
+        homeEmptyState = findViewById(R.id.homeEmptyState)
+    }
+
     private fun setupUserGreeting() {
         val welcomeTextView = findViewById<TextView>(R.id.welcomeTextView)
         val user = FirebaseAuth.getInstance().currentUser ?: return
         ListingRepo.getUserProfile(user.uid) { profile ->
+            if (isDestroyed || isFinishing) return@getUserProfile
             val name = profile?.displayName?.substringBefore(" ")
                 ?: user.email?.substringBefore("@")
                 ?: "Student"
@@ -142,13 +172,14 @@ class MainActivity : AppCompatActivity() {
         featuredAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle, onItemClick)
         recentAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle, onItemClick)
 
-        findViewById<RecyclerView>(R.id.featuredRecyclerView).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = featuredAdapter
-        }
-        findViewById<RecyclerView>(R.id.recentRecyclerView).apply {
-            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
-            adapter = recentAdapter
+        listOf(
+            R.id.featuredRecyclerView to featuredAdapter,
+            R.id.recentRecyclerView to recentAdapter
+        ).forEach { (recyclerId, feedAdapter) ->
+            findViewById<RecyclerView>(recyclerId).apply {
+                layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+                adapter = feedAdapter
+            }
         }
     }
 
@@ -183,20 +214,9 @@ class MainActivity : AppCompatActivity() {
             applyFilters()
         }
 
-        voice.setOnClickListener {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
-            }
-            if (intent.resolveActivity(packageManager) != null) {
-                voiceSearchLauncher.launch(intent)
-            } else {
-                Toast.makeText(this, "Speech recognition is not available.", Toast.LENGTH_LONG).show()
-            }
-        }
-
+        voice.setOnClickListener { startVoiceSearchWithPermission() }
         clear.setOnClickListener { searchBar.setText("") }
+
         searchBar.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_SEARCH) {
                 WindowCompat.getInsetsController(window, searchBar).hide(WindowInsetsCompat.Type.ime())
@@ -205,6 +225,27 @@ class MainActivity : AppCompatActivity() {
             } else {
                 false
             }
+        }
+    }
+
+    private fun startVoiceSearchWithPermission() {
+        if (PermissionHelper.hasAll(this, Manifest.permission.RECORD_AUDIO)) {
+            launchVoiceSearch()
+        } else {
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    private fun launchVoiceSearch() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
+        }
+        if (intent.resolveActivity(packageManager) != null) {
+            voiceSearchLauncher.launch(intent)
+        } else {
+            Toast.makeText(this, "Speech recognition is not available.", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -259,6 +300,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun applySavedLocally(listingId: String, saved: Boolean) {
         if (saved) userSavedIds.add(listingId) else userSavedIds.remove(listingId)
+        syncSavedIds()
+    }
+
+    private fun syncSavedIds() {
         featuredAdapter.updateSavedIds(userSavedIds)
         recentAdapter.updateSavedIds(userSavedIds)
     }
@@ -295,9 +340,7 @@ class MainActivity : AppCompatActivity() {
         homeErrorState.isVisible = false
         if (showSpinner) {
             homeLoading.isVisible = true
-            homeEmptyState.isVisible = false
-            featuredSection.isVisible = false
-            recentSection.isVisible = false
+            hideContentSections()
         }
         ListingRepo.loadPublicListings(
             onSuccess = { listings ->
@@ -318,12 +361,16 @@ class MainActivity : AppCompatActivity() {
                 listingsLoaded = false
                 homeLoading.isVisible = false
                 homeRefresh.isRefreshing = false
-                homeEmptyState.isVisible = false
-                featuredSection.isVisible = false
-                recentSection.isVisible = false
+                hideContentSections()
                 homeErrorState.isVisible = true
             }
         )
+    }
+
+    private fun hideContentSections() {
+        homeEmptyState.isVisible = false
+        featuredSection.isVisible = false
+        recentSection.isVisible = false
     }
 
     override fun onResume() {
@@ -338,9 +385,9 @@ class MainActivity : AppCompatActivity() {
             val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@checkAccessOnStart
             ListingRepo.ensureSellerProfile(uid)
             ListingRepo.getSavedItemIds(uid) { savedList ->
+                if (isDestroyed || isFinishing) return@getSavedItemIds
                 userSavedIds = savedList.toMutableSet()
-                featuredAdapter.updateSavedIds(userSavedIds)
-                recentAdapter.updateSavedIds(userSavedIds)
+                syncSavedIds()
             }
         }
     }
