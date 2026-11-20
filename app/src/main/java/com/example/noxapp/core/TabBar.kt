@@ -3,24 +3,20 @@ package com.example.noxapp.core
 import android.app.Activity
 import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.example.noxapp.R
 import com.example.noxapp.browse.BrowseActivity
 import com.example.noxapp.chat.ChatInboxActivity
+import com.example.noxapp.chat.ChatRepository
 import com.example.noxapp.home.MainActivity
-import com.example.noxapp.profile.ProfileActivity
-import com.example.noxapp.R
 import com.example.noxapp.postlisting.PostListing
+import com.example.noxapp.profile.ProfileActivity
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ListenerRegistration
 
-/**
- * The five destinations of the bottom tab bar.
- *
- * Every screen used to carry its own copy of this mapping and decide for itself whether to reuse
- * the destination and whether to finish the current screen. The copies drifted: Browse kept itself
- * alive when opening Chat, Chat built a second Browse on the way back, and a round trip left two
- * Browse activities on the stack. One mapping plus one policy below is what keeps them agreeing.
- */
 enum class NavTab(val itemId: Int, val screen: Class<out Activity>) {
     HOME(R.id.navHome, MainActivity::class.java),
     BROWSE(R.id.navBrowse, BrowseActivity::class.java),
@@ -33,13 +29,6 @@ enum class NavTab(val itemId: Int, val screen: Class<out Activity>) {
     }
 }
 
-/**
- * Switches tab: reuse the destination when the task already holds it, then leave this screen.
- *
- * CLEAR_TOP | SINGLE_TOP brings an existing instance forward instead of stacking a second copy, so
- * Home to Browse to Chat to Browse ends with one Browse. Home anchors the task and is never
- * finished, so Back from any tab still returns to it.
- */
 fun Activity.openTab(destination: NavTab) {
     startActivity(
         Intent(this, destination.screen)
@@ -48,19 +37,6 @@ fun Activity.openTab(destination: NavTab) {
     if (this !is MainActivity) finish()
 }
 
-/**
- * Wires a bottom tab bar with the shared policy.
- *
- * Selecting another tab navigates through [navigate]. Selecting the current tab does nothing, and
- * reselecting it runs [onReselect], which is how each screen resets its own content. The listener
- * accepts the selection so Material plays its own tap feedback: answering false discards it, which
- * left every wired screen with a bar that looked dead until the next screen appeared. Resuming
- * puts the highlight back on [currentTab], since a screen that outlives the hop keeps that
- * selection and would otherwise read its own tab as a reselect.
- *
- * [navigate] is overridable for the map, which hands its tab choice back to the screen that
- * launched it rather than starting activities itself.
- */
 fun ComponentActivity.wireTabBar(
     barId: Int,
     currentTab: NavTab,
@@ -72,7 +48,6 @@ fun ComponentActivity.wireTabBar(
     bar.setOnItemSelectedListener { item ->
         val destination = NavTab.forItemId(item.itemId)
         if (destination != null && destination != currentTab) {
-            // Leave Material's menu dispatch before starting or finishing anything.
             bar.post { navigate(destination) }
         }
         true
@@ -80,11 +55,54 @@ fun ComponentActivity.wireTabBar(
     bar.setOnItemReselectedListener { item ->
         if (item.itemId == currentTab.itemId && !isFinishing && !isDestroyed) onReselect()
     }
+
+    var unreadListener: ListenerRegistration? = null
+
     lifecycle.addObserver(LifecycleEventObserver { _, event ->
-        // Home is never finished, so the highlight accepted on the way out is still there when the
-        // student comes back. Restore it, or that tab reads as a reselect and goes nowhere.
-        if (event == Lifecycle.Event.ON_RESUME && bar.selectedItemId != currentTab.itemId) {
-            bar.selectedItemId = currentTab.itemId
+        when (event) {
+            Lifecycle.Event.ON_START -> {
+                val uid = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
+                if (uid.isNotBlank() && unreadListener == null) {
+                    unreadListener = ChatRepository.listenToMyConversations(
+                        userId = uid,
+                        onUpdate = { threads ->
+                            if (isFinishing || isDestroyed) return@listenToMyConversations
+                            val hasUnread = threads.any { thread ->
+                                val lastMsgAt = thread.lastMessageAt?.toDate()?.time ?: 0L
+                                val lastReadAt = thread.lastReadAt[uid]?.toDate()?.time ?: 0L
+                                thread.lastMessage.isNotBlank() &&
+                                        thread.lastSenderId.isNotBlank() &&
+                                        thread.lastSenderId != uid &&
+                                        lastMsgAt > lastReadAt
+                            }
+                            updateChatTabBadge(bar, hasUnread)
+                        },
+                        onError = { /* Ignore badge errors silently */ }
+                    )
+                }
+            }
+            Lifecycle.Event.ON_RESUME -> {
+                if (bar.selectedItemId != currentTab.itemId) {
+                    bar.selectedItemId = currentTab.itemId
+                }
+            }
+            Lifecycle.Event.ON_STOP -> {
+                unreadListener?.remove()
+                unreadListener = null
+            }
+            else -> Unit
         }
     })
+}
+
+private fun updateChatTabBadge(bar: BottomNavigationView, hasUnread: Boolean) {
+    if (hasUnread) {
+        bar.getOrCreateBadge(R.id.navChat).apply {
+            isVisible = true
+            clearNumber()
+            backgroundColor = ContextCompat.getColor(bar.context, R.color.nox_primary_green)
+        }
+    } else {
+        bar.getBadge(R.id.navChat)?.isVisible = false
+    }
 }

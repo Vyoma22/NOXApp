@@ -103,7 +103,7 @@ class ChatInboxActivity : AppCompatActivity() {
         inboxListener = ChatRepository.listenToMyConversations(
             userId = userId,
             onUpdate = { conversations ->
-                if (isFinishing || isDestroyed) return@listenToMyConversations
+                if (isActivityGone()) return@listenToMyConversations
 
                 val version = ++inboxVersion
 
@@ -124,7 +124,7 @@ class ChatInboxActivity : AppCompatActivity() {
                     .filter { it.listingId.isNotBlank() && !listingCache.containsKey(it.listingId) }
                     .forEach { thread ->
                         ListingRepo.getListing(thread.listingId) { listing ->
-                            if (isFinishing || isDestroyed || version != inboxVersion) return@getListing
+                            if (isActivityGone() || version != inboxVersion) return@getListing
 
                             listingCache[thread.listingId] = listing
                             inboxRows = conversations.map { item ->
@@ -140,7 +140,7 @@ class ChatInboxActivity : AppCompatActivity() {
                     }
             },
             onError = { error ->
-                if (!isFinishing && !isDestroyed) {
+                if (!isActivityGone()) {
                     Toast.makeText(this, "Unable to load chats: ${error.message}", Toast.LENGTH_LONG).show()
                 }
             }
@@ -171,6 +171,13 @@ class ChatInboxActivity : AppCompatActivity() {
             ?.let { formatInboxDateTime(it) }
             .orEmpty()
 
+        val lastMessageMillis = thread.lastMessageAt?.toDate()?.time ?: 0L
+        val lastReadMillis = thread.lastReadAt[userId]?.toDate()?.time ?: 0L
+        val isUnread = thread.lastMessage.isNotBlank() &&
+                thread.lastSenderId.isNotBlank() &&
+                thread.lastSenderId != userId &&
+                lastMessageMillis > lastReadMillis
+
         return ChatInboxItem(
             conversationId = thread.id,
             listingId = thread.listingId,
@@ -178,7 +185,7 @@ class ChatInboxActivity : AppCompatActivity() {
             listingTitle = productDetails,
             lastMessage = thread.lastMessage.ifBlank { "No messages yet" },
             time = formattedTimestamp,
-            hasUnread = false
+            hasUnread = isUnread
         )
     }
 
@@ -218,4 +225,6 @@ class ChatInboxActivity : AppCompatActivity() {
             recyclerView.smoothScrollToPosition(0)
         })
     }
+
+    private fun isActivityGone(): Boolean = isFinishing || isDestroyed
 }
