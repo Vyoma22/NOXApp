@@ -3,7 +3,6 @@ package com.example.noxapp.map
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Canvas
 import android.net.Uri
@@ -23,28 +22,28 @@ import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
 import androidx.core.graphics.createBitmap
-import androidx.core.widget.doAfterTextChanged
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.lifecycleScope
 import com.example.noxapp.R
-import com.example.noxapp.listing.CampusLocations
-import com.example.noxapp.listing.ListingFilters
-import com.example.noxapp.listing.ListingRepo
-import com.example.noxapp.map.LocationSearch
-import com.example.noxapp.core.Prefs
-import com.example.noxapp.listing.BrowseFilters
-import com.example.noxapp.listing.Listing
-import com.example.noxapp.listing.PriceRange
-import com.example.noxapp.listing.ItemDetailDialog
 import com.example.noxapp.core.NavTab
+import com.example.noxapp.core.PermissionHelper
+import com.example.noxapp.core.Prefs
 import com.example.noxapp.core.applyEdgeToEdgeInsets
 import com.example.noxapp.core.dp
 import com.example.noxapp.core.wireTabBar
+import com.example.noxapp.listing.BrowseFilters
+import com.example.noxapp.listing.CampusLocations
+import com.example.noxapp.listing.ItemDetailDialog
+import com.example.noxapp.listing.Listing
+import com.example.noxapp.listing.ListingFilters
+import com.example.noxapp.listing.ListingRepo
+import com.example.noxapp.listing.PriceRange
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -109,11 +108,29 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     private var viewTitle: String? = null
     private var viewTarget: LatLng? = null
 
+    private val locationPermissions = arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION
+    )
+
     private val locationPermission = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) {
         if (locationPending) {
-            if (hasLocationPermission()) locateDevice() else campusFallback(R.string.location_denied)
+            if (hasLocationPermission()) {
+                locateDevice()
+            } else {
+                val permanent = PermissionHelper.isPermanentlyDenied(this, locationPermissions)
+                campusFallback(R.string.location_denied)
+                if (permanent) {
+                    PermissionHelper.showDeniedDialog(
+                        activity = this,
+                        title = "Location Permission Disabled",
+                        message = "Location access is turned off in Settings. Your map has been centered on campus, or you can open Settings to enable GPS.",
+                        permanentlyDenied = true
+                    )
+                }
+            }
         }
     }
 
@@ -212,9 +229,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         findViewById<View>(R.id.myLocationButton).setOnClickListener {
             cancelSearch()
             locationPending = true
-            if (hasLocationPermission()) locateDevice() else locationPermission.launch(arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION
-            ))
+            if (hasLocationPermission()) locateDevice() else locationPermission.launch(locationPermissions)
         }
         findViewById<Slider>(R.id.radiusSlider).apply {
             value = radiusKm.toFloat()
@@ -627,8 +642,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun hasLocationPermission() =
-        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        PermissionHelper.hasAll(this, Manifest.permission.ACCESS_FINE_LOCATION) ||
+                PermissionHelper.hasAll(this, Manifest.permission.ACCESS_COARSE_LOCATION)
 
     @SuppressLint("MissingPermission")
     private fun locateDevice() {
