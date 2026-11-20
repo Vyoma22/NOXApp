@@ -3,9 +3,12 @@ package com.example.noxapp.browse
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
+import android.speech.RecognizerIntent
 import android.view.View
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -14,34 +17,36 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.widget.NestedScrollView
+import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
-import com.example.noxapp.listing.adapters.ListingAdapter
 import com.example.noxapp.browse.adapters.PillChipAdapter
-import com.example.noxapp.listing.CampusLocations
-import com.example.noxapp.listing.ListingFilters
-import com.example.noxapp.listing.ListingRepo
-import com.example.noxapp.core.Prefs
-import com.example.noxapp.listing.BrowseFilters
-import com.example.noxapp.listing.Listing
-import com.example.noxapp.listing.PriceRange
-import com.example.noxapp.listing.SortOption
-import com.example.noxapp.listing.ItemDetailDialog
 import com.example.noxapp.core.NavTab
+import com.example.noxapp.core.Prefs
 import com.example.noxapp.core.SaveToggle
 import com.example.noxapp.core.applyEdgeToEdgeInsets
 import com.example.noxapp.core.checkAccessOnStart
 import com.example.noxapp.core.openTab
 import com.example.noxapp.core.wireSearchBox
 import com.example.noxapp.core.wireTabBar
+import com.example.noxapp.listing.BrowseFilters
+import com.example.noxapp.listing.CampusLocations
+import com.example.noxapp.listing.ItemDetailDialog
+import com.example.noxapp.listing.Listing
+import com.example.noxapp.listing.ListingFilters
+import com.example.noxapp.listing.ListingRepo
+import com.example.noxapp.listing.PriceRange
+import com.example.noxapp.listing.SortOption
+import com.example.noxapp.listing.adapters.ListingAdapter
 import com.example.noxapp.map.MapActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
+import java.util.Locale
 
 class BrowseActivity : AppCompatActivity() {
     private var filters = BrowseFilters()
@@ -62,13 +67,34 @@ class BrowseActivity : AppCompatActivity() {
     private var pendingScrollY: Int? = null
     private var loadErrorSnackbar: Snackbar? = null
     private var userCampus: Pair<Double, Double>? = null
+
+    private lateinit var browseScroll: NestedScrollView
+    private lateinit var browseRefresh: SwipeRefreshLayout
+    private lateinit var browseSearch: EditText
     private lateinit var categoryAdapter: PillChipAdapter
     private lateinit var listingAdapter: ListingAdapter
 
+    private val voiceSearchLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.trim()
+            if (!spoken.isNullOrEmpty()) {
+                browseSearch.setText(spoken)
+                browseSearch.setSelection(spoken.length)
+            } else {
+                Toast.makeText(this, "No speech recognized.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     private val mapLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         mapVisitInProgress = false
-        val data = result.data
-        if (result.resultCode == RESULT_OK && data?.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false) == true) {
+        val data = result.data ?: return@registerForActivityResult
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+
+        if (data.getBooleanExtra(MapActivity.EXTRA_HAS_SELECTION, false)) {
             val lat = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LAT, Double.NaN)
             val lng = data.getDoubleExtra(MapActivity.EXTRA_CENTER_LNG, Double.NaN)
             val radius = data.getDoubleExtra(MapActivity.EXTRA_RADIUS_KM, Double.NaN)
@@ -77,14 +103,11 @@ class BrowseActivity : AppCompatActivity() {
                 renderState()
             }
         }
-        if (result.resultCode == RESULT_OK) {
-            // The map hands its tab choice back here so it can still return the area it selected.
-            when (data?.getStringExtra(MapActivity.EXTRA_NAVIGATION)) {
-                MapActivity.NAV_HOME -> openTab(NavTab.HOME)
-                MapActivity.NAV_PROFILE -> openTab(NavTab.PROFILE)
-                MapActivity.NAV_CHAT -> openTab(NavTab.CHAT)
-                MapActivity.NAV_POST -> openTab(NavTab.POST)
-            }
+        when (data.getStringExtra(MapActivity.EXTRA_NAVIGATION)) {
+            MapActivity.NAV_HOME -> openTab(NavTab.HOME)
+            MapActivity.NAV_PROFILE -> openTab(NavTab.PROFILE)
+            MapActivity.NAV_CHAT -> openTab(NavTab.CHAT)
+            MapActivity.NAV_POST -> openTab(NavTab.POST)
         }
     }
 
@@ -92,19 +115,28 @@ class BrowseActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_browse)
-        applyEdgeToEdgeInsets(R.id.browseRoot, R.id.bottomNavBar, R.id.browseScroll)
+        applyEdgeToEdgeInsets(R.id.browseRoot, R.id.bottomNavBar)
+
+        browseScroll = findViewById(R.id.browseScroll)
+        browseRefresh = findViewById(R.id.browseRefresh)
+        browseSearch = findViewById(R.id.browseSearch)
+
         restoreState(savedInstanceState)
         setupCategories()
         setupResults()
         setupFilterMenus()
         setupBottomNavigation()
+
         findViewById<View>(R.id.browseBackButton).setOnClickListener { finish() }
         findViewById<View>(R.id.browseMapButton).setOnClickListener { openMap() }
         findViewById<View>(R.id.browseClearRadius).setOnClickListener { clearRadius() }
         findViewById<View>(R.id.browseClearAll).setOnClickListener { clearAllFilters() }
         findViewById<View>(R.id.browseErrorRetry).setOnClickListener { loadListings() }
-        findViewById<View>(R.id.browseEmptyAction).setOnClickListener { onEmptyAction() }
-        findViewById<SwipeRefreshLayout>(R.id.browseRefresh).setOnRefreshListener { loadListings() }
+        findViewById<View>(R.id.browseEmptyAction).setOnClickListener {
+            if (allListings.isEmpty()) loadListings() else clearAllFilters()
+        }
+        browseRefresh.setOnRefreshListener { loadListings() }
+
         setupSearch()
         renderState()
     }
@@ -123,7 +155,6 @@ class BrowseActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // An edit form may have changed a title, price, or photo while this screen was paused.
         if (listingsLoaded) loadListings()
     }
 
@@ -153,11 +184,11 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun setupResults() {
-        listingAdapter = ListingAdapter(emptyList(), savedIds,
+        listingAdapter = ListingAdapter(
+            emptyList(),
+            savedIds,
             onFavoriteClick = { listing, shouldSave -> saveToggle.toggle(listing, shouldSave) },
-            onItemClick = { listing ->
-                ItemDetailDialog.show(this, listing) { loadListings() }
-            }
+            onItemClick = { listing -> ItemDetailDialog.show(this, listing) { loadListings() } }
         ).apply {
             stateRestorationPolicy = RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
         }
@@ -169,10 +200,34 @@ class BrowseActivity : AppCompatActivity() {
     }
 
     private fun setupSearch() {
+        val voice = findViewById<ImageButton>(R.id.browseSearchVoice)
+        val clear = findViewById<ImageButton>(R.id.browseSearchClear)
+
         wireSearchBox(R.id.browseSearch, R.id.browseSearchClear, filters.query) { text ->
             filters = filters.copy(query = text)
             renderResults()
             saveSession()
+        }
+
+        voice.isVisible = filters.query.isEmpty()
+        clear.isVisible = filters.query.isNotEmpty()
+        browseSearch.addTextChangedListener { text ->
+            val hasText = !text.isNullOrEmpty()
+            voice.isVisible = !hasText
+            clear.isVisible = hasText
+        }
+
+        voice.setOnClickListener {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
+            }
+            if (intent.resolveActivity(packageManager) != null) {
+                voiceSearchLauncher.launch(intent)
+            } else {
+                Toast.makeText(this, "Speech recognition is not available.", Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -234,6 +289,7 @@ class BrowseActivity : AppCompatActivity() {
         categoryAdapter.updateState(filters.category, categoriesExpanded)
         renderFilterLabel(R.id.browsePriceFilter, R.string.browse_price, filters.priceRange?.label)
         renderFilterLabel(R.id.browseConditionFilter, R.string.browse_condition, filters.condition)
+
         val sortOption = filters.sort
         findViewById<TextView>(R.id.browseSortFilter).apply {
             text = getString(Prefs.sortLabelRes(sortOption))
@@ -252,7 +308,7 @@ class BrowseActivity : AppCompatActivity() {
         }
 
         val hasFilters = filters.query.isNotBlank() || filters.category != null ||
-            filters.priceRange != null || filters.condition != null || hasArea
+                filters.priceRange != null || filters.condition != null || hasArea
         findViewById<View>(R.id.browseActiveRow).isVisible = hasFilters
         findViewById<View>(R.id.browseClearAll).isVisible = hasFilters
 
@@ -271,7 +327,8 @@ class BrowseActivity : AppCompatActivity() {
 
     private fun renderFilterLabel(viewId: Int, labelId: Int, value: String?) {
         findViewById<TextView>(viewId).apply {
-            text = if (value == null) getString(labelId) else getString(R.string.browse_active_filter, getString(labelId), value)
+            text = if (value == null) getString(labelId)
+            else getString(R.string.browse_active_filter, getString(labelId), value)
             isSelected = value != null
         }
     }
@@ -299,10 +356,6 @@ class BrowseActivity : AppCompatActivity() {
             .setText(if (noListings) R.string.browse_empty_action_refresh else R.string.browse_empty_action_clear)
     }
 
-    private fun onEmptyAction() {
-        if (allListings.isEmpty()) loadListings() else clearAllFilters()
-    }
-
     private fun clearAllFilters() {
         filters = filters.copy(
             query = "",
@@ -314,7 +367,7 @@ class BrowseActivity : AppCompatActivity() {
             radiusKm = null
         )
         categoriesExpanded = false
-        findViewById<EditText>(R.id.browseSearch).setText("")
+        browseSearch.setText("")
         renderState()
     }
 
@@ -329,13 +382,11 @@ class BrowseActivity : AppCompatActivity() {
                     allListings = listings
                     listingsLoading = false
                     listingsLoaded = true
-                    findViewById<SwipeRefreshLayout>(R.id.browseRefresh).isRefreshing = false
+                    browseRefresh.isRefreshing = false
                     renderResults()
                     pendingScrollY?.let { scrollY ->
-                        // The first restored layout can precede Firestore data and otherwise clamp to zero.
-                        val scroll = findViewById<NestedScrollView>(R.id.browseScroll)
-                        scroll.doOnNextLayout { scroll.scrollTo(0, scrollY) }
-                        scroll.requestLayout()
+                        browseScroll.doOnNextLayout { browseScroll.scrollTo(0, scrollY) }
+                        browseScroll.requestLayout()
                         pendingScrollY = null
                     }
                 }
@@ -346,7 +397,7 @@ class BrowseActivity : AppCompatActivity() {
                     listingsLoading = false
                     listingsLoaded = true
                     listingsError = true
-                    findViewById<SwipeRefreshLayout>(R.id.browseRefresh).isRefreshing = false
+                    browseRefresh.isRefreshing = false
                     renderResults()
                     loadErrorSnackbar = Snackbar.make(findViewById(R.id.browseRoot), R.string.browse_load_error, Snackbar.LENGTH_INDEFINITE)
                         .setAnchorView(R.id.bottomNavBar)
@@ -405,9 +456,8 @@ class BrowseActivity : AppCompatActivity() {
 
     private fun setupBottomNavigation() {
         wireTabBar(R.id.bottomNavBar, NavTab.BROWSE, onReselect = {
-            // Tapping Browse again restores the unfiltered, unexpanded grid.
             clearAllFilters()
-            findViewById<NestedScrollView>(R.id.browseScroll)?.smoothScrollTo(0, 0)
+            browseScroll.smoothScrollTo(0, 0)
         })
     }
 
@@ -418,6 +468,12 @@ class BrowseActivity : AppCompatActivity() {
             categoriesExpanded = restored.second
         } else {
             filters = BrowseFilters(sort = Prefs.defaultSort(this))
+        }
+        intent.getStringExtra("query")?.takeIf { it.isNotBlank() }?.let {
+            filters = filters.copy(query = it)
+        }
+        intent.getStringExtra("category")?.takeIf { it.isNotBlank() }?.let {
+            filters = filters.copy(category = it)
         }
         mapVisitInProgress = state?.getBoolean("browse.mapVisit") ?: false
         pendingScrollY = state?.getInt("browse.scrollY")
@@ -434,11 +490,11 @@ class BrowseActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean("browse.mapVisit", mapVisitInProgress)
-        outState.putInt("browse.scrollY", pendingScrollY ?: findViewById<NestedScrollView>(R.id.browseScroll).scrollY)
+        outState.putInt("browse.scrollY", pendingScrollY ?: browseScroll.scrollY)
         super.onSaveInstanceState(outState)
     }
 
     private fun validArea(lat: Double?, lng: Double?, radius: Double?): Boolean =
         lat != null && lng != null && radius != null && lat.isFinite() && lng.isFinite() &&
-            radius.isFinite() && lat in -90.0..90.0 && lng in -180.0..180.0 && radius > 0.0
+                radius.isFinite() && lat in -90.0..90.0 && lng in -180.0..180.0 && radius > 0.0
 }

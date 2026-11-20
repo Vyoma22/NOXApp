@@ -12,26 +12,25 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
-import com.example.noxapp.map.MapActivity
-import com.example.noxapp.profile.ProfileActivity
+import androidx.core.view.updatePadding
 import com.example.noxapp.R
-import com.example.noxapp.profile.SellerProfileActivity
-import com.example.noxapp.listing.CampusLocations
-import com.example.noxapp.listing.ListingReport
-import com.example.noxapp.listing.ListingRepo
-import com.example.noxapp.listing.Listing
-import com.example.noxapp.listing.ListingSignals
-import com.example.noxapp.listing.formatPrice
+import com.example.noxapp.chat.ChatConversationActivity
+import com.example.noxapp.chat.ChatRepository
+import com.example.noxapp.map.MapActivity
 import com.example.noxapp.postlisting.PostListing
+import com.example.noxapp.profile.ProfileActivity
+import com.example.noxapp.profile.SellerProfileActivity
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
-import com.example.noxapp.chat.ChatConversationActivity
-import com.example.noxapp.chat.ChatRepository
 
 object ItemDetailDialog {
     fun show(
@@ -39,36 +38,54 @@ object ItemDetailDialog {
         listing: Listing,
         onListingChanged: (() -> Unit)? = null
     ) {
-        val dialog: Dialog = BottomSheetDialog(activity)
+        val dialog = BottomSheetDialog(activity)
         dialog.setContentView(R.layout.dialog_item_details)
         dialog.setCanceledOnTouchOutside(true)
-        dialog.findViewById<TextView>(R.id.detailTitle).text = listing.title
+
+        val scrollView = dialog.findViewById<ScrollView>(R.id.detailScroll)
+        if (scrollView != null) {
+            val baseBottomPadding = scrollView.paddingBottom
+            ViewCompat.setOnApplyWindowInsetsListener(scrollView) { view, insets ->
+                val navBarBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+                view.updatePadding(bottom = baseBottomPadding + navBarBottom)
+                insets
+            }
+        }
+
+        dialog.setOnShowListener {
+            dialog.behavior.apply {
+                skipCollapsed = true
+                state = BottomSheetBehavior.STATE_EXPANDED
+            }
+        }
+
+        dialog.findViewById<TextView>(R.id.detailTitle)?.text = listing.title
         bindPrice(activity, dialog, listing)
-        dialog.findViewById<TextView>(R.id.detailCondition).text = listing.condition
-        dialog.findViewById<TextView>(R.id.detailCategory).text = listing.category
-        dialog.findViewById<TextView>(R.id.detailDescription).text = listing.description
-        dialog.findViewById<TextView>(R.id.detailLocation).text = "Pickup: ${listing.pickupLocation}"
+        dialog.findViewById<TextView>(R.id.detailCondition)?.text = listing.condition
+        dialog.findViewById<TextView>(R.id.detailCategory)?.text = listing.category
+        dialog.findViewById<TextView>(R.id.detailDescription)?.text = listing.description
+        dialog.findViewById<TextView>(R.id.detailLocation)?.text = "Pickup: ${listing.pickupLocation}"
         bindPickupLocation(activity, dialog, listing)
 
         // Listings can carry up to five photos; the gallery handles swiping, arrows and the viewer.
         MediaGallery(activity, dialog, listing.imageUrls).bind()
 
-        dialog.findViewById<ImageButton>(R.id.detailClose).setOnClickListener { dialog.dismiss() }
+        dialog.findViewById<ImageButton>(R.id.detailClose)?.setOnClickListener { dialog.dismiss() }
 
         val isOwner = listing.sellerId.isNotBlank() &&
-            listing.sellerId == FirebaseAuth.getInstance().currentUser?.uid
-        dialog.findViewById<ViewGroup>(R.id.ownerActions).isVisible = isOwner
+                listing.sellerId == FirebaseAuth.getInstance().currentUser?.uid
+        dialog.findViewById<ViewGroup>(R.id.ownerActions)?.isVisible = isOwner
         bindViewCount(activity, dialog, listing, isOwner)
 
         // Reporting is for buyers; the owner edits or deletes the listing above instead.
         val reportButton = dialog.findViewById<Button>(R.id.reportListingButton)
-        reportButton.isVisible = !isOwner
-        reportButton.setOnClickListener {
+        reportButton?.isVisible = !isOwner
+        reportButton?.setOnClickListener {
             dialog.dismiss()
             sendListingReport(activity, listing)
         }
 
-        dialog.findViewById<Button>(R.id.editListingButton).setOnClickListener {
+        dialog.findViewById<Button>(R.id.editListingButton)?.setOnClickListener {
             dialog.dismiss()
             activity.startActivity(
                 Intent(activity, PostListing::class.java)
@@ -76,7 +93,7 @@ object ItemDetailDialog {
             )
         }
 
-        dialog.findViewById<Button>(R.id.deleteListingButton).setOnClickListener {
+        dialog.findViewById<Button>(R.id.deleteListingButton)?.setOnClickListener {
             MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.listing_delete_title)
                 .setMessage(R.string.listing_delete_message)
@@ -95,11 +112,8 @@ object ItemDetailDialog {
                 .show()
         }
 
-        val messageSellerButton =
-            dialog.findViewById<Button>(R.id.messageSellerButton)
-
-        messageSellerButton.setOnClickListener {
-
+        val messageSellerButton = dialog.findViewById<Button>(R.id.messageSellerButton)
+        messageSellerButton?.setOnClickListener {
             if (listing.id.isBlank()) {
                 Toast.makeText(
                     activity,
@@ -113,34 +127,22 @@ object ItemDetailDialog {
 
             ChatRepository.createOrOpenConversation(
                 listingId = listing.id,
-
                 onSuccess = { conversationId ->
-
                     messageSellerButton.isEnabled = true
-
                     if (!activity.isFinishing && !activity.isDestroyed) {
-
                         val intent = Intent(
                             activity,
                             ChatConversationActivity::class.java
-                        )
-
-                        intent.putExtra("listingId", listing.id)
-
-                        intent.putExtra(
-                            "conversationId",
-                            conversationId
-                        )
-
+                        ).apply {
+                            putExtra("listingId", listing.id)
+                            putExtra("conversationId", conversationId)
+                        }
                         activity.startActivity(intent)
                         dialog.dismiss()
                     }
                 },
-
                 onError = { error ->
-
                     messageSellerButton.isEnabled = true
-
                     Toast.makeText(
                         activity,
                         "Unable to open chat: ${error.message}",
@@ -154,10 +156,6 @@ object ItemDetailDialog {
         dialog.show()
     }
 
-    /**
-     * Reports go to the app inbox as a pre-filled email, mirroring Settings' report flow.
-     * [ListingReport] fills the subject and body so the copy stays in strings.xml.
-     */
     private fun sendListingReport(activity: Activity, listing: Listing) {
         val report = ListingReport(
             subjectFormat = activity.getString(R.string.listing_report_subject_format),
@@ -178,10 +176,6 @@ object ItemDetailDialog {
         }
     }
 
-    /**
-     * Shows the current price, and when the seller has cut it, the old price struck through just
-     * before the new one. The old price stays hidden for listings that never dropped.
-     */
     private fun bindPrice(activity: Activity, dialog: Dialog, listing: Listing) {
         val newPrice = "$${formatPrice(listing.price)}"
         dialog.findViewById<TextView>(R.id.detailPrice).text = newPrice
@@ -201,11 +195,6 @@ object ItemDetailDialog {
         previousPriceView.isVisible = true
     }
 
-    /**
-     * Shows how many students have opened this listing. A buyer's open counts as a view right
-     * away, so the number moves with the tap before the increment lands; the write itself is
-     * fire-and-forget and never blocks the sheet. The owner sees only the stored count.
-     */
     private fun bindViewCount(activity: Activity, dialog: Dialog, listing: Listing, isOwner: Boolean) {
         val views = ListingSignals.displayedViewCount(listing, isOwner)
         dialog.findViewById<TextView>(R.id.detailViewCount).text = if (views == 0L) {
@@ -222,11 +211,6 @@ object ItemDetailDialog {
         }
     }
 
-    /**
-     * The pickup line opens the map on this listing's pin, so a buyer can see where to meet.
-     * Coordinates come from the same resolver the map uses, so listings saved before map pins
-     * existed still land on the right campus.
-     */
     private fun bindPickupLocation(activity: Activity, dialog: Dialog, listing: Listing) {
         val (latitude, longitude) = CampusLocations.resolve(listing)
         dialog.findViewById<View>(R.id.detailLocationRow).apply {
@@ -245,13 +229,6 @@ object ItemDetailDialog {
         }
     }
 
-    /**
-     * Fills the seller row from the listing, then upgrades it with the seller's profile document
-     * so a renamed student or a rating appears without re-posting the listing.
-     *
-     * The row is a shortcut to that seller's read-only profile, except for the student's own
-     * listing, which opens their editable [ProfileActivity] instead.
-     */
     private fun bindSeller(activity: Activity, dialog: Dialog, listing: Listing) {
         val row = dialog.findViewById<View>(R.id.detailSeller)
         val nameView = dialog.findViewById<TextView>(R.id.detailSellerName)
@@ -267,7 +244,6 @@ object ItemDetailDialog {
         ratingView.text = activity.getString(R.string.detail_seller_new)
 
         if (listing.sellerId.isBlank()) {
-            // Nothing to open, so the row stays informational and is not announced as a button.
             row.isClickable = false
             row.isFocusable = false
             row.contentDescription = null
@@ -277,7 +253,6 @@ object ItemDetailDialog {
         openSellerProfileOnTap(activity, dialog, row, listing, listingName)
 
         ListingRepo.getSellerProfile(listing.sellerId) { profile ->
-            // The sheet may have been dismissed while Firestore answered.
             if (!dialog.isShowing) return@getSellerProfile
             profile?.displayName?.takeIf { it.isNotBlank() }
                 ?.let {
@@ -300,7 +275,6 @@ object ItemDetailDialog {
         }
     }
 
-    /** Tapping the seller row opens their profile; a signed-in student's own listing opens theirs. */
     private fun openSellerProfileOnTap(
         activity: Activity,
         dialog: Dialog,
@@ -324,7 +298,6 @@ object ItemDetailDialog {
         }
     }
 
-    /** The name carries a green check because every NOX account is a verified student. */
     private fun showSellerName(
         activity: Activity,
         nameView: TextView,

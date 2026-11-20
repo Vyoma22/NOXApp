@@ -12,7 +12,6 @@ import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
@@ -26,18 +25,18 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.noxapp.R
 import com.example.noxapp.browse.BrowseActivity
-import com.example.noxapp.home.adapters.CategoryAdapter
-import com.example.noxapp.listing.adapters.ListingAdapter
-import com.example.noxapp.listing.ListingRepo
-import com.example.noxapp.listing.CategoryCatalog
-import com.example.noxapp.listing.Listing
-import com.example.noxapp.postlisting.PostListing
-import com.example.noxapp.listing.ItemDetailDialog
 import com.example.noxapp.core.NavTab
 import com.example.noxapp.core.SaveToggle
 import com.example.noxapp.core.applyEdgeToEdgeInsets
 import com.example.noxapp.core.checkAccessOnStart
 import com.example.noxapp.core.wireTabBar
+import com.example.noxapp.home.adapters.CategoryAdapter
+import com.example.noxapp.listing.CategoryCatalog
+import com.example.noxapp.listing.ItemDetailDialog
+import com.example.noxapp.listing.Listing
+import com.example.noxapp.listing.ListingRepo
+import com.example.noxapp.listing.adapters.ListingAdapter
+import com.example.noxapp.postlisting.PostListing
 import com.google.android.material.card.MaterialCardView
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
@@ -49,7 +48,15 @@ class MainActivity : AppCompatActivity() {
     private lateinit var featuredAdapter: ListingAdapter
     private lateinit var recentAdapter: ListingAdapter
 
-    // Keep cached lists in memory to enable instant search and category filtering
+    private lateinit var mainScroll: NestedScrollView
+    private lateinit var homeRefresh: SwipeRefreshLayout
+    private lateinit var searchBar: EditText
+    private lateinit var featuredSection: ViewGroup
+    private lateinit var recentSection: ViewGroup
+    private lateinit var homeLoading: View
+    private lateinit var homeErrorState: View
+    private lateinit var homeEmptyState: ViewGroup
+
     private var allMasterListings: List<Listing> = emptyList()
     private var currentCategory: String = "All"
     private var currentSearchQuery: String = ""
@@ -62,128 +69,138 @@ class MainActivity : AppCompatActivity() {
     private var pendingScrollY: Int? = null
     private var accessJob: Job? = null
 
+    private val voiceSearchLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode != RESULT_OK) return@registerForActivityResult
+            val spoken = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.trim()
+            if (!spoken.isNullOrEmpty()) {
+                searchBar.setText(spoken)
+                searchBar.setSelection(spoken.length)
+            } else {
+                Toast.makeText(this, "No speech recognized.", Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_main)
         applyEdgeToEdgeInsets(R.id.main, R.id.bottomNavBar, R.id.mainScroll)
 
-        // 1. User Greeting
-        setupUserGreeting()
+        mainScroll = findViewById(R.id.mainScroll)
+        homeRefresh = findViewById(R.id.homeRefresh)
+        searchBar = findViewById(R.id.searchBar)
+        featuredSection = findViewById(R.id.featuredSection)
+        recentSection = findViewById(R.id.recentSection)
+        homeLoading = findViewById(R.id.homeLoading)
+        homeErrorState = findViewById(R.id.homeErrorState)
+        homeEmptyState = findViewById(R.id.homeEmptyState)
 
-        // 2. Category & Feeds RecyclerViews
+        setupUserGreeting()
         setupCategories()
         setupListingFeeds()
-
-        // 3. See-all links, Action Cards & Bottom Nav
-        setupHeaderLinks()
-        setupActionCards()
-        setupBottomNavigation()
-        setupRefresh()
-
-        // 4. Live Search Filter
+        setupNavigationAndActions()
         setupLiveSearch()
 
         restoreState(savedInstanceState)
-
-        // 5. Load Data from Firestore
         loadListingData()
     }
 
     private fun setupUserGreeting() {
         val welcomeTextView = findViewById<TextView>(R.id.welcomeTextView)
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-
-        ListingRepo.getUserProfile(uid) { profile ->
+        val user = FirebaseAuth.getInstance().currentUser ?: return
+        ListingRepo.getUserProfile(user.uid) { profile ->
             val name = profile?.displayName?.substringBefore(" ")
-                ?: FirebaseAuth.getInstance().currentUser?.email?.substringBefore("@")
+                ?: user.email?.substringBefore("@")
                 ?: "Student"
             welcomeTextView.text = getString(R.string.home_greeting, name)
         }
     }
 
     private fun setupCategories() {
-        val categoryRecycler = findViewById<RecyclerView>(R.id.categoryRecyclerView)
-
-        categoryAdapter = CategoryAdapter(CategoryCatalog.homeRow()) { selectedCategory ->
-            currentCategory = selectedCategory.name
+        categoryAdapter = CategoryAdapter(CategoryCatalog.homeRow()) { selected ->
+            currentCategory = selected.name
             applyFilters()
         }
-
-        categoryRecycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        categoryRecycler.adapter = categoryAdapter
+        findViewById<RecyclerView>(R.id.categoryRecyclerView).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = categoryAdapter
+        }
     }
 
     private fun setupListingFeeds() {
-        val featuredRecycler = findViewById<RecyclerView>(R.id.featuredRecyclerView)
-        val recentRecycler = findViewById<RecyclerView>(R.id.recentRecyclerView)
-
         val onHeartToggle: (Listing, Boolean) -> Unit = { listing, shouldSave ->
             saveToggle.toggle(listing, shouldSave)
         }
-
-        featuredAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
-            ItemDetailDialog.show(this, listing) { loadListingData(showSpinner = false) }
-        }
-        recentAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle) { listing ->
+        val onItemClick: (Listing) -> Unit = { listing ->
             ItemDetailDialog.show(this, listing) { loadListingData(showSpinner = false) }
         }
 
-        featuredRecycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
-        recentRecycler.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        featuredAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle, onItemClick)
+        recentAdapter = ListingAdapter(emptyList(), userSavedIds, onHeartToggle, onItemClick)
 
-        featuredRecycler.adapter = featuredAdapter
-        recentRecycler.adapter = recentAdapter
+        findViewById<RecyclerView>(R.id.featuredRecyclerView).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = featuredAdapter
+        }
+        findViewById<RecyclerView>(R.id.recentRecyclerView).apply {
+            layoutManager = LinearLayoutManager(this@MainActivity, LinearLayoutManager.HORIZONTAL, false)
+            adapter = recentAdapter
+        }
     }
 
-    private fun setupRefresh() {
-        findViewById<SwipeRefreshLayout>(R.id.homeRefresh).setOnRefreshListener {
-            loadListingData(showSpinner = false)
-        }
+    private fun setupNavigationAndActions() {
+        homeRefresh.setOnRefreshListener { loadListingData(showSpinner = false) }
         findViewById<Button>(R.id.homeRetry).setOnClickListener { loadListingData() }
         findViewById<Button>(R.id.homeEmptyAction).setOnClickListener {
-            if (allMasterListings.isEmpty()) {
-                loadListingData()
-            } else {
-                clearFilters()
-            }
+            if (allMasterListings.isEmpty()) loadListingData() else clearFilters()
         }
+
+        findViewById<TextView>(R.id.featuredSeeAll).setOnClickListener { openBrowse() }
+        findViewById<TextView>(R.id.recentSeeAll).setOnClickListener { openBrowse() }
+        findViewById<MaterialCardView>(R.id.browseCard).setOnClickListener { openBrowse() }
+        findViewById<MaterialCardView>(R.id.postCard).setOnClickListener {
+            startActivity(Intent(this, PostListing::class.java))
+        }
+
+        wireTabBar(R.id.bottomNavBar, NavTab.HOME, onReselect = {
+            clearFilters()
+            mainScroll.smoothScrollTo(0, 0)
+        })
     }
 
     private fun setupLiveSearch() {
-        val search = findViewById<EditText>(R.id.searchBar)
         val clear = findViewById<ImageButton>(R.id.searchClear)
         val voice = findViewById<ImageButton>(R.id.searchVoice)
 
-        search.addTextChangedListener { text ->
+        searchBar.addTextChangedListener { text ->
             currentSearchQuery = text?.toString()?.trim().orEmpty()
-            clear.isVisible = !text.isNullOrEmpty()
-            voice.isVisible = text.isNullOrEmpty()
+            clear.isVisible = currentSearchQuery.isNotEmpty()
+            voice.isVisible = currentSearchQuery.isEmpty()
             applyFilters()
         }
 
         voice.setOnClickListener {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-            intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Listening...")
+            }
             if (intent.resolveActivity(packageManager) != null) {
-                activityResultLauncher.launch(intent)
+                voiceSearchLauncher.launch(intent)
             } else {
-                Toast.makeText(
-                    this,
-                    "Speech recognition is not available.",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, "Speech recognition is not available.", Toast.LENGTH_LONG).show()
             }
         }
 
-        clear.setOnClickListener { search.setText("") }
-        search.setOnEditorActionListener { _, action, _ ->
+        clear.setOnClickListener { searchBar.setText("") }
+        searchBar.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_SEARCH) {
-                WindowCompat.getInsetsController(window, search)
-                    .hide(WindowInsetsCompat.Type.ime())
-                search.clearFocus()
+                WindowCompat.getInsetsController(window, searchBar).hide(WindowInsetsCompat.Type.ime())
+                searchBar.clearFocus()
                 true
             } else {
                 false
@@ -194,54 +211,48 @@ class MainActivity : AppCompatActivity() {
     private fun applyFilters() {
         if (!listingsLoaded) return
 
-        val filteredList = allMasterListings.filter { listing ->
-            val matchesCategory = (currentCategory == "All") || listing.category.equals(currentCategory, ignoreCase = true)
+        val filtered = allMasterListings.filter { listing ->
+            val matchesCategory = currentCategory == "All" ||
+                    listing.category.equals(currentCategory, ignoreCase = true)
             val matchesSearch = currentSearchQuery.isEmpty() ||
                     listing.title.contains(currentSearchQuery, ignoreCase = true) ||
                     listing.description.contains(currentSearchQuery, ignoreCase = true)
             matchesCategory && matchesSearch
         }
 
-        val featured = filteredList.filter { it.featured }
-        val recent = filteredList.sortedByDescending { it.createdAt }
+        val featured = filtered.filter { it.featured }
+        val recent = filtered.sortedByDescending { it.createdAt }
 
         featuredAdapter.updateList(featured)
         recentAdapter.updateList(recent)
-        findViewById<ViewGroup>(R.id.featuredSection).isVisible = featured.isNotEmpty()
-        findViewById<ViewGroup>(R.id.recentSection).isVisible = recent.isNotEmpty()
+        featuredSection.isVisible = featured.isNotEmpty()
+        recentSection.isVisible = recent.isNotEmpty()
 
-        val noListings = allMasterListings.isEmpty()
-        val noMatches = filteredList.isEmpty()
-        showEmptyState(noListings, noMatches)
+        updateEmptyState(noListings = allMasterListings.isEmpty(), noMatches = filtered.isEmpty())
     }
 
-    private fun showEmptyState(noListings: Boolean, noMatches: Boolean) {
-        val empty = findViewById<ViewGroup>(R.id.homeEmptyState)
+    private fun updateEmptyState(noListings: Boolean, noMatches: Boolean) {
+        homeEmptyState.isVisible = noListings || noMatches
+        if (!homeEmptyState.isVisible) return
+
         val title = findViewById<TextView>(R.id.homeEmptyTitle)
         val hint = findViewById<TextView>(R.id.homeEmptyHint)
         val action = findViewById<Button>(R.id.homeEmptyAction)
-
-        when {
-            noListings -> {
-                empty.isVisible = true
-                title.setText(R.string.home_empty_title)
-                hint.setText(R.string.home_empty_hint)
-                action.setText(R.string.home_refresh)
-            }
-            noMatches -> {
-                empty.isVisible = true
-                title.setText(R.string.home_no_matches_title)
-                hint.setText(R.string.home_no_matches_hint)
-                action.setText(R.string.clear_filters)
-            }
-            else -> empty.isVisible = false
+        if (noListings) {
+            title.setText(R.string.home_empty_title)
+            hint.setText(R.string.home_empty_hint)
+            action.setText(R.string.home_refresh)
+        } else {
+            title.setText(R.string.home_no_matches_title)
+            hint.setText(R.string.home_no_matches_hint)
+            action.setText(R.string.clear_filters)
         }
     }
 
     private fun clearFilters() {
         currentCategory = "All"
         categoryAdapter.setSelected(0)
-        findViewById<EditText>(R.id.searchBar).setText("")
+        searchBar.setText("")
         currentSearchQuery = ""
         applyFilters()
     }
@@ -252,99 +263,71 @@ class MainActivity : AppCompatActivity() {
         recentAdapter.updateSavedIds(userSavedIds)
     }
 
+    private fun openBrowse() {
+        val intent = Intent(this, BrowseActivity::class.java).apply {
+            if (currentSearchQuery.isNotEmpty()) putExtra("query", currentSearchQuery)
+            if (currentCategory != "All") putExtra("category", currentCategory)
+        }
+        startActivity(intent)
+    }
+
     private fun restoreState(state: Bundle?) {
         if (state == null) return
-        val category = state.getString(STATE_CATEGORY)
-        if (category != null) {
+        state.getString(STATE_CATEGORY)?.let { category ->
             val index = CategoryCatalog.homeRow().indexOfFirst { it.name == category }
             if (index >= 0) {
                 currentCategory = category
                 categoryAdapter.setSelected(index)
             }
         }
-        state.getString(STATE_QUERY)?.let { query ->
-            findViewById<EditText>(R.id.searchBar).setText(query)
-        }
+        state.getString(STATE_QUERY)?.let { searchBar.setText(it) }
         pendingScrollY = state.getInt(STATE_SCROLL_Y, 0)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString(STATE_CATEGORY, currentCategory)
         outState.putString(STATE_QUERY, currentSearchQuery)
-        outState.putInt(
-            STATE_SCROLL_Y,
-            pendingScrollY ?: findViewById<NestedScrollView>(R.id.mainScroll).scrollY
-        )
+        outState.putInt(STATE_SCROLL_Y, pendingScrollY ?: mainScroll.scrollY)
         super.onSaveInstanceState(outState)
     }
 
-    private fun setupHeaderLinks() {
-        findViewById<TextView>(R.id.featuredSeeAll).setOnClickListener { openBrowse() }
-        findViewById<TextView>(R.id.recentSeeAll).setOnClickListener { openBrowse() }
-    }
-
-    private fun setupActionCards() {
-        findViewById<MaterialCardView>(R.id.browseCard).setOnClickListener { openBrowse() }
-
-        findViewById<MaterialCardView>(R.id.postCard).setOnClickListener {
-            startActivity(Intent(this, PostListing::class.java))
-        }
-    }
-
-    // The "See all" links and the Browse card all land on the full browse screen
-    private fun openBrowse() {
-        startActivity(Intent(this, BrowseActivity::class.java))
-    }
-
-    private fun setupBottomNavigation() {
-        wireTabBar(R.id.bottomNavBar, NavTab.HOME, onReselect = {
-            // Tapping Home again restores the unfiltered feed.
-            clearFilters()
-            // The content view can already be detached during a task transition.
-            findViewById<NestedScrollView>(R.id.mainScroll)?.smoothScrollTo(0, 0)
-        })
-    }
-
     private fun loadListingData(showSpinner: Boolean = true) {
-        findViewById<View>(R.id.homeErrorState).isVisible = false
+        homeErrorState.isVisible = false
         if (showSpinner) {
-            findViewById<View>(R.id.homeLoading).isVisible = true
-            findViewById<View>(R.id.homeEmptyState).isVisible = false
-            findViewById<View>(R.id.featuredSection).isVisible = false
-            findViewById<View>(R.id.recentSection).isVisible = false
+            homeLoading.isVisible = true
+            homeEmptyState.isVisible = false
+            featuredSection.isVisible = false
+            recentSection.isVisible = false
         }
         ListingRepo.loadPublicListings(
             onSuccess = { listings ->
                 if (isDestroyed || isFinishing) return@loadPublicListings
                 allMasterListings = listings
                 listingsLoaded = true
-                findViewById<View>(R.id.homeLoading).isVisible = false
-                findViewById<SwipeRefreshLayout>(R.id.homeRefresh).isRefreshing = false
-                findViewById<View>(R.id.homeErrorState).isVisible = false
+                homeLoading.isVisible = false
+                homeRefresh.isRefreshing = false
                 applyFilters()
                 pendingScrollY?.let { scrollY ->
-                    val scroll = findViewById<NestedScrollView>(R.id.mainScroll)
-                    scroll.doOnNextLayout { scroll.scrollTo(0, scrollY) }
-                    scroll.requestLayout()
+                    mainScroll.doOnNextLayout { mainScroll.scrollTo(0, scrollY) }
+                    mainScroll.requestLayout()
                     pendingScrollY = null
                 }
             },
             onError = {
                 if (isDestroyed || isFinishing) return@loadPublicListings
                 listingsLoaded = false
-                findViewById<View>(R.id.homeLoading).isVisible = false
-                findViewById<SwipeRefreshLayout>(R.id.homeRefresh).isRefreshing = false
-                findViewById<View>(R.id.homeEmptyState).isVisible = false
-                findViewById<View>(R.id.featuredSection).isVisible = false
-                findViewById<View>(R.id.recentSection).isVisible = false
-                findViewById<View>(R.id.homeErrorState).isVisible = true
+                homeLoading.isVisible = false
+                homeRefresh.isRefreshing = false
+                homeEmptyState.isVisible = false
+                featuredSection.isVisible = false
+                recentSection.isVisible = false
+                homeErrorState.isVisible = true
             }
         )
     }
 
     override fun onResume() {
         super.onResume()
-        // Returning from the edit form should show the saved title, price, and photos.
         if (listingsLoaded) loadListingData(showSpinner = false)
     }
 
@@ -352,13 +335,9 @@ class MainActivity : AppCompatActivity() {
         super.onStart()
         accessJob?.cancel()
         accessJob = checkAccessOnStart {
-            // Re-sync active user's saved IDs
-            val currentUid = FirebaseAuth.getInstance().currentUser?.uid
-                ?: return@checkAccessOnStart
-            // Accounts predating the public/private profile split still need their seller card
-            // copied into sellerProfiles before other students can see it.
-            ListingRepo.ensureSellerProfile(currentUid)
-            ListingRepo.getSavedItemIds(currentUid) { savedList ->
+            val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@checkAccessOnStart
+            ListingRepo.ensureSellerProfile(uid)
+            ListingRepo.getSavedItemIds(uid) { savedList ->
                 userSavedIds = savedList.toMutableSet()
                 featuredAdapter.updateSavedIds(userSavedIds)
                 recentAdapter.updateSavedIds(userSavedIds)
@@ -370,27 +349,6 @@ class MainActivity : AppCompatActivity() {
         accessJob?.cancel()
         super.onStop()
     }
-	
-	private val activityResultLauncher: ActivityResultLauncher<Intent> =
-        registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val speechResults = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-                val recognizedText = speechResults?.firstOrNull() //get first recognized phrase
-                if (!recognizedText.isNullOrBlank()) {
-                    val search = findViewById<EditText>(R.id.searchBar)
-                    search.setText(recognizedText.trim()) //insert speech into the search bar
-                    search.setSelection(search.text.length) //position cursor to end of text
-                } else {
-                    Toast.makeText(
-                        this,
-                        "No speech recognized.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        }
 
     companion object {
         private const val STATE_CATEGORY = "home.category"
